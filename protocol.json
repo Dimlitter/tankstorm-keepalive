@@ -1,0 +1,38 @@
+{
+  "_说明": "坦克风暴 socket 协议，由 wireshark.pcapng 抓包逆向得到（2026-07-19）。帧结构 [2字节大端长度][2字节opcode][4字节seq(客户端恒为0)][protobuf body]。客户端所有包 seq=0，所以登录/心跳都是静态可重放，只有登录行含本会话的 uid/secret。",
+  "framing": "length2be",
+  "encoding": "utf-8",
+  "default_host": "tankstorm-proxy.sincetimes.com",
+  "default_port": 8001,
+  "http_warmup": true,
+
+  "login_sequence": [
+    {
+      "_step": "TGW 腾讯网关转发头（原文重放）：tgw_17_forward + Host",
+      "raw_hex": "7467775f31375f666f72776172640d0a486f73743a2074616e6b73746f726d2d70726f78792e73696e636574696d65732e636f6d3a383030310d0a0d0a"
+    },
+    {
+      "_step": "登录行 a,{uid},{secret}（本会话参数，来自 FlashVars），length2be 帧",
+      "framing": "length2be",
+      "parts": [
+        {"text": "a,{uid},{secret}"}
+      ],
+      "delay": 0.1
+    },
+    {
+      "_step": "认证包 opcode 041c，protobuf field3 = 固定密钥 Redwarhq2018HoneyHoneyHoney",
+      "raw_hex": "0023041c000000001a1b526564776172687132303138486f6e6579486f6e6579486f6e6579"
+    },
+    {
+      "_step": "build 信息包 opcode 041d",
+      "raw_hex": "0028041d000000001201301a056275696c642209756e646566696e65642a09756e646566696e65643000",
+      "delay": 0.2
+    }
+  ],
+
+  "heartbeat": {
+    "_说明": "opcode 040e，每 10 秒一次，抓包里重复 181 次，服务器回 0215 pong。完全静态。",
+    "interval_sec": 10,
+    "raw_hex": "0006040e00000000"
+  }
+}

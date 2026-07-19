@@ -1,0 +1,58 @@
+{
+    "_说明": [
+        "每个任务 = 一串按顺序回放的 HTTP 请求。URL/headers/data 里可以用变量：",
+        "{openid} {openkey} {pf} {pfkey} {uin} {g_tk} {ts} {ts_ms} {rand} {date}",
+        "requests 目前是空的 —— 需要先抓一次包（见 README 第 3 步），",
+        "用 tools/har2endpoints.py 自动生成候选请求后填进来。",
+        "字段含义：",
+        "  success_contains      响应文本包含任一关键字视为成功（如 \"ret\":0）",
+        "  already_done_contains 命中则视为今天已做过，算成功",
+        "  repeat                同一请求重复次数（如 5 次免费抽奖）",
+        "  delay_after           本条请求后的等待秒数",
+        "  continue_on_fail      本条失败仍继续任务里后面的请求"
+    ],
+    "base_headers": {
+        "Referer": "https://game.qzone.qq.com/100616028",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"
+    },
+    "tasks": [
+        {
+            "name": "每日签到",
+            "requests": []
+        },
+        {
+            "name": "每日任务领取",
+            "requests": []
+        },
+        {
+            "name": "在线奖励",
+            "requests": []
+        },
+        {
+            "name": "免费抽奖",
+            "requests": []
+        },
+        {
+            "name": "邮件奖励",
+            "requests": []
+        },
+        {
+            "name": "好友互赠",
+            "requests": []
+        }
+    ],
+    "_示例任务照抄这个格式": {
+        "name": "每日签到",
+        "requests": [
+            {
+                "method": "GET",
+                "url": "http://app100616028.qzoneapp.com/示例路径/sign.php?openid={openid}&openkey={openkey}&t={ts_ms}",
+                "headers": {},
+                "data": null,
+                "success_contains": ["\"ret\":0"],
+                "already_done_contains": ["已签到"],
+                "delay_after": 1.0
+            }
+        ]
+    }
+}

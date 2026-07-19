@@ -1,0 +1,38 @@
+{
+  "_说明": "socket 协议模板示例。抓包分析后，我会据此生成真正的 protocol.json（去掉 .example）。这里的字节是编造的，仅示范结构。",
+  "framing": "length4be",
+  "_framing可选值": "length2be | length4be | length2be_incl | length4be_incl | null | raw —— 表示每条消息的帧结构（长度前缀几字节大端，是否含自身，或 \\x00 分隔，或裸流）",
+  "encoding": "utf-8",
+  "default_host": "tankstorm-proxy.sincetimes.com",
+  "default_port": 8001,
+
+  "heartbeat": {
+    "_说明": "挂机时客户端定时发的心跳包。多数游戏心跳是固定字节，直接原样重放即可",
+    "interval_sec": 30,
+    "raw_hex": "0000000470696e67"
+  },
+
+  "login": {
+    "_说明": "连接后客户端发的登录握手。parts 按顺序拼接后再套 framing。field 取 ctx 里的值",
+    "parts": [
+      {"hex": "0001"},
+      {"field": "openid"},
+      {"hex": "7c"},
+      {"field": "openkey"},
+      {"hex": "7c"},
+      {"field": "uid", "as": "int8be"},
+      {"hex": "7c"},
+      {"field": "sid"},
+      {"hex": "7c"},
+      {"field": "region"},
+      {"hex": "7c"},
+      {"field": "secret"}
+    ]
+  },
+
+  "online_prompt": {
+    "_说明": "可选。若服务器会主动发'是否在线'探测包（收不到回应就踢），在这里配它的前缀和应答",
+    "match_hex_prefix": "00ff",
+    "reply": {"raw_hex": "00ff01"}
+  }
+}

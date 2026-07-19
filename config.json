@@ -1,0 +1,30 @@
+{
+    "_说明": "任务开关借鉴红警自动的配置风格：true 才执行。任务名必须与 endpoints.json 中的 name 一致",
+    "任务": {
+        "每日签到": true,
+        "每日任务领取": true,
+        "在线奖励": true,
+        "免费抽奖": true,
+        "邮件奖励": false,
+        "好友互赠": false
+    },
+    "保持活跃": {
+        "_说明": "连游戏 socket 定时发心跳，防止长时间无操作被踢下线。需要 protocol.json（抓包后生成）。用 python main.py --keepalive 启动",
+        "启用": true,
+        "心跳间隔秒": 0,
+        "_心跳间隔秒说明": "0 = 用抓包分析出的间隔（protocol.json 里的 interval_sec），否则强制用这个值",
+        "持续小时": 0,
+        "_持续小时说明": "0 = 一直运行，直到手动停止或掉线",
+        "重连最小秒": 5,
+        "重连最大秒": 120
+    },
+    "同日去重": true,
+    "重试次数": 3,
+    "请求间隔秒": 1.5,
+    "通知": {
+        "_说明": "Server酱 sendkey（https://sct.ftqq.com）或任意 webhook 地址，留空则不通知",
+        "server酱sendkey": "",
+        "webhook": "",
+        "仅失败时通知": true
+    }
+}

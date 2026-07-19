@@ -1,0 +1,34 @@
+# ===== 凭据 / 会话（含个人信息，绝不上传）=====
+cookies.json
+qrcode.png
+state.json
+
+# ===== 抓包文件（含真实 openid/openkey/uid/cookie）=====
+*.har
+*.saz
+*.pcap
+*.pcapng
+capture.json
+socket_capture*.json
+endpoints-candidates.json
+
+# ===== 运行时生成 =====
+debug/
+logs/
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# ===== 编辑器 / 系统 =====
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# ===== 个人配置（如需保留真实通知 key，改成本地专用）=====
+# 若你在 config.json 里填了 Server酱 sendkey / webhook，取消下一行注释以避免上传：
+# config.json
