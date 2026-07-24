@@ -2,6 +2,7 @@
 cookies.json
 qrcode.png
 state.json
+config.local.json
 
 # ===== 抓包文件（含真实 openid/openkey/uid/cookie）=====
 *.har
@@ -29,6 +30,5 @@ env/
 .DS_Store
 Thumbs.db
 
-# ===== 个人配置（如需保留真实通知 key，改成本地专用）=====
-# 若你在 config.json 里填了 Server酱 sendkey / webhook，取消下一行注释以避免上传：
-# config.json
+# ===== 个人配置 =====
+# 真实密钥（PushPlus token 等）放在 config.local.json，已在上方排除。

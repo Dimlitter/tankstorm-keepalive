@@ -19,7 +19,7 @@
 import socket
 import time
 
-from . import protocol
+from . import notify, protocol
 from .log import get_logger
 from .qzone import get_game_context
 
@@ -110,6 +110,23 @@ def _one_session(qq, spec: dict, conf: dict) -> str:
             pass
 
 
+def relogin_with_push(qq, config: dict) -> bool:
+    """需要重新扫码时：生成二维码并通过 PushPlus 推送给用户，等待扫码。
+    二维码过期/超时则自动重发新码，一直重试直到扫码成功（守护进程不能自己退场）。"""
+    def on_qr(path):
+        notify.send_qrcode(config, "坦克风暴：需要重新扫码登录", path)
+
+    attempt = 0
+    while True:
+        attempt += 1
+        log.info("登录态失效，已把二维码推送到 PushPlus，等待扫码（第 %d 次尝试）", attempt)
+        if qq.qr_login(on_qr=on_qr):
+            notify.send(config, "坦克风暴：已重新登录", "扫码成功，保活已恢复在线。")
+            return True
+        log.warning("本轮扫码未完成（超时/过期），15 秒后重发新二维码")
+        time.sleep(15)
+
+
 def run(qq, config: dict) -> int:
     conf = config.get("保持活跃", {})
     if not conf.get("启用", False):
@@ -128,6 +145,10 @@ def run(qq, config: dict) -> int:
     started = time.time()
     backoff = min_backoff
 
+    # 启动时若未登录（如服务器首次部署），也走"推送二维码"流程
+    if not qq.is_valid():
+        relogin_with_push(qq, config)
+
     log.info("保持活跃启动（Ctrl+C 停止）")
     try:
         while True:
@@ -135,10 +156,7 @@ def run(qq, config: dict) -> int:
                 log.info("达到设定运行时长，退出")
                 break
             if not qq.is_valid():
-                log.info("登录态失效，重新登录…")
-                if not qq.ensure_login():
-                    log.error("重新登录失败，退出")
-                    return 1
+                relogin_with_push(qq, config)
 
             reason = _one_session(qq, spec, conf)
             log.warning("本次连接结束：%s", reason)

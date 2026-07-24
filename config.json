@@ -22,9 +22,7 @@
     "重试次数": 3,
     "请求间隔秒": 1.5,
     "通知": {
-        "_说明": "Server酱 sendkey（https://sct.ftqq.com）或任意 webhook 地址，留空则不通知",
-        "server酱sendkey": "",
-        "webhook": "",
-        "仅失败时通知": true
+        "_说明": "PushPlus 推送（https://www.pushplus.plus）。真实 token 请填到 config.local.json（不进仓库），此处留空即可。仅在保活掉线、需要重新扫码时推送二维码。",
+        "pushplus_token": ""
     }
 }

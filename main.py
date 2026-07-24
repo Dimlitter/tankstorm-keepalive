@@ -25,6 +25,7 @@ from tankstorm.qq_login import QQSession             # noqa: E402
 log = get_logger()
 
 CONFIG_FILE = os.path.join(BASE_DIR, "config.json")
+LOCAL_CONFIG_FILE = os.path.join(BASE_DIR, "config.local.json")  # 放密钥，已 gitignore
 ENDPOINTS_FILE = os.path.join(BASE_DIR, "endpoints.json")
 STATE_FILE = os.path.join(BASE_DIR, "state.json")
 
@@ -39,6 +40,22 @@ def load_json(path: str, required: bool = True) -> dict:
         return json.load(f)
 
 
+def _deep_merge(base: dict, over: dict) -> dict:
+    """把 over 深度合并进 base（用于 config.local.json 覆盖 config.json 里的密钥）。"""
+    for k, v in over.items():
+        if isinstance(v, dict) and isinstance(base.get(k), dict):
+            _deep_merge(base[k], v)
+        else:
+            base[k] = v
+    return base
+
+
+def load_config() -> dict:
+    config = load_json(CONFIG_FILE)
+    local = load_json(LOCAL_CONFIG_FILE, required=False)  # 本地密钥文件，不进仓库
+    return _deep_merge(config, local)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="坦克风暴每日任务（纯请求版）")
     parser.add_argument("--login", action="store_true", help="强制重新扫码登录")
@@ -49,7 +66,7 @@ def main() -> int:
                         help="保持在线守护进程（连游戏 socket 定时心跳）")
     args = parser.parse_args()
 
-    config = load_json(CONFIG_FILE)
+    config = load_config()
     endpoints = load_json(ENDPOINTS_FILE)
 
     if args.list:
@@ -67,17 +84,20 @@ def main() -> int:
             return 0
 
     qq = QQSession()
-    if args.login and not args.keepalive:
-        if not qq.qr_login():
-            return 1
-    elif not qq.ensure_login():
-        notify.send(config, "坦克风暴脚本：需要重新扫码",
-                    "cookie 已失效，请到服务器上运行 python main.py --login")
-        return 1
 
-    # 保持在线：长驻守护进程，不走每日任务流程
+    # 保持在线：长驻守护进程；登录（含二维码 PushPlus 推送）由它内部处理
     if args.keepalive:
         return socket_keepalive.run(qq, config)
+
+    # 扫码时把二维码推送到 PushPlus（服务器无屏幕时用手机扫）
+    def on_qr(path):
+        notify.send_qrcode(config, "坦克风暴：请扫码登录", path)
+
+    if args.login:
+        if not qq.qr_login(on_qr=on_qr):
+            return 1
+    elif not qq.ensure_login(on_qr=on_qr):
+        return 1
 
     ctx = qzone.get_game_context(qq)
     if args.check:
@@ -95,11 +115,6 @@ def main() -> int:
             json.dump({"last_run": date.today().isoformat()}, f)
 
     failed = any(r.status == "失败" for r in results)
-    if config.get("通知", {}).get("仅失败时通知", True):
-        if failed:
-            notify.send(config, "坦克风暴每日任务：有失败项", summary)
-    else:
-        notify.send(config, "坦克风暴每日任务结果", summary)
     return 1 if failed else 0
 
 

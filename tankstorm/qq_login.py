@@ -159,7 +159,8 @@ class QQSession:
 
     # ---------- 扫码登录 ----------
 
-    def qr_login(self, timeout_sec: int = 180) -> bool:
+    def qr_login(self, timeout_sec: int = 180, on_qr=None) -> bool:
+        """扫码登录。on_qr(qrcode_path) 在二维码生成后回调（用于推送到手机等）。"""
         s = self.session
         s.cookies.clear()
 
@@ -181,6 +182,11 @@ class QQSession:
             except OSError:
                 pass
         _print_qr_ascii(QRCODE_FILE)
+        if on_qr:
+            try:
+                on_qr(QRCODE_FILE)         # 无头服务器上把二维码推送出去
+            except Exception as exc:
+                log.warning("二维码推送回调失败: %s", exc)
 
         ptqrtoken = hash33(qrsig)
         deadline = time.time() + timeout_sec
@@ -217,8 +223,8 @@ class QQSession:
         log.error("扫码超时（%d 秒）", timeout_sec)
         return False
 
-    def ensure_login(self) -> bool:
+    def ensure_login(self, on_qr=None) -> bool:
         if self.is_valid():
             log.info("cookie 有效，uin=%s", self.uin)
             return True
-        return self.qr_login()
+        return self.qr_login(on_qr=on_qr)

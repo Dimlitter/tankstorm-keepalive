@@ -44,7 +44,8 @@ tankstorm-qzone.sincetimes.com/?openid=..   ← 外框页
 
 ```
 main.py                     入口（--login/--check/--keepalive/--task/--list）
-config.json                 开关：保持活跃、任务、通知
+config.json                 开关：保持活跃、任务、通知（token 留空，填到 config.local.json）
+config.local.json           本地密钥（PushPlus token），已 gitignore，不进仓库
 protocol.json               socket 协议细节（登录/心跳字节）—— 抓包后生成，缺它保活会提示
 protocol.example.json       协议模板示例（说明结构）
 endpoints.json              社交 HTTP 任务模板（好友赠礼等，可选）
@@ -52,8 +53,9 @@ tankstorm/
   qq_login.py               扫码登录 + cookie 持久化
   qzone.py                  提取 openid/openkey/uid/sid/server/port（socket 登录参数）
   protocol.py               按 protocol.json 拼/拆 socket 包
-  socket_keepalive.py       保持在线守护进程（连 socket、心跳、掉线重连）
-  engine.py / notify.py     HTTP 任务引擎 / 结果通知
+  socket_keepalive.py       保持在线守护进程（连 socket、心跳、掉线重连、掉线推二维码）
+  notify.py                 PushPlus 推送（掉线需扫码时把二维码发到微信）
+  engine.py                 HTTP 任务引擎（社交任务用）
 tools/
   pcap_analyze.py           解析 Wireshark 抓包 → 定位登录握手+心跳（零依赖）
   har2endpoints.py          HAR → 社交 HTTP 任务模板
@@ -74,6 +76,20 @@ D:\miniconda\python.exe -m pip install -r requirements.txt
 conda create -n tank python=3.12 -y && conda activate tank
 pip install -r requirements.txt
 ```
+
+## 配置 PushPlus（掉线扫码提醒，可选但强烈建议）
+
+保活跑在服务器上时，QQ 登录态偶尔会过期、需要重新扫码。为此脚本会把二维码
+通过 [PushPlus](https://www.pushplus.plus) 推到你微信，你扫一下即可恢复——平时不打扰。
+
+1. 微信关注 PushPlus，拿到你的 token；
+2. 新建 `config.local.json`（此文件已 gitignore，不会上传）：
+
+```json
+{ "通知": { "pushplus_token": "你的token" } }
+```
+
+不配也能用，只是掉线时不会主动通知你。
 
 ## 第 1 步：登录 + 自检（本机）
 
@@ -120,7 +136,8 @@ D:\miniconda\python.exe main.py --keepalive
 nohup ~/tank/run_keepalive.sh &     # 或用 systemd / screen / tmux
 ```
 
-cookie 失效时会退出并（若配了）推送提醒，届时 `python main.py --login` 重新扫码。
+cookie 失效时守护进程会**自动生成新二维码并推送到 PushPlus**（你微信里点开即可看到），
+扫码后自动恢复在线，不用你上服务器操作；没扫的话会隔一会儿重发新码。
 
 ## 第 4 步（可选）：社交 HTTP 任务
 
