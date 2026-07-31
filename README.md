@@ -54,10 +54,12 @@ tankstorm/
   qzone.py                  提取 openid/openkey/uid/sid/server/port（socket 登录参数）
   protocol.py               按 protocol.json 拼/拆 socket 包
   socket_keepalive.py       保持在线守护进程（连 socket、心跳、掉线重连、掉线推二维码）
+  recorder.py               录制服务器消息 + 异常事件实时告警（超级强攻验证码等）
   notify.py                 PushPlus 推送（掉线需扫码时把二维码发到微信）
   engine.py                 HTTP 任务引擎（社交任务用）
 tools/
   pcap_analyze.py           解析 Wireshark 抓包 → 定位登录握手+心跳（零依赖）
+  analyze_frames.py         分析录制日志，定位异常事件消息
   har2endpoints.py          HAR → 社交 HTTP 任务模板
 run_daily.bat / run_daily.sh / requirements.txt
 ```
@@ -138,6 +140,29 @@ nohup ~/tank/run_keepalive.sh &     # 或用 systemd / screen / tmux
 
 cookie 失效时守护进程会**自动生成新二维码并推送到 PushPlus**（你微信里点开即可看到），
 扫码后自动恢复在线，不用你上服务器操作；没扫的话会隔一会儿重发新码。
+
+## 第 3 步：异常事件录制与告警（应对「超级强攻令」）
+
+游戏里别人可以用**超级强攻令**强制进攻你，你需要在 **5 分钟内输入验证码**，否则基地被强攻。
+这种事很随机，没法蹲着抓包。所以保活守护进程会顺带做两件事：
+
+1. **录制**：把服务器发来的消息按帧切好，写到 `logs/frames-日期.jsonl`
+   （高频大包如玩家列表会采样，避免日志爆炸）；
+2. **实时告警**：一旦出现**没见过的消息类型**，或消息里命中**验证码/强攻/进攻**等关键词，
+   立刻通过 PushPlus 推到你微信 —— 你就能在 5 分钟窗口内打开游戏自己处理。
+
+> 说明：脚本只负责**观察并第一时间叫你**，不会替你回应验证码。那个验证码本就是游戏
+> 用来确认真人在场的机制，自动过验证不在本项目范围内；及时提醒你本人去处理才是正路。
+
+事后分析（比如你想知道 09:52 到底收到了什么）：
+
+```bat
+D:\miniconda\python.exe tools\analyze_frames.py --around 09:52
+D:\miniconda\python.exe tools\analyze_frames.py --unknown
+```
+
+它会列出该时段的消息类型分布，并把未知类型/关键词命中的消息连 hexdump 一起打印出来。
+把结果发到 Issue，就能把这类事件固化成更精准的专用告警规则。
 
 ## 第 4 步（可选）：社交 HTTP 任务
 

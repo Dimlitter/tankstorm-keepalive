@@ -22,6 +22,7 @@ import time
 from . import notify, protocol
 from .log import get_logger
 from .qzone import get_game_context
+from .recorder import Recorder
 
 log = get_logger()
 
@@ -48,7 +49,7 @@ def _http_warmup(qq, ctx: dict) -> None:
         log.debug("warmup 失败(忽略): %s", exc)
 
 
-def _one_session(qq, spec: dict, conf: dict) -> str:
+def _one_session(qq, spec: dict, conf: dict, rec=None) -> str:
     """跑一次完整连接，直到断开。返回断开原因（字符串）。"""
     ctx = get_game_context(qq)
     host = ctx.get("server") or spec.get("default_host", "tankstorm-proxy.sincetimes.com")
@@ -97,6 +98,8 @@ def _one_session(qq, spec: dict, conf: dict) -> str:
                 continue
             if not data:
                 return f"服务器关闭连接（已发 {beats} 次心跳）"
+            if rec:
+                rec.feed(data)      # 录制服务器消息 + 异常事件告警
             reply = protocol.maybe_online_reply(spec, data, ctx)
             if reply:
                 sock.sendall(reply)
@@ -145,6 +148,16 @@ def run(qq, config: dict) -> int:
     started = time.time()
     backoff = min_backoff
 
+    # 录制服务器消息；发现异常事件（如超级强攻的验证码通知）立刻推送到手机
+    def on_alert(op, seq, body, text, reason):
+        notify.send(config, "⚠️ 坦克风暴：检测到异常事件，请立刻查看游戏",
+                    f"原因：{'；'.join(reason)}\n"
+                    f"消息类型：{op}  长度：{len(body)}\n"
+                    f"内容片段：{text[:200] or '(无可读文本)'}\n\n"
+                    f"若是「超级强攻」验证码，你只有约 5 分钟处理时间，"
+                    f"请马上打开游戏输入验证码。")
+    rec = Recorder(config, on_alert=on_alert)
+
     # 启动时若未登录（如服务器首次部署），也走"推送二维码"流程
     if not qq.is_valid():
         relogin_with_push(qq, config)
@@ -158,7 +171,7 @@ def run(qq, config: dict) -> int:
             if not qq.is_valid():
                 relogin_with_push(qq, config)
 
-            reason = _one_session(qq, spec, conf)
+            reason = _one_session(qq, spec, conf, rec)
             log.warning("本次连接结束：%s", reason)
             # 断开后退避重连
             wait = min(backoff, max_backoff)
@@ -168,4 +181,10 @@ def run(qq, config: dict) -> int:
             # 若刚成功跑过一段，重置退避
     except KeyboardInterrupt:
         log.info("手动停止保持活跃")
+    finally:
+        rec.close()
+        if rec.counts:
+            top = sorted(rec.counts.items(), key=lambda kv: -kv[1])[:8]
+            log.info("本次录制消息统计（前 8 类）：%s",
+                     "，".join(f"{o}×{c}" for o, c in top))
     return 0
