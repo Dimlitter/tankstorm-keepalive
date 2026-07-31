@@ -61,6 +61,8 @@ tools/
   pcap_analyze.py           解析 Wireshark 抓包 → 定位登录握手+心跳（零依赖）
   analyze_frames.py         分析录制日志，定位异常事件消息
   har2endpoints.py          HAR → 社交 HTTP 任务模板
+docs/
+  protocol-reverse-engineering.md   TCP 二进制协议逆向入门（方法论 + 本项目实例）
 run_daily.bat / run_daily.sh / requirements.txt
 ```
 
