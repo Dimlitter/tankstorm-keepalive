@@ -57,6 +57,14 @@ def _one_session(qq, spec: dict, conf: dict, rec=None) -> str:
     if not ctx.get("openkey"):
         return "未取得 openkey（登录态可能失效）"
 
+    if rec:
+        # 告诉录制器"我是谁"，用于过滤广播里与我无关的关键词误报。
+        # 守护进程要长跑，这里不能因为取标识失败就掀翻整个连接。
+        try:
+            rec.set_identity(ctx.get("uid"), ctx.get("openid"), getattr(qq, "uin", None))
+        except Exception as exc:
+            log.debug("设置录制标识失败(忽略): %s", exc)
+
     if spec.get("http_warmup", True):
         _http_warmup(qq, ctx)
 

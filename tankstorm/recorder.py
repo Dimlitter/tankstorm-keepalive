@@ -37,10 +37,23 @@ KNOWN_OPCODES = {
 # 高频/大体积消息：只计数不存 body，避免日志爆炸（0283 是玩家列表，单条可达数 KB）
 BULK_OPCODES = {"0283", "0215", "0213", "0217", "0234", "0287"}
 
+# 世界广播类消息：正文里塞满**其他玩家的自定义昵称**，关键词必然误报。
+# 实测 0283 里出现过昵称叫「在线包强攻，强攻令2270」「强攻宝贝」的玩家，
+# 广播一刷就触发"强攻"告警，但跟本人毫无关系。
+# 因此这类消息只有在**提到我自己**（uid/昵称）时才允许关键词告警。
+BROADCAST_OPCODES = {"0283"}
+
 # 命中即告警的关键词（UTF-8 出现在 protobuf 字符串字段里）
 ALERT_KEYWORDS = [
-    "验证码", "强攻", "超级强攻", "被进攻", "进攻你", "五分钟", "5分钟",
-    "验证", "确认在线", "是否在线",
+    "验证码", "超级强攻", "强攻令", "被进攻", "进攻你",
+    "五分钟内", "5分钟内", "确认在线", "是否在线",
+]
+
+# 图片魔数：服务器往 socket 推图片是非常反常的行为，验证码极可能以图片下发
+IMAGE_MAGICS = [
+    (b"\x89PNG\r\n\x1a\n", "PNG"),
+    (b"\xff\xd8\xff", "JPEG"),
+    (b"GIF87a", "GIF"), (b"GIF89a", "GIF"),
 ]
 
 
@@ -101,6 +114,17 @@ class Recorder:
         self._last_alert_ts = 0.0
         self._path = None
         self._fh = None
+        # 判断"广播消息是否与我有关"的标识：uid，以及可在配置里补充的游戏昵称
+        self.identity = {str(x).strip() for x in conf.get("我的标识", []) if str(x).strip()}
+
+    def set_identity(self, *ids) -> None:
+        """登录后把本次会话的 uid 等标识告诉录制器（用于过滤无关的广播）。"""
+        for i in ids:
+            if i:
+                self.identity.add(str(i).strip())
+
+    def _about_me(self, text: str) -> bool:
+        return any(i in text for i in self.identity) if self.identity else False
 
     # ---------- 落盘 ----------
 
@@ -138,6 +162,12 @@ class Recorder:
 
             unknown = op not in KNOWN_OPCODES
             hit_kw = [k for k in ALERT_KEYWORDS if k in text] if self.alert_keywords else []
+            image = next((n for m, n in IMAGE_MAGICS if m in body), None)
+
+            # 广播消息里全是别人的昵称，只有提到我自己时关键词才算数
+            suppressed = []
+            if hit_kw and op in BROADCAST_OPCODES and not self._about_me(text):
+                suppressed, hit_kw = hit_kw, []
 
             rec = {
                 "ts": time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -147,8 +177,13 @@ class Recorder:
                 rec["unknown"] = True
             if hit_kw:
                 rec["keywords"] = hit_kw
-            # 高频大包只记摘要；其余（尤其未知/命中关键词的）记完整 body 供事后分析
-            if op in BULK_OPCODES and not unknown and not hit_kw:
+            if suppressed:
+                rec["keywords_ignored"] = suppressed   # 留痕但不告警，便于事后核对
+            if image:
+                rec["image"] = image
+            # 高频大包只记摘要；其余（尤其未知/命中关键词/带图片的）记完整 body 供事后分析
+            important = unknown or hit_kw or image
+            if op in BULK_OPCODES and not important:
                 if self.counts[op] % 50 != 1:      # 每 50 条留 1 条摘要即可
                     continue
                 rec["note"] = "bulk-sampled"
@@ -159,12 +194,12 @@ class Recorder:
                     rec["text"] = text[:500]
             self._write(rec)
 
-            if (unknown and self.alert_unknown) or hit_kw:
-                self._maybe_alert(op, seq, body, text, unknown, hit_kw)
+            if (unknown and self.alert_unknown) or hit_kw or image:
+                self._maybe_alert(op, seq, body, text, unknown, hit_kw, image)
 
-    def _maybe_alert(self, op, seq, body, text, unknown, hit_kw):
-        # 关键词命中：每次都报（事关 5 分钟窗口）；仅"未知 opcode"：每种只报一次
-        if not hit_kw:
+    def _maybe_alert(self, op, seq, body, text, unknown, hit_kw, image=None):
+        # 关键词命中/收到图片：每次都报（事关 5 分钟窗口）；仅"未知 opcode"：每种只报一次
+        if not hit_kw and not image:
             if op in self._alerted:
                 return
             self._alerted.add(op)
@@ -175,6 +210,8 @@ class Recorder:
         reason = []
         if hit_kw:
             reason.append("命中关键词 " + "/".join(hit_kw))
+        if image:
+            reason.append(f"收到 {image} 图片（可能是验证码）")
         if unknown:
             reason.append(f"新消息类型 {op}")
         log.warning("⚠️ 异常事件：%s | op=%s len=%d | %s",
