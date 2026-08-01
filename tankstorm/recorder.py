@@ -31,8 +31,11 @@ KNOWN_OPCODES = {
     "024f", "0255", "0257", "025a", "0271", "0275", "0277", "027b", "027f",
     "0283", "0287", "028e", "0296", "029a", "029d", "029e", "02a0", "02a1",
     "02a2", "02a9", "02aa", "02b7", "02bc", "02c4", "02cb", "02cc", "02d8",
-    "02e6", "0303", "0307", "0312", "031a", "0329", "0331",
+    "02e6", "0303", "0307", "0312", "031a", "0326", "0329", "0331",
 }
+
+# 已学习到的 opcode 落盘于此：良性新类型只提醒一次，重启后不再重复打扰
+LEARNED_FILE = "known-opcodes.json"
 
 # 高频/大体积消息：只计数不存 body，避免日志爆炸（0283 是玩家列表，单条可达数 KB）
 BULK_OPCODES = {"0283", "0215", "0213", "0217", "0234", "0287"}
@@ -117,6 +120,43 @@ class Recorder:
         # 判断"广播消息是否与我有关"的标识：uid，以及可在配置里补充的游戏昵称
         self.identity = {str(x).strip() for x in conf.get("我的标识", []) if str(x).strip()}
 
+        # 刚连上时服务器会一口气推几十条消息（登录爆发期），其中不少 opcode 只在
+        # 登录时出现一次。这段时间只"学"不"报"，否则每次连接都被这批消息刷屏。
+        # 超级强攻这类事件发生在稳定运行期，不会落在这个窗口里。
+        self.warmup_sec = float(conf.get("登录静默秒", 20))
+        self._session_start = 0.0
+        self.learned = self._load_learned()
+
+    # ---------- 已知 opcode 的持久化学习 ----------
+
+    def _learned_path(self) -> str:
+        return os.path.join(LOG_DIR, LEARNED_FILE)
+
+    def _load_learned(self) -> set:
+        try:
+            with open(self._learned_path(), encoding="utf-8") as f:
+                return set(json.load(f).get("opcodes", []))
+        except (OSError, ValueError):
+            return set()
+
+    def _learn(self, op: str) -> None:
+        """记住这个 opcode，之后（含重启后）不再作为"新类型"告警。"""
+        if op in self.learned:
+            return
+        self.learned.add(op)
+        try:
+            os.makedirs(LOG_DIR, exist_ok=True)
+            with open(self._learned_path(), "w", encoding="utf-8") as f:
+                json.dump({"_说明": "运行中观察到的良性 opcode，避免重启后重复告警",
+                           "opcodes": sorted(self.learned)}, f,
+                          ensure_ascii=False, indent=1)
+        except OSError as exc:
+            log.debug("保存已学习 opcode 失败(忽略): %s", exc)
+
+    def on_connect(self) -> None:
+        """每次 socket 连接建立时调用，重新开始登录静默窗口。"""
+        self._session_start = time.time()
+
     def set_identity(self, *ids) -> None:
         """登录后把本次会话的 uid 等标识告诉录制器（用于过滤无关的广播）。"""
         for i in ids:
@@ -160,9 +200,15 @@ class Recorder:
             self.counts[op] = self.counts.get(op, 0) + 1
             text = _readable_text(body) if len(body) <= 65536 else ""
 
-            unknown = op not in KNOWN_OPCODES
+            unknown = op not in KNOWN_OPCODES and op not in self.learned
             hit_kw = [k for k in ALERT_KEYWORDS if k in text] if self.alert_keywords else []
             image = next((n for m, n in IMAGE_MAGICS if m in body), None)
+
+            # 新 opcode 一律记下来；登录爆发期内只学不报
+            in_warmup = bool(self._session_start) and \
+                (time.time() - self._session_start) < self.warmup_sec
+            if unknown:
+                self._learn(op)
 
             # 广播消息里全是别人的昵称，只有提到我自己时关键词才算数
             suppressed = []
@@ -175,6 +221,8 @@ class Recorder:
             }
             if unknown:
                 rec["unknown"] = True
+                if in_warmup:
+                    rec["warmup"] = True      # 登录爆发期学到的，未告警
             if hit_kw:
                 rec["keywords"] = hit_kw
             if suppressed:
@@ -194,8 +242,9 @@ class Recorder:
                     rec["text"] = text[:500]
             self._write(rec)
 
-            if (unknown and self.alert_unknown) or hit_kw or image:
-                self._maybe_alert(op, seq, body, text, unknown, hit_kw, image)
+            alert_unknown = unknown and self.alert_unknown and not in_warmup
+            if alert_unknown or hit_kw or image:
+                self._maybe_alert(op, seq, body, text, alert_unknown, hit_kw, image)
 
     def _maybe_alert(self, op, seq, body, text, unknown, hit_kw, image=None):
         # 关键词命中/收到图片：每次都报（事关 5 分钟窗口）；仅"未知 opcode"：每种只报一次

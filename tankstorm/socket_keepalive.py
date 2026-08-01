@@ -74,6 +74,8 @@ def _one_session(qq, spec: dict, conf: dict, rec=None) -> str:
         sock = _connect(host, port)
     except OSError as exc:
         return f"连接失败: {exc}"
+    if rec:
+        rec.on_connect()   # 开始登录静默窗口：这段时间的新 opcode 只学不报
 
     try:
         steps = protocol.build_login_sequence(spec, ctx)
