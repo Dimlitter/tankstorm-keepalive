@@ -37,6 +37,15 @@ KNOWN_OPCODES = {
 # 已学习到的 opcode 落盘于此：良性新类型只提醒一次，重启后不再重复打扰
 LEARNED_FILE = "known-opcodes.json"
 
+# 已确认的重要事件消息：**每次都告警**，不受"只报一次""登录静默""已学习"影响。
+# 2026-08-02 19:13 实测被超级强攻时捕获到这两条（此前两天日志中从未出现）。
+# 注意：它们的载荷是加密的（归一化熵 99%/96%，非 protobuf、非压缩、非单字节异或），
+# 因此关键词和图片检测对它们无效，只能靠 opcode 本身识别。
+EVENT_SIGNATURES = {
+    "0268": "疑似「超级强攻」通知（被攻击方收到的主消息，约 2.4KB）",
+    "027c": "疑似「超级强攻」后续消息（主消息后约 40 秒到达）",
+}
+
 # 高频/大体积消息：只计数不存 body，避免日志爆炸（0283 是玩家列表，单条可达数 KB）
 BULK_OPCODES = {"0283", "0215", "0213", "0217", "0234", "0287"}
 
@@ -109,7 +118,7 @@ class Recorder:
         self.enabled = conf.get("启用", True)
         self.alert_unknown = conf.get("未知消息告警", True)
         self.alert_keywords = conf.get("关键词告警", True)
-        self.keep_body_max = int(conf.get("单条最大记录字节", 2048))
+        self.keep_body_max = int(conf.get("单条最大记录字节", 16384))
         self.on_alert = on_alert
         self.reader = FrameReader()
         self.counts = {}
@@ -200,6 +209,7 @@ class Recorder:
             self.counts[op] = self.counts.get(op, 0) + 1
             text = _readable_text(body) if len(body) <= 65536 else ""
 
+            signature = EVENT_SIGNATURES.get(op)   # 已确认的重要事件，永远告警
             unknown = op not in KNOWN_OPCODES and op not in self.learned
             hit_kw = [k for k in ALERT_KEYWORDS if k in text] if self.alert_keywords else []
             image = next((n for m, n in IMAGE_MAGICS if m in body), None)
@@ -219,6 +229,8 @@ class Recorder:
                 "ts": time.strftime("%Y-%m-%d %H:%M:%S"),
                 "op": op, "seq": seq, "len": len(body),
             }
+            if signature:
+                rec["event"] = signature
             if unknown:
                 rec["unknown"] = True
                 if in_warmup:
@@ -230,33 +242,43 @@ class Recorder:
             if image:
                 rec["image"] = image
             # 高频大包只记摘要；其余（尤其未知/命中关键词/带图片的）记完整 body 供事后分析
-            important = unknown or hit_kw or image
+            important = unknown or hit_kw or image or signature
             if op in BULK_OPCODES and not important:
                 if self.counts[op] % 50 != 1:      # 每 50 条留 1 条摘要即可
                     continue
                 rec["note"] = "bulk-sampled"
                 rec["text"] = text[:120]
             else:
-                rec["hex"] = body[:self.keep_body_max].hex()
+                # 已确认的事件消息完整保存，绝不截断——这是最不能丢的数据
+                cap = len(body) if signature else self.keep_body_max
+                rec["hex"] = body[:cap].hex()
+                if len(body) > cap:
+                    rec["truncated"] = len(body)   # 标明原始长度，便于发现丢数据
                 if text:
                     rec["text"] = text[:500]
             self._write(rec)
 
             alert_unknown = unknown and self.alert_unknown and not in_warmup
-            if alert_unknown or hit_kw or image:
-                self._maybe_alert(op, seq, body, text, alert_unknown, hit_kw, image)
+            if alert_unknown or hit_kw or image or signature:
+                self._maybe_alert(op, seq, body, text, alert_unknown,
+                                  hit_kw, image, signature)
 
-    def _maybe_alert(self, op, seq, body, text, unknown, hit_kw, image=None):
-        # 关键词命中/收到图片：每次都报（事关 5 分钟窗口）；仅"未知 opcode"：每种只报一次
-        if not hit_kw and not image:
+    def _maybe_alert(self, op, seq, body, text, unknown, hit_kw, image=None,
+                     signature=None):
+        # 已确认事件/关键词/图片：每次都报（事关 5 分钟窗口）；
+        # 仅"未知 opcode"：每种只报一次，避免良性新类型刷屏
+        if not hit_kw and not image and not signature:
             if op in self._alerted:
                 return
             self._alerted.add(op)
-        if time.time() - self._last_alert_ts < 3:   # 简单防抖
+        # 已确认事件不受防抖限制——宁可重复也不能漏
+        if not signature and time.time() - self._last_alert_ts < 3:
             return
         self._last_alert_ts = time.time()
 
         reason = []
+        if signature:
+            reason.append(signature)
         if hit_kw:
             reason.append("命中关键词 " + "/".join(hit_kw))
         if image:
