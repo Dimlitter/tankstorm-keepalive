@@ -76,6 +76,13 @@ def _one_session(qq, spec: dict, conf: dict, rec=None) -> str:
         return f"连接失败: {exc}"
     if rec:
         rec.on_connect()   # 开始登录静默窗口：这段时间的新 opcode 只学不报
+        # 必须在发出第一个字节之前包上：这样客户端上行的包也会被录制，
+        # 而不是像以前那样只记服务器下行。返回值当普通 socket 用即可。
+        sock = rec.wrap(sock, host=host, port=port,
+                        uid=ctx.get("uid"), sid=ctx.get("sid"))
+        # 密钥三要素 uid/sid/level/firstLogin 都在 FlashVars 里，connect 时就齐了。
+        # 必须赶在第一条非豁免消息到达之前开，RC4 密钥流从那一条开始累积。
+        rec.enable_crypto(ctx)
 
     try:
         steps = protocol.build_login_sequence(spec, ctx)
@@ -86,6 +93,9 @@ def _one_session(qq, spec: dict, conf: dict, rec=None) -> str:
                 time.sleep(delay)
         log.info("已完成登录握手（%d 步），uid=%s secret=%s",
                  len(steps), ctx.get("uid"), ctx.get("secret"))
+        if rec:
+            # sid 是加密载荷分析时的头号候选密钥材料，记进会话元信息
+            rec.note("login_ok", sid=ctx.get("sid"), uid=ctx.get("uid"))
 
         hb = protocol.build_heartbeat(spec, ctx)
         last_beat = 0.0
@@ -108,8 +118,9 @@ def _one_session(qq, spec: dict, conf: dict, rec=None) -> str:
                 continue
             if not data:
                 return f"服务器关闭连接（已发 {beats} 次心跳）"
-            if rec:
-                rec.feed(data)      # 录制服务器消息 + 异常事件告警
+            # 注意：不再在这里调 rec.feed(data)。
+            # sock 已被 rec.wrap() 包过，收发字节会自动旁路进录制器；
+            # 这里再喂一次会导致下行消息被记录两遍、分帧缓冲错乱。
             reply = protocol.maybe_online_reply(spec, data, ctx)
             if reply:
                 sock.sendall(reply)
@@ -197,4 +208,14 @@ def run(qq, config: dict) -> int:
             top = sorted(rec.counts.items(), key=lambda kv: -kv[1])[:8]
             log.info("本次录制消息统计（前 8 类）：%s",
                      "，".join(f"{o}×{c}" for o, c in top))
+        if rec.counts_out:
+            top = sorted(rec.counts_out.items(), key=lambda kv: -kv[1])[:5]
+            log.info("上行消息统计：%s", "，".join(f"{o}×{c}" for o, c in top))
+        if rec.enc_ops:
+            log.info("本次加密消息：%s",
+                     "，".join(f"{o}×{c}" for o, c in
+                               sorted(rec.enc_ops.items(), key=lambda kv: -kv[1])[:8]))
+            if rec.stream.session_dir:
+                log.info("解密：python tools/redwar_rc4.py %s/s2c.bin --uid %s --write",
+                         rec.stream.session_dir, ctx.get("uid") or "<uid>")
     return 0

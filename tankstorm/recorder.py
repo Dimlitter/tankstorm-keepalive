@@ -1,25 +1,64 @@
-"""服务器消息录制 + 异常事件实时告警。
+"""服务器消息录制 + 异常事件实时告警 + 加密载荷取证。
 
 用途：像"超级强攻令"这种事件很随机（对方用令后你要在 5 分钟内输验证码，否则基地被强攻），
 没法蹲着抓包。但保活守护进程本来就 24 小时连在游戏 socket 上，让它顺便：
 
-  1. 把服务器发来的消息按协议帧切好，落盘到 logs/frames-YYYY-MM-DD.jsonl；
+  1. 把**双向**消息按协议帧切好，落盘到 logs/frames-YYYY-MM-DD.jsonl；
   2. 一旦发现"没见过的消息类型"或命中关键词（验证码/强攻/进攻…），
-     立刻通过 PushPlus 推到你微信 —— 你就能在 5 分钟窗口内自己打开游戏处理。
+     立刻通过 PushPlus 推到你微信 —— 你就能在 5 分钟窗口内自己打开游戏处理；
+  3. 自动识别**载荷加密**的消息（高熵 + 非 protobuf），完整存成独立 .bin，
+     供 tools/redwar_rc4.py 离线解密 —— 这类消息永不采样、永不截断。
 
 注意：本模块只做"观察 + 通知你"，不会替你回应验证码。验证码是游戏用来确认真人在场的
 机制，自动过验证码属于绕过人机验证，不在本项目范围内；及时叫你本人去处理才是正路。
 
 帧格式（抓包确认）：[2字节大端长度 N][2字节 opcode][4字节 seq][body]，整帧 = 2 + N。
+
+关于加密（2026-08-03，已由 RedWar_2026073102.swf 字节码定案）
+------------------------------------------------------------
+**绝大多数消息都是 RC4 加密的**，只有少数 opcode 走白名单豁免：
+  接收豁免 0215 0228 0229 0230 0283   （Transport._-29U 里按 opcode 判断）
+  发送豁免 040e 041c 041d 0455        （Transport.Send 里按 opcode 判断）
+protocol.json 的心跳/认证/build 三个包恰好都在发送豁免名单里 —— 这就是静态
+重放能工作的原因；0283 世界广播在接收豁免名单里 —— 这就是关键词能读到中文
+昵称的原因。两者都推不出"协议没加密"。
+
+密钥流范围（关键）：
+  · 包头永远明文，只有 body 过 RC4
+  · 豁免消息的 body 完全不碰 RC4 实例，**不消耗密钥流**
+  · 每个方向一个 RC4 实例，登录响应到达时建立，之后再不重置
+  → 密钥流在「该方向所有非豁免 body」之间连续累积。要解第 N 条，必须按顺序
+    喂入它之前的每一条非豁免 body，一条不能少；包头和豁免消息必须排除在外。
+
+所以：**中途漏一个非豁免 body，之后全部永久解不开。** 本模块因此把原始双向
+字节流全量落盘到 logs/streams/（默认开启），分帧失步会立刻标红 —— 那意味着
+这条流从失步点起已经报废，只能重连重录。
+
+密钥（Transport._-2q0）：
+  接收 = BASE._-71r ‖ str(level*100+firstLoginFlag) ‖ sid   S表倒序 S[k]=255-k
+  发送 = sid ‖ BASE._-71r ‖ str(level*100+firstLoginFlag)   S表正序 S[k]=k
+  两者都是 KSA 取模用 len-2、KSA 后 i=j=11（都不是假分支，字节码里无条件执行）。
+  BASE._-71r 编译期默认 '780511549720865'，运行时被 RedWar.Data 覆盖成 uid。
+解密用 tools/redwar_rc4.py。
 """
 
+import hashlib
 import json
+import math
 import os
 import struct
 import time
+from collections import Counter
 from datetime import date
 
+from . import crypto
 from .log import LOG_DIR, get_logger
+from .stream_recorder import StreamRecorder
+
+try:
+    from . import schema as SCH        # opcode -> 消息名（schema.json 还原自 SWF）
+except Exception:                      # schema.json 缺失也不影响录制
+    SCH = None
 
 log = get_logger()
 
@@ -39,11 +78,12 @@ LEARNED_FILE = "known-opcodes.json"
 
 # 已确认的重要事件消息：**每次都告警**，不受"只报一次""登录静默""已学习"影响。
 # 2026-08-02 19:13 实测被超级强攻时捕获到这两条（此前两天日志中从未出现）。
-# 注意：它们的载荷是加密的（归一化熵 99%/96%，非 protobuf、非压缩、非单字节异或），
-# 因此关键词和图片检测对它们无效，只能靠 opcode 本身识别。
+# 它们的载荷是加密的，关键词和图片检测对其无效，只能靠 opcode 本身识别。
+# 消息名由 SWF 还原（见 schema.json）：027c 就是超级强攻本体，字段里带攻防双方
+# 的 uid 和昵称；0268 是国家事件通告，实测两者同时出现。
 EVENT_SIGNATURES = {
-    "0268": "疑似「超级强攻」通知（被攻击方收到的主消息，约 2.4KB）",
-    "027c": "疑似「超级强攻」后续消息（主消息后约 40 秒到达）",
+    "027c": "RseSuperStormOpt —— 超级强攻通知（字段含 atkUid/atkName/deftUid/deftName）",
+    "0268": "RseCountryOpt —— 国家事件通告（实测与超级强攻同时到达）",
 }
 
 # 高频/大体积消息：只计数不存 body，避免日志爆炸（0283 是玩家列表，单条可达数 KB）
@@ -68,31 +108,70 @@ IMAGE_MAGICS = [
     (b"GIF87a", "GIF"), (b"GIF89a", "GIF"),
 ]
 
+# 豁免 RC4 的 opcode。来自 RedWar_2026073102.swf 反汇编：
+#   接收 Transport._-29U 偏移 761~1055 的比较链（533/552/553/560/643）
+#   发送 Transport.Send  偏移 271~504 的比较链（1038/1052/1053/1109）
+# 这两个名单之外的 body 全部过 RC4，且连续消耗同一条密钥流。
+EXEMPT_OPCODES = crypto.EXEMPT      # 单一来源，见 tankstorm/crypto.py
 
-class FrameReader:
-    """把 TCP 字节流按 [2字节长度] 切成协议帧。TCP 会粘包/拆包，必须缓冲重组。"""
+ENC_DIR = "enc"          # logs/enc/ 存重点加密载荷原始字节
+ENTROPY_MIN_LEN = 128    # 熵只用来交叉验证白名单，不再作为判定依据
 
-    def __init__(self):
-        self.buf = bytearray()
 
-    def feed(self, data: bytes) -> list:
-        """喂入新收到的字节，返回本次能完整解析出的帧 [(opcode_hex, seq, body), ...]。"""
-        self.buf.extend(data)
-        frames = []
-        while len(self.buf) >= 2:
-            ln = struct.unpack(">H", self.buf[:2])[0]
-            if ln < 6:                      # 至少要放下 opcode(2)+seq(4)
-                log.warning("帧解析失步（长度=%d），丢弃 %d 字节缓冲", ln, len(self.buf))
-                self.buf.clear()
-                break
-            if len(self.buf) < 2 + ln:      # 还没收全，等下一批
-                break
-            chunk = bytes(self.buf[2:2 + ln])
-            del self.buf[:2 + ln]
-            frames.append((chunk[:2].hex(),
-                           struct.unpack(">I", chunk[2:6])[0],
-                           chunk[6:]))
-        return frames
+# ---------------------------------------------------------------- 小工具
+
+def _entropy(b: bytes) -> float:
+    """香农熵（比特/字节）。密文接近 8，protobuf 文本一般 4~6。"""
+    if not b:
+        return 0.0
+    n = len(b)
+    return -sum((c / n) * math.log2(c / n) for c in Counter(b).values())
+
+
+def _varint(b, i):
+    shift = val = 0
+    n = len(b)
+    while i < n:
+        c = b[i]
+        i += 1
+        val |= (c & 0x7F) << shift
+        if not c & 0x80:
+            return val, i
+        shift += 7
+        if shift > 63:
+            return None, i
+    return None, i
+
+
+def _pb_ok(body: bytes) -> bool:
+    """body 能否整体解析成合法 protobuf（字段号>0，wire type 只能 0/1/2/5，长度刚好吃完）。"""
+    n = len(body)
+    if n == 0:
+        return True
+    i = 0
+    while i < n:
+        key, i = _varint(body, i)
+        if key is None:
+            return False
+        wt, fn = key & 7, key >> 3
+        if fn == 0 or wt in (3, 4, 6, 7):
+            return False
+        if wt == 0:
+            v, i = _varint(body, i)
+            if v is None:
+                return False
+        elif wt == 1:
+            i += 8
+        elif wt == 5:
+            i += 4
+        else:
+            ln, i = _varint(body, i)
+            if ln is None or ln > n - i:
+                return False
+            i += ln
+        if i > n:
+            return False
+    return i == n
 
 
 def _readable_text(body: bytes) -> str:
@@ -110,8 +189,69 @@ def _readable_text(body: bytes) -> str:
     return " ".join("".join(out).split())
 
 
+class FrameReader:
+    """把 TCP 字节流按 [2字节长度] 切成协议帧。TCP 会粘包/拆包，必须缓冲重组。"""
+
+    MAX_FRAME = 1 << 20      # 1MB，超过必然是失步而不是真的大包
+
+    def __init__(self, on_desync=None):
+        self.buf = bytearray()
+        self.on_desync = on_desync
+        self._preamble = True      # 连接开头可能有非帧结构的网关头
+        self.pos = 0               # buf[0] 在本方向字节流里的绝对偏移
+
+    def _eat_preamble(self) -> bool:
+        """TGW 网关头（tgw_l7_forward\\r\\nHost: …\\r\\n\\r\\n）不是长度前缀帧，
+        它会让分帧器从第一个字节就顶死（0x7467 被当成长度 29799 一直等）。
+        真帧的头两字节是大端长度，小于 0x2000 时首字节在 0x00~0x1f，不可能是可打印
+        ASCII —— 所以"首字节可打印"是安全的判据。"""
+        if not self._preamble or len(self.buf) < 4:
+            return False
+        if not all(32 <= c < 127 for c in self.buf[:4]):
+            self._preamble = False
+            return False
+        end = self.buf.find(b"\r\n\r\n", 0, 256)
+        if end < 0:
+            return len(self.buf) < 256      # 还没收全，继续等
+        del self.buf[:end + 4]
+        self.pos += end + 4
+        self._preamble = False
+        log.debug("跳过 %d 字节网关头前缀", end + 4)
+        return False
+
+    def feed(self, data: bytes) -> list:
+        """喂入新收到的字节，返回 [(opcode_hex, seq, body, body在流中的绝对偏移), ...]。"""
+        self.buf.extend(data)
+        if self._eat_preamble():
+            return []
+        frames = []
+        while len(self.buf) >= 2:
+            ln = struct.unpack(">H", self.buf[:2])[0]
+            if ln < 6 or ln > self.MAX_FRAME:   # 至少要放下 opcode(2)+seq(4)
+                dropped = len(self.buf)
+                log.warning("帧解析失步（长度=%d），丢弃 %d 字节缓冲", ln, dropped)
+                if self.on_desync:
+                    self.on_desync(ln, bytes(self.buf[:64]), dropped)
+                self.buf.clear()
+                self.pos += dropped
+                break
+            if len(self.buf) < 2 + ln:          # 还没收全，等下一批
+                break
+            chunk = bytes(self.buf[2:2 + ln])
+            del self.buf[:2 + ln]
+            frames.append((chunk[:2].hex(),
+                           struct.unpack(">I", chunk[2:6])[0],
+                           chunk[6:],
+                           self.pos + 8))       # body 起始处的绝对偏移
+            self.pos += 2 + ln
+        return frames
+
+    def pending(self) -> int:
+        return len(self.buf)
+
+
 class Recorder:
-    """录制服务器消息，并对异常事件回调告警。"""
+    """录制双向消息，并对异常事件回调告警。"""
 
     def __init__(self, config: dict, on_alert=None):
         conf = (config.get("录制", {}) or {})
@@ -119,9 +259,14 @@ class Recorder:
         self.alert_unknown = conf.get("未知消息告警", True)
         self.alert_keywords = conf.get("关键词告警", True)
         self.keep_body_max = int(conf.get("单条最大记录字节", 16384))
+        self.record_out = conf.get("录制上行", True)      # 客户端发出的包也记
+        self.dump_enc = conf.get("导出加密载荷", True)     # 加密 body 存独立 .bin
         self.on_alert = on_alert
-        self.reader = FrameReader()
+        self.reader = FrameReader(on_desync=self._note_desync)          # s2c
+        self.reader_out = FrameReader(on_desync=self._note_desync)      # c2s
         self.counts = {}
+        self.counts_out = {}
+        self.enc_ops = {}          # opcode -> 见到的加密载荷条数
         self._alerted = set()      # 同一 opcode 只在首次出现时告警，避免刷屏
         self._last_alert_ts = 0.0
         self._path = None
@@ -134,7 +279,30 @@ class Recorder:
         # 超级强攻这类事件发生在稳定运行期，不会落在这个窗口里。
         self.warmup_sec = float(conf.get("登录静默秒", 20))
         self._session_start = 0.0
+        self._session_id = time.strftime("%Y%m%d-%H%M%S")
+        self._enc_index = {"c2s": 0, "s2c": 0}
+        self._warned = set()
         self.learned = self._load_learned()
+
+        # 实时解密。密钥三要素（uid/sid/level/firstLogin）全在 FlashVars 里，
+        # connect 之前就齐了，所以可以边收边解。
+        # 状态机：off（没启用）→ probing（验证密钥）→ ok / failed
+        self.live_decrypt = conf.get("实时解密", True)
+        self._rc4 = {}
+        self._crypto = "off"
+        self._probe = [0, 0]        # [合法数, 已验数]
+
+        # 原始字节流旁路。默认**开启**，而且不该关：RC4 密钥流在同方向的
+        # 非豁免 body 之间连续累积，唯一保险的做法就是把整条流从第一个字节
+        # 一字不差地存下来。解密用 tools/redwar_rc4.py。
+        raw = conf.get("原始流", {}) or {}
+        self.stream = StreamRecorder(
+            base_dir=raw.get("目录", "logs/streams"),
+            enabled=raw.get("启用", True),
+            keep_sessions=int(raw.get("保留会话数", 10)),
+            max_bytes=int(raw.get("单会话上限MB", 256)) * 1024 * 1024,
+            log=log, hook=self._on_bytes,
+        )
 
     # ---------- 已知 opcode 的持久化学习 ----------
 
@@ -162,9 +330,74 @@ class Recorder:
         except OSError as exc:
             log.debug("保存已学习 opcode 失败(忽略): %s", exc)
 
+    # ---------- 会话 ----------
+
     def on_connect(self) -> None:
-        """每次 socket 连接建立时调用，重新开始登录静默窗口。"""
+        """每次 socket 连接建立时调用，重新开始登录静默窗口、重置分帧缓冲。
+
+        加密载荷序号也在这里归零：RC4 状态随连接重置，不同连接的密文
+        绝对不能混在一条链里喂。
+        """
         self._session_start = time.time()
+        self._session_id = time.strftime("%Y%m%d-%H%M%S")
+        self._enc_index = {"c2s": 0, "s2c": 0}
+        self._rc4, self._crypto, self._probe = {}, "off", [0, 0]
+        self.reader = FrameReader(on_desync=self._note_desync)
+        self.reader_out = FrameReader(on_desync=self._note_desync)
+
+    def wrap(self, sock, **meta):
+        """在 connect 之后、发第一个字节之前调用，返回带旁路的 socket。
+
+        这样上行（c2s）也能被记录 —— 原来的 feed() 只喂了下行。
+        """
+        try:
+            self.stream.open_session(**meta)
+        except Exception as exc:
+            log.debug("开原始流会话失败(忽略): %s", exc)
+        return self.stream.wrap(sock)
+
+    def enable_crypto(self, ctx: dict) -> bool:
+        """用 FlashVars 的 uid/sid/level/firstLogin 开启实时解密。
+
+        必须在 connect 之后、收到第一条非豁免消息之前调用 —— RC4 密钥流从
+        第一条非豁免 body 开始累积，晚一步就永远对不上。
+
+        密钥对不对不能预先知道，所以先进 probing：拿前几条解出来的 body 试
+        protobuf 校验，通不过就退回"只录不解"，原始流照样留着供离线解密。
+        """
+        if not self.live_decrypt:
+            return False
+        rc4, why = crypto.from_ctx(ctx or {})
+        if not rc4:
+            log.info("实时解密未启用（%s）—— 原始流照录，可事后用 "
+                     "tools/redwar_rc4.py 解", why)
+            return False
+        self._rc4, self._crypto, self._probe = rc4, "probing", [0, 0]
+        log.info("实时解密已就绪：%s", why)
+        return True
+
+    def _decrypt(self, direction, op, body):
+        """解一条非豁免 body。必须**无条件**调用，漏一条密钥流就永久错位。"""
+        c = self._rc4.get(direction)
+        if c is None or self._crypto == "failed":
+            return None
+        plain = c.crypt(body)
+        if self._crypto == "probing" and direction == "s2c" and len(body) >= 4:
+            ok, tot = self._probe
+            self._probe = [ok + (1 if _pb_ok(plain) else 0), tot + 1]
+            if self._probe[1] >= 6:
+                if self._probe[0] >= 5:
+                    self._crypto = "ok"
+                    log.info("实时解密自检通过（%d/%d 条解出合法 protobuf）",
+                             *self._probe)
+                else:
+                    self._crypto = "failed"
+                    self._rc4 = {}
+                    log.warning("实时解密自检失败（%d/%d）—— 密钥可能不对或流有缺口。"
+                                "已退回只录不解，用 tools/redwar_rc4.py 事后解。",
+                                *self._probe)
+                    return None
+        return plain
 
     def set_identity(self, *ids) -> None:
         """登录后把本次会话的 uid 等标识告诉录制器（用于过滤无关的广播）。"""
@@ -172,8 +405,37 @@ class Recorder:
             if i:
                 self.identity.add(str(i).strip())
 
+    def note(self, event: str, **kv) -> None:
+        """给原始流打事件标记（如 login_ok / sid）。"""
+        try:
+            self.stream.mark(event, **kv)
+            self.stream.set_meta(**kv)
+        except Exception:
+            pass
+
     def _about_me(self, text: str) -> bool:
         return any(i in text for i in self.identity) if self.identity else False
+
+    def _warn_once(self, key, fmt, *args):
+        if key in self._warned:
+            return
+        self._warned.add(key)
+        log.warning(fmt, *args)
+
+    def _note_desync(self, ln, head, dropped):
+        # RC4 密钥流按序累积：丢掉的字节里只要有一条非豁免 body，
+        # 这条流从此永久解不开，只能断开重连重录。
+        log.error("⚠ 分帧失步，丢弃 %d 字节 —— 本连接的 RC4 密钥流从此报废，"
+                  "该方向后续消息无法解密（重连会重建密钥流）", dropped)
+        self._write({"ts": time.strftime("%Y-%m-%d %H:%M:%S"), "op": "----",
+                     "desync": True, "bad_len": ln, "dropped": dropped,
+                     "head": head.hex(),
+                     "note": "密钥流已报废，此后的加密消息解不开"})
+        try:
+            self.stream.mark("desync", dropped=dropped)
+            self.stream.set_meta(keystream_broken=True)
+        except Exception:
+            pass
 
     # ---------- 落盘 ----------
 
@@ -199,22 +461,123 @@ class Recorder:
         except OSError as exc:
             log.warning("写录制日志失败: %s", exc)
 
+    def _dump_enc(self, op: str, body: bytes, direction: str,
+                  index: int, off: int) -> str:
+        """重点加密载荷单独存成 .bin，免去 hex 往返，便于单独查看。
+
+        文件名带「会话时间戳 + 本连接内序号」：密钥流按这个顺序累积。
+        注意完整解密要靠 logs/streams/ 的原始流，这里只是方便单独取用。
+        """
+        if not self.dump_enc:
+            return ""
+        d = os.path.join(LOG_DIR, ENC_DIR)
+        name = (f"{self._session_id}-{index:03d}-{direction}-{op}"
+                f"-off{off}-{len(body)}B.bin")
+        try:
+            os.makedirs(d, exist_ok=True)
+            with open(os.path.join(d, name), "wb") as f:
+                f.write(body)
+            return os.path.join(ENC_DIR, name)
+        except OSError as exc:
+            log.warning("导出加密载荷失败: %s", exc)
+            return ""
+
     # ---------- 主入口 ----------
 
-    def feed(self, data: bytes) -> None:
-        """把 socket 收到的原始字节喂进来。"""
+    def _on_bytes(self, direction, data):
+        """StreamRecorder 的旁路回调：双向字节都从这里进来。"""
+        if direction == "c2s":
+            if self.record_out:
+                self.feed(data, "c2s")
+        else:
+            self.feed(data, "s2c")
+
+    def feed(self, data: bytes, direction: str = "s2c") -> None:
+        """把 socket 收发的原始字节喂进来。默认下行，兼容原有调用方式。"""
         if not self.enabled:
             return
-        for op, seq, body in self.reader.feed(data):
-            self.counts[op] = self.counts.get(op, 0) + 1
-            text = _readable_text(body) if len(body) <= 65536 else ""
+        outgoing = direction == "c2s"
+        reader = self.reader_out if outgoing else self.reader
+        counts = self.counts_out if outgoing else self.counts
 
+        for op, seq, body, off in reader.feed(data):
+            counts[op] = counts.get(op, 0) + 1
+
+            # 登录行 a,{uid},{secret} 和 TGW 头是 Transport 之外的裸写，
+            # 不经过 Send()，绝不能算进密钥流。上行真帧的 opcode 都是 04xx。
+            real_frame = op.startswith("04") if outgoing else True
+            # 加密判定：按 SWF 里的 opcode 白名单，不再猜。空 body 不消耗密钥流。
+            encrypted = (real_frame and bool(body)
+                         and op not in EXEMPT_OPCODES[direction])
+            # 必须无条件解，且每条只解一次 —— 漏一条密钥流就永久错位
+            plain = self._decrypt(direction, op, body) if encrypted else None
+            ent = _entropy(body) if len(body) >= ENTROPY_MIN_LEN else None
+            if encrypted:
+                self.enc_ops[op] = self.enc_ops.get(op, 0) + 1
+            elif ent is not None and ent >= 7.5 and not _pb_ok(body):
+                # 豁免名单说该明文，实测却是高熵密文 —— 游戏改版了，名单要更新
+                self._warn_once(f"exempt-mismatch-{op}",
+                                "opcode %s 在豁免名单里却是高熵密文（熵 %.2f）—— "
+                                "游戏可能改版，白名单需要重新逆向", op, ent)
+
+            rec = {
+                "ts": time.strftime("%Y-%m-%d %H:%M:%S"),
+                "op": op, "seq": seq, "len": len(body),
+            }
+            if SCH:
+                nm = SCH.name_of(op)
+                if nm != op:
+                    rec["msg"] = nm
+            if outgoing:
+                rec["dir"] = "c2s"
+                # 登录行 a,{uid},{secret} 是「2字节长度 + 纯文本」，没有 opcode/seq，
+                # 会被当成 op=612c('a,') 解析。长度前缀是对的所以不会失步，只是名字没意义。
+                if not op.startswith("04"):
+                    rec["note"] = "非标准帧（多半是登录行 a,uid,secret）"
+
+            data = None
+            if encrypted:
+                # index 是本方向第几条「消耗密钥流」的 body —— 离线解密时必须
+                # 严格按这个顺序喂。stream_off 能回原始流精确定位。
+                idx = self._enc_index[direction]
+                self._enc_index[direction] = idx + 1
+                rec["enc"] = {"index": idx, "session": self._session_id,
+                              "stream_off": off}
+                if ent is not None:
+                    rec["enc"]["entropy"] = round(ent, 3)
+
+                if plain is None:
+                    # 没开实时解密或自检没过：留密文取证，不做文本分析
+                    rec["sha256"] = hashlib.sha256(body).hexdigest()
+                    rec["hex"] = body.hex()
+                    if op in EVENT_SIGNATURES or (
+                            not outgoing and op not in KNOWN_OPCODES
+                            and op not in self.learned):
+                        blob = self._dump_enc(op, body, direction, idx, off)
+                        if blob:
+                            rec["blob"] = blob
+                    self._write(rec)
+                    if not outgoing:
+                        self._maybe_flag(op, seq, body, "", rec)
+                    continue
+
+                # 解开了：换成明文往下走，关键词/图片检测因此对加密消息也生效
+                rec["enc"]["decrypted"] = True
+                body = plain
+                if SCH:
+                    data = SCH.decode(plain, op)
+                    if data is not None:
+                        rec["data"] = data
+
+            # ---- 以下为明文消息的原有逻辑，行为保持不变 ----
+            text = _readable_text(body) if len(body) <= 65536 else ""
             signature = EVENT_SIGNATURES.get(op)   # 已确认的重要事件，永远告警
-            unknown = op not in KNOWN_OPCODES and op not in self.learned
-            hit_kw = [k for k in ALERT_KEYWORDS if k in text] if self.alert_keywords else []
+            unknown = (not outgoing and op not in KNOWN_OPCODES
+                       and op not in self.learned)
+            hit_kw = ([k for k in ALERT_KEYWORDS if k in text]
+                      if self.alert_keywords and not outgoing else [])
             image = next((n for m, n in IMAGE_MAGICS if m in body), None)
 
-            # 新 opcode 一律记下来；登录爆发期内只学不报
             in_warmup = bool(self._session_start) and \
                 (time.time() - self._session_start) < self.warmup_sec
             if unknown:
@@ -225,10 +588,6 @@ class Recorder:
             if hit_kw and op in BROADCAST_OPCODES and not self._about_me(text):
                 suppressed, hit_kw = hit_kw, []
 
-            rec = {
-                "ts": time.strftime("%Y-%m-%d %H:%M:%S"),
-                "op": op, "seq": seq, "len": len(body),
-            }
             if signature:
                 rec["event"] = signature
             if unknown:
@@ -241,10 +600,11 @@ class Recorder:
                 rec["keywords_ignored"] = suppressed   # 留痕但不告警，便于事后核对
             if image:
                 rec["image"] = image
-            # 高频大包只记摘要；其余（尤其未知/命中关键词/带图片的）记完整 body 供事后分析
+
+            # 高频大包只记摘要；其余（尤其未知/命中关键词/带图片的）记完整 body
             important = unknown or hit_kw or image or signature
             if op in BULK_OPCODES and not important:
-                if self.counts[op] % 50 != 1:      # 每 50 条留 1 条摘要即可
+                if counts[op] % 50 != 1:      # 每 50 条留 1 条摘要即可
                     continue
                 rec["note"] = "bulk-sampled"
                 rec["text"] = text[:120]
@@ -258,13 +618,28 @@ class Recorder:
                     rec["text"] = text[:500]
             self._write(rec)
 
+            if outgoing:
+                continue
             alert_unknown = unknown and self.alert_unknown and not in_warmup
             if alert_unknown or hit_kw or image or signature:
                 self._maybe_alert(op, seq, body, text, alert_unknown,
-                                  hit_kw, image, signature)
+                                  hit_kw, image, signature, data=data)
+
+    def _maybe_flag(self, op, seq, body, text, rec):
+        """加密载荷的告警：沿用原有触发条件，只是在理由里补一句"载荷加密"。"""
+        signature = EVENT_SIGNATURES.get(op)
+        unknown = op not in KNOWN_OPCODES and op not in self.learned
+        if unknown:
+            self._learn(op)
+        in_warmup = bool(self._session_start) and \
+            (time.time() - self._session_start) < self.warmup_sec
+        alert_unknown = unknown and self.alert_unknown and not in_warmup
+        if alert_unknown or signature:
+            self._maybe_alert(op, seq, body, text, alert_unknown, [], None,
+                              signature, encrypted=True)
 
     def _maybe_alert(self, op, seq, body, text, unknown, hit_kw, image=None,
-                     signature=None):
+                     signature=None, encrypted=False, data=None):
         # 已确认事件/关键词/图片：每次都报（事关 5 分钟窗口）；
         # 仅"未知 opcode"：每种只报一次，避免良性新类型刷屏
         if not hit_kw and not image and not signature:
@@ -276,6 +651,7 @@ class Recorder:
             return
         self._last_alert_ts = time.time()
 
+        opname = SCH.describe(op) if SCH else op
         reason = []
         if signature:
             reason.append(signature)
@@ -284,9 +660,18 @@ class Recorder:
         if image:
             reason.append(f"收到 {image} 图片（可能是验证码）")
         if unknown:
-            reason.append(f"新消息类型 {op}")
-        log.warning("⚠️ 异常事件：%s | op=%s len=%d | %s",
-                    "；".join(reason), op, len(body), text[:120])
+            reason.append(f"新消息类型 {opname}")
+        if encrypted:
+            reason.append("载荷已加密（已完整存到 logs/enc/）")
+        if data:
+            # 解出来的关键字段直接进推送 —— 被谁打的、打的是谁
+            key = [f"{k}={v}" for k, v in data.items()
+                   if k in ("atkName", "atkUid", "deftName", "deftUid",
+                            "type", "nResult") and v not in (None, "", 0)]
+            if key:
+                reason.append("｜".join(key))
+        log.warning("⚠️ 异常事件：%s | %s len=%d | %s",
+                    "；".join(reason), opname, len(body), text[:120])
         if self.on_alert:
             try:
                 self.on_alert(op, seq, body, text, reason)
@@ -294,6 +679,14 @@ class Recorder:
                 log.warning("告警回调失败: %s", exc)
 
     def close(self):
+        for r, name in ((self.reader, "s2c"), (self.reader_out, "c2s")):
+            if r.pending():
+                log.debug("%s 分帧缓冲还剩 %d 字节未成帧（连接中断时的半个包）",
+                          name, r.pending())
+        try:
+            self.stream.close("recorder_close")
+        except Exception:
+            pass
         if self._fh:
             try:
                 self._fh.close()

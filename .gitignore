@@ -32,3 +32,10 @@ Thumbs.db
 
 # ===== 个人配置 =====
 # 真实密钥（PushPlus token 等）放在 config.local.json，已在上方排除。
+
+# ===== 游戏客户端二进制（版权资产，仅作为 extract_proto.py 的本地输入）=====
+*.swf
+# ===== 交付/工作文件 =====
+files.zip
+新增文件说明.txt
+解密.txt
