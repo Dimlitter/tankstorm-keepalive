@@ -253,7 +253,7 @@ class FrameReader:
 class Recorder:
     """录制双向消息，并对异常事件回调告警。"""
 
-    def __init__(self, config: dict, on_alert=None):
+    def __init__(self, config: dict, on_alert=None, on_super_storm=None):
         conf = (config.get("录制", {}) or {})
         self.enabled = conf.get("启用", True)
         self.alert_unknown = conf.get("未知消息告警", True)
@@ -261,7 +261,9 @@ class Recorder:
         self.keep_body_max = int(conf.get("单条最大记录字节", 16384))
         self.record_out = conf.get("录制上行", True)      # 客户端发出的包也记
         self.dump_enc = conf.get("导出加密载荷", True)     # 加密 body 存独立 .bin
+        self.auto_reject = conf.get("自动拒绝超级强攻", False)
         self.on_alert = on_alert
+        self.on_super_storm = on_super_storm   # 收到 027c 时的回调
         self.reader = FrameReader(on_desync=self._note_desync)          # s2c
         self.reader_out = FrameReader(on_desync=self._note_desync)      # c2s
         self.counts = {}
@@ -375,6 +377,16 @@ class Recorder:
         self._rc4, self._crypto, self._probe = rc4, "probing", [0, 0]
         log.info("实时解密已就绪：%s", why)
         return True
+
+    @property
+    def rc4_c2s(self):
+        """C→S 方向的 RC4 实例（发送非豁免包时必须用同一个实例加密）。
+
+        没有可用实例（未启用/自检失败）时返回 None。
+        """
+        if self._crypto == "failed":
+            return None
+        return self._rc4.get("c2s")
 
     def _decrypt(self, direction, op, body):
         """解一条非豁免 body。必须**无条件**调用，漏一条密钥流就永久错位。"""
@@ -624,6 +636,13 @@ class Recorder:
             if alert_unknown or hit_kw or image or signature:
                 self._maybe_alert(op, seq, body, text, alert_unknown,
                                   hit_kw, image, signature, data=data)
+
+            # ---- 超级强攻自动拒绝 ----
+            if op == "027c" and self.auto_reject and self.on_super_storm and data:
+                try:
+                    self.on_super_storm(data)
+                except Exception as exc:
+                    log.warning("超级强攻自动拒绝回调失败: %s", exc)
 
     def _maybe_flag(self, op, seq, body, text, rec):
         """加密载荷的告警：沿用原有触发条件，只是在理由里补一句"载荷加密"。"""

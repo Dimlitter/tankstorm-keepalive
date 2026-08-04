@@ -19,7 +19,7 @@
 import socket
 import time
 
-from . import notify, protocol
+from . import notify, protocol, sender
 from .log import get_logger
 from .qzone import get_game_context
 from .recorder import Recorder
@@ -49,7 +49,7 @@ def _http_warmup(qq, ctx: dict) -> None:
         log.debug("warmup 失败(忽略): %s", exc)
 
 
-def _one_session(qq, spec: dict, conf: dict, rec=None) -> str:
+def _one_session(qq, spec: dict, conf: dict, config: dict, rec=None) -> str:
     """跑一次完整连接，直到断开。返回断开原因（字符串）。"""
     ctx = get_game_context(qq)
     host = ctx.get("server") or spec.get("default_host", "tankstorm-proxy.sincetimes.com")
@@ -83,6 +83,26 @@ def _one_session(qq, spec: dict, conf: dict, rec=None) -> str:
         # 密钥三要素 uid/sid/level/firstLogin 都在 FlashVars 里，connect 时就齐了。
         # 必须赶在第一条非豁免消息到达之前开，RC4 密钥流从那一条开始累积。
         rec.enable_crypto(ctx)
+
+        # 超级强攻自动拒绝：在当前会话的 sock 和 RC4 上下文里构造回调
+        if rec.auto_reject:
+            _sock_ref = sock     # 闭包捕获当前会话的 socket
+            def _on_super_storm(data):
+                rc4 = rec.rc4_c2s
+                if rc4 is None:
+                    log.warning("自动拒绝超级强攻失败：RC4 C→S 实例不可用"
+                                "（实时解密未启用或密钥自检失败）")
+                    return
+                ok = sender.send_reject_super_storm(_sock_ref, rc4, data)
+                if ok:
+                    notify.send(config, "🛡️ 坦克风暴：已自动拒绝超级强攻",
+                                f"进攻方：{data.get('atkName', '?')}（{data.get('atkUid', '?')}）\n"
+                                f"防守方：{data.get('deftName', '?')}（{data.get('deftUid', '?')}）\n\n"
+                                f"已自动发送 RceSuperStormOpt type=2 拒绝包。\n"
+                                f"如果服务端要求验证码才接受拒绝，此包可能被忽略，"
+                                f"请立刻打开游戏确认。")
+            rec.on_super_storm = _on_super_storm
+            log.info("超级强攻自动拒绝已就绪")
 
     try:
         steps = protocol.build_login_sequence(spec, ctx)
@@ -177,6 +197,7 @@ def run(qq, config: dict) -> int:
                     f"内容片段：{text[:200] or '(无可读文本)'}\n\n"
                     f"若是「超级强攻」验证码，你只有约 5 分钟处理时间，"
                     f"请马上打开游戏输入验证码。")
+    # on_super_storm 回调在 _one_session 里根据当前 sock 动态设置
     rec = Recorder(config, on_alert=on_alert)
 
     # 启动时若未登录（如服务器首次部署），也走"推送二维码"流程
@@ -192,7 +213,7 @@ def run(qq, config: dict) -> int:
             if not qq.is_valid():
                 relogin_with_push(qq, config)
 
-            reason = _one_session(qq, spec, conf, rec)
+            reason = _one_session(qq, spec, conf, config, rec)
             log.warning("本次连接结束：%s", reason)
             # 断开后退避重连
             wait = min(backoff, max_backoff)
