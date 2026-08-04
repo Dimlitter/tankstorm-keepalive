@@ -39,3 +39,6 @@ Thumbs.db
 files.zip
 新增文件说明.txt
 解密.txt
+
+# ABC 解析缓存（由 disasm.load 生成，可随时重建）
+*.abccache
