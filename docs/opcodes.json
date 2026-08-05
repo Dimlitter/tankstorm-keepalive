@@ -1,0 +1,2254 @@
+{
+ "0200": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-AO",
+  "name": ""
+ },
+ "0201": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6av",
+  "name": "RseLevelBuy"
+ },
+ "0202": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1m7",
+  "name": "RseVipOpen"
+ },
+ "0203": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-8Q",
+  "name": "RseVipOpt"
+ },
+ "0204": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-73q",
+  "name": "RseVipLevelUp"
+ },
+ "0205": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0eC",
+  "name": "RseSevenDaysTarget"
+ },
+ "0206": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6FV",
+  "name": "RseYearLast"
+ },
+ "0207": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4yw",
+  "name": "RseZhaoMu"
+ },
+ "0208": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-10g",
+  "name": "RsePrompt"
+ },
+ "0209": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2b8",
+  "name": "RseAddArmy"
+ },
+ "020a": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1W-",
+  "name": "RseQuest"
+ },
+ "020b": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3Nc",
+  "name": "RseAttack"
+ },
+ "020c": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3U9",
+  "name": "RseAuthState"
+ },
+ "020d": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-11s",
+  "name": "RseBattleModify"
+ },
+ "020e": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-7Gv",
+  "name": "RseBuildingModify"
+ },
+ "020f": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6tL",
+  "name": "RseBuildingUpdate"
+ },
+ "0210": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2zw",
+  "name": "RseCredit"
+ },
+ "0211": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2W2",
+  "name": "RseError"
+ },
+ "0212": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-44U",
+  "name": "RseFightReprot"
+ },
+ "0213": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0El",
+  "name": "RseFriendList"
+ },
+ "0214": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3l-",
+  "name": "RseGet"
+ },
+ "0215": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1HV",
+  "name": ""
+ },
+ "0216": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1qL",
+  "name": "RseInit"
+ },
+ "0217": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2PK",
+  "name": "RseLoad"
+ },
+ "0218": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-br",
+  "name": "RseMineModify"
+ },
+ "0219": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2nZ",
+  "name": "RsePurchase"
+ },
+ "021a": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4cj",
+  "name": "RseRes"
+ },
+ "021b": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5lW",
+  "name": "RseSave"
+ },
+ "021c": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3KB",
+  "name": "RseTutorialStage"
+ },
+ "021d": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-06P",
+  "name": "RseUpdateSave"
+ },
+ "021e": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0Sv",
+  "name": "RseUserData"
+ },
+ "021f": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6y",
+  "name": "RseYellowDayGift"
+ },
+ "0220": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-7X0",
+  "name": "RseYellowNewGift"
+ },
+ "0221": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0MM",
+  "name": "RseBaseBattleModify"
+ },
+ "0222": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5Bo",
+  "name": "RseCoutinueLandGift"
+ },
+ "0223": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6TW",
+  "name": "RseRetCoutinueLandGift"
+ },
+ "0224": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1-G",
+  "name": "RseScienceLevelUp"
+ },
+ "0225": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-Ji",
+  "name": "RseUserInfo"
+ },
+ "0226": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1VQ",
+  "name": "RseFightEquipReprot"
+ },
+ "0227": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-10R",
+  "name": "RseUpBroadcast"
+ },
+ "0228": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-31p",
+  "name": "RseSysBroadcast"
+ },
+ "0229": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-02",
+  "name": "RseWebBroadcast"
+ },
+ "022a": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-39P",
+  "name": "RseGiftList"
+ },
+ "022b": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:RseGiftOpt",
+  "name": "RseGiftOpt"
+ },
+ "022c": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0kc",
+  "name": "RseGiftUndealCnt"
+ },
+ "022d": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0DR",
+  "name": "RseDefenseActivity"
+ },
+ "022e": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6tC",
+  "name": "RseClientOnceFlag"
+ },
+ "022f": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6Hb",
+  "name": "RseRecoverArmy"
+ },
+ "0230": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-57-",
+  "name": "RseComBroadcast"
+ },
+ "0231": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1e2",
+  "name": "RseNewComerGift"
+ },
+ "0232": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6jR",
+  "name": ""
+ },
+ "0233": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2N",
+  "name": "RseAddBuff"
+ },
+ "0234": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3GP",
+  "name": "RseBagItemLst"
+ },
+ "0235": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5pM",
+  "name": "RseMoonAccReward"
+ },
+ "0236": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1o4",
+  "name": "RseMoonOpen"
+ },
+ "0237": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-YD",
+  "name": "RseMoonStake"
+ },
+ "0238": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-qW",
+  "name": "RsePlatInviteFriend"
+ },
+ "0239": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0bU",
+  "name": ""
+ },
+ "023a": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6HV",
+  "name": "RseWPCBaseOpen"
+ },
+ "023b": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1O5",
+  "name": "RseWPCComOpen"
+ },
+ "023c": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1ZW",
+  "name": "RseWPCComOpt"
+ },
+ "023d": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1Ok",
+  "name": "RseWPCExplore"
+ },
+ "023e": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-36z",
+  "name": "RseBtlCapture"
+ },
+ "023f": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4jd",
+  "name": "RseSlaveRoomUpdate"
+ },
+ "0240": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-35e",
+  "name": "RseLeaveMessage"
+ },
+ "0241": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3hP",
+  "name": "RseDailyTask"
+ },
+ "0242": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2pS",
+  "name": "RseWallChgCloth"
+ },
+ "0243": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5L9",
+  "name": "RseClientNumStat"
+ },
+ "0244": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6oc",
+  "name": "RseBagItemUse"
+ },
+ "0245": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4z9",
+  "name": "RseBagOpen"
+ },
+ "0246": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3cf",
+  "name": "RseLogGet"
+ },
+ "0247": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-03o",
+  "name": ""
+ },
+ "0248": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6n-",
+  "name": "RseGetRecords"
+ },
+ "0249": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-74w",
+  "name": "RseBagUpgrade"
+ },
+ "024a": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1ha",
+  "name": ""
+ },
+ "024b": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-Lb",
+  "name": "RseWPCEmblemOpen"
+ },
+ "024c": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1cP",
+  "name": "RseWPCEmblemOpt"
+ },
+ "024d": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-we",
+  "name": "RseNewPlayer28Day"
+ },
+ "024e": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-101",
+  "name": "RseInviteFriend"
+ },
+ "024f": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2Na",
+  "name": "RseGetInviteMsg"
+ },
+ "0250": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6Dt",
+  "name": "RseGetInviteFriendMsg"
+ },
+ "0251": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3zi",
+  "name": "RseAdmiralOpen"
+ },
+ "0252": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0Fp",
+  "name": "RseAdmiralOpt"
+ },
+ "0253": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3SY",
+  "name": "RseAdmiralVisit"
+ },
+ "0254": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5eh",
+  "name": "RseNPCActive"
+ },
+ "0255": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4LO",
+  "name": "RseBaseDefNPC"
+ },
+ "0256": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-7L1",
+  "name": "RseShopForGift"
+ },
+ "0257": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-X4",
+  "name": "RseShopForGiftMsg"
+ },
+ "0258": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-279",
+  "name": ""
+ },
+ "0259": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5o",
+  "name": "RseAdmiralRank"
+ },
+ "025a": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0pF",
+  "name": "RseBaseChgData"
+ },
+ "025b": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1I0",
+  "name": ""
+ },
+ "025c": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0qy",
+  "name": "RseWPCBookOpen"
+ },
+ "025d": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4m",
+  "name": "RseWPCBookOpt"
+ },
+ "025e": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-7Ha",
+  "name": "RseDraw"
+ },
+ "025f": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4iI",
+  "name": "RsePopAd"
+ },
+ "0260": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-72Q",
+  "name": "RsePVEFightOpt"
+ },
+ "0261": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5c4",
+  "name": "RseStrategicArmyInfo"
+ },
+ "0262": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0bK",
+  "name": "RseStrategicArmyOpt"
+ },
+ "0263": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3rZ",
+  "name": "RseLuckyNumChoice"
+ },
+ "0264": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-Ha",
+  "name": "RseLuckyNumMsg"
+ },
+ "0265": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5-T",
+  "name": "RseBaseExploreOpen"
+ },
+ "0266": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-58h",
+  "name": "RseBaseExploreOpt"
+ },
+ "0267": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:RseCountryOpen",
+  "name": "RseCountryOpen"
+ },
+ "0268": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1wb",
+  "name": "RseCountryOpt"
+ },
+ "0269": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3RK",
+  "name": "RseCountryUserLst"
+ },
+ "026a": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5KF",
+  "name": "RseCountryBtlResult"
+ },
+ "026b": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6UN",
+  "name": "RseArmyGradeOpt"
+ },
+ "026c": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1H7",
+  "name": "RseLuckyWheel"
+ },
+ "026d": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4tx",
+  "name": "RseLuckyWheelMsg"
+ },
+ "026e": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0Va",
+  "name": "RseDaliyCostMsg"
+ },
+ "026f": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3fn",
+  "name": "RseDaliyCostOpt"
+ },
+ "0270": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3Jy",
+  "name": "RseArenaInfo"
+ },
+ "0271": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4Vf",
+  "name": "RseArenaOpt"
+ },
+ "0272": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5sE",
+  "name": "RseWPCEmblem"
+ },
+ "0273": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2d0",
+  "name": "RseZhanGongRank"
+ },
+ "0274": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0No",
+  "name": ""
+ },
+ "0275": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-zX",
+  "name": "RseDailySignIn"
+ },
+ "0276": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2p5",
+  "name": "RseWarCollegeOpt"
+ },
+ "0277": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5Ea",
+  "name": "RseSecArmsDealer"
+ },
+ "0278": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4-W",
+  "name": "RseWarGameOpt"
+ },
+ "0279": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5rc",
+  "name": "RseWarGameShop"
+ },
+ "027a": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0-4",
+  "name": "RseHappyLib"
+ },
+ "027b": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-7Es",
+  "name": "RseMilitarySoulOpt"
+ },
+ "027c": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2oc",
+  "name": "RseSuperStormOpt"
+ },
+ "027d": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-Lj",
+  "name": "RseHappyBuy"
+ },
+ "027e": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-57m",
+  "name": "RseArenaRankInfo"
+ },
+ "027f": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0qi",
+  "name": "RseFightSimpInfo"
+ },
+ "0280": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3uE",
+  "name": "RseGetChickenRank"
+ },
+ "0281": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1Id",
+  "name": "RseLoadFile"
+ },
+ "0282": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6mt",
+  "name": "RseAnniversaryActive"
+ },
+ "0283": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1wm",
+  "name": ""
+ },
+ "0284": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-59A",
+  "name": "RseGetRankGift"
+ },
+ "0285": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6bS",
+  "name": "RseEquipOpt"
+ },
+ "0286": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-115",
+  "name": ""
+ },
+ "0287": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-44f",
+  "name": "RseVirtualItemList"
+ },
+ "0288": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6-h",
+  "name": ""
+ },
+ "0289": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3fh",
+  "name": "RseArmyPropList"
+ },
+ "028a": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2h7",
+  "name": "RseFightDefInfo"
+ },
+ "028b": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4rg",
+  "name": "RseItemExchange"
+ },
+ "028c": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-37k",
+  "name": "RseWorldArenaInfo"
+ },
+ "028d": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2P2",
+  "name": "RseWorldArenaOpt"
+ },
+ "028e": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-7Oq",
+  "name": "RseWorldArenaRankInfo"
+ },
+ "028f": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3Ni",
+  "name": "RseCathectic"
+ },
+ "0290": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3hn",
+  "name": "RseActiveShop"
+ },
+ "0291": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4CS",
+  "name": "RseGuildOpt"
+ },
+ "0292": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6tB",
+  "name": "RseGuildUserLst"
+ },
+ "0293": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3mN",
+  "name": "RseFriendGift"
+ },
+ "0294": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-79w",
+  "name": "RseSevenDays"
+ },
+ "0295": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0zT",
+  "name": "RseWorldGrainDay"
+ },
+ "0296": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2oe",
+  "name": "RseLoadArmy"
+ },
+ "0297": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2bP",
+  "name": ""
+ },
+ "0298": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1gT",
+  "name": "RseGuildActive"
+ },
+ "0299": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2Rx",
+  "name": "RseYellowActive"
+ },
+ "029a": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-65q",
+  "name": "RsePassWord"
+ },
+ "029b": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-Y",
+  "name": "RseOfficerOpen"
+ },
+ "029c": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4VM",
+  "name": "RseOfficerOpt"
+ },
+ "029d": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4HP",
+  "name": "RseOfficerRightInfo"
+ },
+ "029e": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1KT",
+  "name": "RseActiveUIFlag"
+ },
+ "029f": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3Ln",
+  "name": "RseNewYearGift"
+ },
+ "02a0": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1L5",
+  "name": ""
+ },
+ "02a1": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-tD",
+  "name": "RseVipDailyShop"
+ },
+ "02a2": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4Hm",
+  "name": ""
+ },
+ "02a3": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4U2",
+  "name": "RseBookCollection"
+ },
+ "02a4": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2lZ",
+  "name": "RsePveBattleOpt"
+ },
+ "02a5": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5GM",
+  "name": "RsePveBattleReward"
+ },
+ "02a6": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1gl",
+  "name": "RseRegionArenaInfo"
+ },
+ "02a7": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4nt",
+  "name": "RseRegionArenaOpt"
+ },
+ "02a8": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-165",
+  "name": "RseRegionArenaRank"
+ },
+ "02a9": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-372",
+  "name": "RseCrossPromotion"
+ },
+ "02aa": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4NU",
+  "name": "RseAFDay"
+ },
+ "02ab": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4JT",
+  "name": "RseTributeActiveGift"
+ },
+ "02ac": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0oc",
+  "name": "RseUnlockVipMineNum"
+ },
+ "02ad": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-57g",
+  "name": "RsePokerOpt"
+ },
+ "02ae": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6y-",
+  "name": "RseAdmiralExchange"
+ },
+ "02af": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1Es",
+  "name": "RseCardDuel"
+ },
+ "02b0": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0qf",
+  "name": "RsePickUniteRegionGift"
+ },
+ "02b1": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0Fr",
+  "name": "RseWcPredictions"
+ },
+ "02b2": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5d3",
+  "name": "RseHeroOpen"
+ },
+ "02b3": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5JR",
+  "name": "RseHeroOpt"
+ },
+ "02b4": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0EA",
+  "name": "RseHeroVisit"
+ },
+ "02b5": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-7XJ",
+  "name": "RseHeroLst"
+ },
+ "02b6": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6Vi",
+  "name": "RseRegionCountryBtlResult"
+ },
+ "02b7": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4E3",
+  "name": "RseRegionCountryOpt"
+ },
+ "02b8": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-42e",
+  "name": "RseRegionCountryUserLst"
+ },
+ "02b9": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5T0",
+  "name": "RseHeroRank"
+ },
+ "02ba": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1MA",
+  "name": "RseMiddleYearGift"
+ },
+ "02bb": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2sj",
+  "name": "RseLevelLuxuryGift"
+ },
+ "02bc": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4fO",
+  "name": "RseRedwarMonthCard"
+ },
+ "02bd": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2TS",
+  "name": "RseSummerDiscount"
+ },
+ "02be": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2FI",
+  "name": "RseQQSNSGift"
+ },
+ "02bf": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0TA",
+  "name": "RseValentinesDayGift"
+ },
+ "02c0": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2Pe",
+  "name": ""
+ },
+ "02c1": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2dQ",
+  "name": "RsePropertyOpt"
+ },
+ "02c2": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0Xx",
+  "name": "RseGVEBtlResult"
+ },
+ "02c3": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4DZ",
+  "name": "RseSoulPersent"
+ },
+ "02c4": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2At",
+  "name": "RsePickNewPlayerGift"
+ },
+ "02c5": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1YW",
+  "name": "RseHeroArenaInfo"
+ },
+ "02c6": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1sv",
+  "name": "RseHeroArenaOpt"
+ },
+ "02c7": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1Tr",
+  "name": "RseHeroArenaRankInfo"
+ },
+ "02c8": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6Af",
+  "name": "RseShopItemOpen"
+ },
+ "02c9": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2RB",
+  "name": "RseHeroBoozeBenefit"
+ },
+ "02ca": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-7A1",
+  "name": "RseBackFlowGift"
+ },
+ "02cb": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6ds",
+  "name": "RseResourceOpt"
+ },
+ "02cc": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-UH",
+  "name": "RseVipMonthCard"
+ },
+ "02cd": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2sc",
+  "name": "RseWeaponCompRent"
+ },
+ "02ce": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6ym",
+  "name": "RseGvgOpt"
+ },
+ "02cf": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-750",
+  "name": "RseAllWPCInUse"
+ },
+ "02d0": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-Af",
+  "name": "RseExploreSecretArsenal"
+ },
+ "02d1": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2hU",
+  "name": "RseCountryBomb"
+ },
+ "02d2": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6Ox",
+  "name": "RseWPCComExtraOpen"
+ },
+ "02d3": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6yj",
+  "name": "RseEquip"
+ },
+ "02d4": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1Lr",
+  "name": "RseWPCBagCom"
+ },
+ "02d5": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4BN",
+  "name": "RseWPCBook"
+ },
+ "02d6": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1dI",
+  "name": "RseCountryChatMsg"
+ },
+ "02d7": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2XF",
+  "name": "RseRebate"
+ },
+ "02d8": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3n7",
+  "name": "RseDoubleElevenOfficer"
+ },
+ "02d9": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2Ew",
+  "name": "RseBossOpt"
+ },
+ "02da": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-16O",
+  "name": "RseGuildRedEnvelopeOpt"
+ },
+ "02db": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2Wm",
+  "name": "RseBigGift"
+ },
+ "02dc": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1GP",
+  "name": "RseChristmas"
+ },
+ "02dd": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-78u",
+  "name": "RseJammerOpt"
+ },
+ "02de": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4kI",
+  "name": "RseWPCBagJammer"
+ },
+ "02df": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-V4",
+  "name": ""
+ },
+ "02e0": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-459",
+  "name": "RseHappyCard"
+ },
+ "02e1": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5c-",
+  "name": "RseGetGreatAVCnt"
+ },
+ "02e2": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6Fm",
+  "name": "RseArmRace"
+ },
+ "02e3": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-7G0",
+  "name": "RseBlueGrowGift"
+ },
+ "02e4": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0H3",
+  "name": "RseSiteTestCredit"
+ },
+ "02e5": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5rt",
+  "name": "RseSiteTestLogin"
+ },
+ "02e6": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2Rm",
+  "name": "RseAssistGift"
+ },
+ "02e7": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2nA",
+  "name": "RseWeaponSearch"
+ },
+ "02e8": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-12G",
+  "name": "RseCityBuffInfo"
+ },
+ "02e9": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6x0",
+  "name": "RseRandomBuff"
+ },
+ "02ea": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1WZ",
+  "name": "RseQQHallGift"
+ },
+ "02eb": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-06a",
+  "name": "RseDuanWuVip"
+ },
+ "02ec": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:in",
+  "name": "RseOpenBoxShop"
+ },
+ "02ed": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4Uh",
+  "name": "RseBuyGift"
+ },
+ "02ee": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol: if",
+  "name": "RseTrapModify"
+ },
+ "02ef": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-HE",
+  "name": "RseUnlockVipTrapNum"
+ },
+ "02f0": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-mO",
+  "name": "RseBagMedalHonor"
+ },
+ "02f1": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6-C",
+  "name": ""
+ },
+ "02f2": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4Yp",
+  "name": "RseMedalHonorOpt"
+ },
+ "02f3": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0Bc",
+  "name": "RseZhaoCaiJinBao"
+ },
+ "02f4": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3Bb",
+  "name": "RseOneYuanPurchase"
+ },
+ "02f5": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2K8",
+  "name": "RseBuyGreatAdmiral"
+ },
+ "02f6": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4rq",
+  "name": "RseUpdateInUseAdmiral"
+ },
+ "02f7": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5k9",
+  "name": "RseOneCreditSendPrizeTips"
+ },
+ "02f8": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0Rz",
+  "name": "RseOneYuanCredit"
+ },
+ "02f9": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3Kk",
+  "name": "RseBuyCreditGiftTips"
+ },
+ "02fa": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-rK",
+  "name": "RseNationCelebration"
+ },
+ "02fb": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5vk",
+  "name": "RseDailyRecommend"
+ },
+ "02fc": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-54I",
+  "name": "RseRobBase"
+ },
+ "02fd": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5WF",
+  "name": "RseRobBaseBattle"
+ },
+ "02fe": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0Hm",
+  "name": "RseQPointResult"
+ },
+ "02ff": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3wW",
+  "name": "RseSuperZhaoMu"
+ },
+ "0300": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2EV",
+  "name": "RseCharitmasSnowMan"
+ },
+ "0301": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0O2",
+  "name": "RseWPCCraft"
+ },
+ "0302": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-25x",
+  "name": "RseRedpacketOpt"
+ },
+ "0303": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3NX",
+  "name": "RseTips"
+ },
+ "0304": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-75w",
+  "name": "RseSpriteLucklyBagOpt"
+ },
+ "0305": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0Lr",
+  "name": "RseSpriteZhuanZhuanZhuan"
+ },
+ "0306": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2uW",
+  "name": "RseOptimusPrimeScore"
+ },
+ "0307": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-70-",
+  "name": "RseFierceFightingOpt"
+ },
+ "0308": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2Q6",
+  "name": "RseBlackShopOpt"
+ },
+ "0309": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1IM",
+  "name": "RseOptimusPrimeTurntable"
+ },
+ "030a": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4nU",
+  "name": "RseWarTankResearchOpt"
+ },
+ "030b": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1BS",
+  "name": "RseFiveYearActive"
+ },
+ "030c": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2aW",
+  "name": "RseCostGiftGet"
+ },
+ "030d": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4Ri",
+  "name": "RseMysticalBlueBox"
+ },
+ "030e": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-09W",
+  "name": "RseTrenchMortarOpt"
+ },
+ "030f": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0Hf",
+  "name": "RseHalloween"
+ },
+ "0310": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-RJ",
+  "name": "RseMortarLimitAct"
+ },
+ "0311": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-Vp",
+  "name": "RsePreciseStrikeOpt"
+ },
+ "0312": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-fF",
+  "name": "RseAdviserOpt"
+ },
+ "0313": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4MH",
+  "name": "RseSixYearBuildGuild"
+ },
+ "0314": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0xw",
+  "name": "RseAdviserDaily"
+ },
+ "0315": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1yE",
+  "name": "RseAdviserVisitUpAtv"
+ },
+ "0316": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-12i",
+  "name": "RseWeekQuestOpt"
+ },
+ "0317": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3Ad",
+  "name": "RseTurtleShellGame"
+ },
+ "0318": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0ic",
+  "name": "RseGoldenPig"
+ },
+ "0319": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0bh",
+  "name": "RseGoldenPigBuffs"
+ },
+ "031a": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3OD",
+  "name": "RseJunBeiOpt"
+ },
+ "031b": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4n-",
+  "name": "RseVipFuLiPkg"
+ },
+ "031c": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6c3",
+  "name": "RseShenJiangDaRen"
+ },
+ "031d": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-16p",
+  "name": "RseChinaJie"
+ },
+ "031e": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0C7",
+  "name": "RseMouseYouHaveMoney"
+ },
+ "031f": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2BI",
+  "name": "RseCallBackAct"
+ },
+ "0320": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3vG",
+  "name": "RseGuoZhanDaRen"
+ },
+ "0321": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2wz",
+  "name": "RseBattleToken"
+ },
+ "0322": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2tO",
+  "name": "RsePingTu"
+ },
+ "0323": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4iU",
+  "name": "RseCommanderStation"
+ },
+ "0324": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5xp",
+  "name": "RseQixiActive"
+ },
+ "0325": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1hC",
+  "name": "RseLootBrother"
+ },
+ "0326": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5Ss",
+  "name": "RseWishPool"
+ },
+ "0327": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-oH",
+  "name": "RseConsumeRank"
+ },
+ "0328": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-05T",
+  "name": "RseDailygiftbuy"
+ },
+ "0329": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-7CR",
+  "name": "RseHeroEquipOpt"
+ },
+ "032a": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-68D",
+  "name": "RseMortarSuppyGiftOpt"
+ },
+ "032b": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-38M",
+  "name": "RseRechargeRebateOpt"
+ },
+ "032c": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5CD",
+  "name": "RseGuildBuildOpt"
+ },
+ "032d": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1u3",
+  "name": "RseQQBirthdayGift"
+ },
+ "032e": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3BN",
+  "name": "RseQQgiftBuildGuild"
+ },
+ "032f": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2Do",
+  "name": "RseSpecialStore"
+ },
+ "0330": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1Fl",
+  "name": "RseZhongQiuActive"
+ },
+ "0331": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5IR",
+  "name": "RseGiftTenMonth"
+ },
+ "0332": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-go",
+  "name": "RseBindGuildAct"
+ },
+ "0333": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0FZ",
+  "name": "RseTaskOpt"
+ },
+ "0334": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-7IE",
+  "name": "RseMaterialProtect"
+ },
+ "0335": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-sT",
+  "name": "RseSeaTreasure"
+ },
+ "0400": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-20-",
+  "name": "RceHeroOpen"
+ },
+ "0401": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4mF",
+  "name": "RceHeroOpt"
+ },
+ "0402": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5M9",
+  "name": "RceHeroVisit"
+ },
+ "0403": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-7LM",
+  "name": "RceRegionCountryOpt"
+ },
+ "0404": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1hY",
+  "name": "RceHeroRank"
+ },
+ "0405": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0hB",
+  "name": "RceMiddleYearGift"
+ },
+ "0406": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5sv",
+  "name": "RceVipDailyShop"
+ },
+ "0407": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-28q",
+  "name": "RceLevelLuxuryGift"
+ },
+ "0408": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-oR",
+  "name": "RceRedwarMonthCard"
+ },
+ "0409": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3de",
+  "name": "RceSummerDiscount"
+ },
+ "040a": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2kS",
+  "name": ""
+ },
+ "040b": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5K9",
+  "name": "RceValentinesDayGift"
+ },
+ "040c": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6DL",
+  "name": ""
+ },
+ "040d": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-7JF",
+  "name": "RcePropertyOpt"
+ },
+ "040e": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:RceHeartbeat",
+  "name": ""
+ },
+ "040f": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5Bt",
+  "name": "RceAddArmy"
+ },
+ "0410": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1sh",
+  "name": "RceQuest"
+ },
+ "0411": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5EH",
+  "name": "RceAttack"
+ },
+ "0412": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6X3",
+  "name": ""
+ },
+ "0413": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5Ky",
+  "name": "RceBattleModify"
+ },
+ "0414": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0fr",
+  "name": "RceBuildingModify"
+ },
+ "0415": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1lj",
+  "name": "RceCalYellowGift"
+ },
+ "0416": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0Mr",
+  "name": "RceClearData"
+ },
+ "0417": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3cQ",
+  "name": "RceCredit"
+ },
+ "0418": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3Q4",
+  "name": ""
+ },
+ "0419": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2fb",
+  "name": ""
+ },
+ "041a": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-eB",
+  "name": "RceGet"
+ },
+ "041b": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-ab",
+  "name": ""
+ },
+ "041c": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5Vr",
+  "name": "RceInit"
+ },
+ "041d": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6G6",
+  "name": "RceLoad"
+ },
+ "041e": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1di",
+  "name": "RceMineModify"
+ },
+ "041f": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6Pw",
+  "name": "RcePurchase"
+ },
+ "0420": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2Xo",
+  "name": "RceSave"
+ },
+ "0421": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2yL",
+  "name": "RceTutorialStage"
+ },
+ "0422": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:RceUpdateSave",
+  "name": "RceUpdateSave"
+ },
+ "0423": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0hp",
+  "name": "RceYellowDayGift"
+ },
+ "0424": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-SW",
+  "name": "RceYellowNewGift"
+ },
+ "0425": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6ZX",
+  "name": ""
+ },
+ "0426": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0pR",
+  "name": "RceElectricPct"
+ },
+ "0427": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6r-",
+  "name": "RceBaseBattleModify"
+ },
+ "0428": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5Wf",
+  "name": "RceAskContinueLandGift"
+ },
+ "0429": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1Rf",
+  "name": "RceScienceLevelUp"
+ },
+ "042a": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1lf",
+  "name": "RceFightEquipReprot"
+ },
+ "042b": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-ZD",
+  "name": "RceGiftList"
+ },
+ "042c": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-7RH",
+  "name": "RceGiftOpt"
+ },
+ "042d": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-10V",
+  "name": "RceDefenseActivity"
+ },
+ "042e": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2NM",
+  "name": "RceClientOnceFlag"
+ },
+ "042f": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6Wa",
+  "name": "RceRecoverArmy"
+ },
+ "0430": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2B3",
+  "name": "RceNewComerGift"
+ },
+ "0431": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-08p",
+  "name": "RcePlayerFlag"
+ },
+ "0432": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1uy",
+  "name": "RceAddBuff"
+ },
+ "0433": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-35x",
+  "name": "RceMoonAccReward"
+ },
+ "0434": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3ZZ",
+  "name": "RceMoonOpen"
+ },
+ "0435": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1FK",
+  "name": "RceMoonStake"
+ },
+ "0436": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6lf",
+  "name": "RcePlatInviteFriend"
+ },
+ "0437": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1dq",
+  "name": "RceWPCBaseOpen"
+ },
+ "0438": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-7XP",
+  "name": ""
+ },
+ "0439": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3Bg",
+  "name": "RceWPCComOpt"
+ },
+ "043a": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6xZ",
+  "name": "RceWPCExplore"
+ },
+ "043b": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1m1",
+  "name": "RceBtlCapture"
+ },
+ "043c": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4dL",
+  "name": "RceLeaveMessage"
+ },
+ "043d": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-qY",
+  "name": "RceDailyTask"
+ },
+ "043e": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1JF",
+  "name": "RceWallChgCloth"
+ },
+ "043f": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4GS",
+  "name": "RceClientNumStat"
+ },
+ "0440": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2Bt",
+  "name": "RceBagItemUse"
+ },
+ "0441": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2iO",
+  "name": ""
+ },
+ "0442": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1Ga",
+  "name": "RceLogGet"
+ },
+ "0443": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3r6",
+  "name": "RceCostGiftGet"
+ },
+ "0444": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-32x",
+  "name": "RceGetDailyRes"
+ },
+ "0445": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5zS",
+  "name": ""
+ },
+ "0446": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-RR",
+  "name": "RceBagUpgrade"
+ },
+ "0447": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0B",
+  "name": "RceWPCEmblemOpt"
+ },
+ "0448": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3Fy",
+  "name": ""
+ },
+ "0449": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6xW",
+  "name": "RceNewPlayer28Day"
+ },
+ "044a": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-qB",
+  "name": "RceInviteFriend"
+ },
+ "044b": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6-M",
+  "name": "RceGetInviteFrdGift"
+ },
+ "044c": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3sv",
+  "name": "RceGetInviteMsg"
+ },
+ "044d": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-16K",
+  "name": "RceGetInviteFriendMsg"
+ },
+ "044e": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-7Br",
+  "name": "RceAdmiralOpen"
+ },
+ "044f": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3FQ",
+  "name": "RceAdmiralOpt"
+ },
+ "0450": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-f4",
+  "name": "RceAdmiralVisit"
+ },
+ "0451": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-00F",
+  "name": "RceNPCActive"
+ },
+ "0452": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4ch",
+  "name": "RceBaseDefNPC"
+ },
+ "0453": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4jS",
+  "name": "RceShopForGift"
+ },
+ "0454": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0Rk",
+  "name": "RceTimeLimitSale"
+ },
+ "0455": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1wY",
+  "name": "RceDebug"
+ },
+ "0456": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-7QD",
+  "name": "RceAdmiralRank"
+ },
+ "0457": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6MP",
+  "name": ""
+ },
+ "0458": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2T6",
+  "name": "RceWPCBookOpt"
+ },
+ "0459": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3lU",
+  "name": ""
+ },
+ "045a": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-44C",
+  "name": "RceClickAd"
+ },
+ "045b": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2gW",
+  "name": "RcePVEFightOpt"
+ },
+ "045c": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-338",
+  "name": "RceStrategicArmyInfo"
+ },
+ "045d": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2gJ",
+  "name": "RceStrategicArmyOpt"
+ },
+ "045e": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-jy",
+  "name": "RceLuckyNumChoice"
+ },
+ "045f": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5Pc",
+  "name": "RceBaseExploreOpen"
+ },
+ "0460": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1Yb",
+  "name": "RceBaseExploreOpt"
+ },
+ "0461": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:RceBuyPrivilege",
+  "name": "RceBuyPrivilege"
+ },
+ "0462": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:RceCountryOpen",
+  "name": "RceCountryOpen"
+ },
+ "0463": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2bm",
+  "name": "RceCountryOpt"
+ },
+ "0464": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3k6",
+  "name": "RceArmyGradeOpt"
+ },
+ "0465": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-D0",
+  "name": "RceLuckyWheel"
+ },
+ "0466": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1OT",
+  "name": "RceDaliyCostMsg"
+ },
+ "0467": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4oL",
+  "name": "RceDaliyCostOpt"
+ },
+ "0468": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3ui",
+  "name": "RceArenaInfo"
+ },
+ "0469": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-385",
+  "name": "RceArenaOpt"
+ },
+ "046a": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0ai",
+  "name": "RceArenaRankInfo"
+ },
+ "046b": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6Yn",
+  "name": ""
+ },
+ "046c": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0TE",
+  "name": "RceGetChickenRank"
+ },
+ "046d": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3rC",
+  "name": ""
+ },
+ "046e": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5r5",
+  "name": "RceAnniversaryActive"
+ },
+ "046f": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5yI",
+  "name": "RceGetRankGift"
+ },
+ "0470": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-Dq",
+  "name": ""
+ },
+ "0471": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-I2",
+  "name": "RceEquipOpt"
+ },
+ "0472": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4us",
+  "name": ""
+ },
+ "0473": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-51",
+  "name": "RceItemExchange"
+ },
+ "0474": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-282",
+  "name": "RceWorldArenaInfo"
+ },
+ "0475": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1dC",
+  "name": "RceWorldArenaOpt"
+ },
+ "0476": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3tw",
+  "name": "RceWorldArenaRankInfo"
+ },
+ "0477": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2M0",
+  "name": "RceCathectic"
+ },
+ "0478": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5eg",
+  "name": "RceActiveShop"
+ },
+ "0479": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6qt",
+  "name": "RceGuildOpt"
+ },
+ "047a": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-06g",
+  "name": "RceSevenDays"
+ },
+ "047b": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6X8",
+  "name": "RceWorldGrainDay"
+ },
+ "047c": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5GK",
+  "name": "RceYellowActive"
+ },
+ "047d": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0gq",
+  "name": "RcePassWord"
+ },
+ "047e": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1UO",
+  "name": "RceOfficerOpen"
+ },
+ "047f": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4mN",
+  "name": "RceOfficerOpt"
+ },
+ "0480": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1QU",
+  "name": "RceOfficerRightInfo"
+ },
+ "0481": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2zb",
+  "name": "RceActiveUIFlag"
+ },
+ "0482": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-M",
+  "name": ""
+ },
+ "0483": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2Ds",
+  "name": "RceLevelBuy"
+ },
+ "0484": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2oU",
+  "name": ""
+ },
+ "0485": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6-g",
+  "name": "RceVipOpt"
+ },
+ "0486": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-04E",
+  "name": "RceSevenDaysTarget"
+ },
+ "0487": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6-1",
+  "name": "RceYearLast"
+ },
+ "0488": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2Zv",
+  "name": "RceZhaoMu"
+ },
+ "0489": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5BY",
+  "name": "RceNewYearGift"
+ },
+ "048a": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-49N",
+  "name": "RceBookCollection"
+ },
+ "048b": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5VG",
+  "name": "RcePveBattleOpt"
+ },
+ "048c": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-05d",
+  "name": "RceRegionArenaInfo"
+ },
+ "048d": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-xk",
+  "name": "RceRegionArenaOpt"
+ },
+ "048e": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1qx",
+  "name": "RceRegionArenaRank"
+ },
+ "048f": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-091",
+  "name": "RceCrossPromotion"
+ },
+ "0490": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5Dg",
+  "name": "RcePokerOpt"
+ },
+ "0491": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1p3",
+  "name": "RceCardDuel"
+ },
+ "0492": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0ZQ",
+  "name": "RcePickUniteRegionGift"
+ },
+ "0493": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-64B",
+  "name": "RceWcPredictions"
+ },
+ "0494": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2vE",
+  "name": "RcePickNewPlayerGift"
+ },
+ "0495": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:var",
+  "name": "RceHeroArenaInfo"
+ },
+ "0496": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2sG",
+  "name": "RceHeroArenaOpt"
+ },
+ "0497": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3Q1",
+  "name": "RceHeroArenaRankInfo"
+ },
+ "0498": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2og",
+  "name": "RceShopItemOpen"
+ },
+ "0499": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-723",
+  "name": "RceHeroBoozeBenefit"
+ },
+ "049a": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-7Tf",
+  "name": "RceResourceOpt"
+ },
+ "049b": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1hK",
+  "name": "RceVipMonthCard"
+ },
+ "049c": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6K4",
+  "name": "RceWeaponCompRent"
+ },
+ "049d": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5Ka",
+  "name": "RceGvgOpt"
+ },
+ "049e": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0bP",
+  "name": "RceExploreSecretArsenal"
+ },
+ "049f": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0Dv",
+  "name": "RceCountryBomb"
+ },
+ "04a0": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-786",
+  "name": "RceWPCComExtraOpen"
+ },
+ "04a1": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6Dv",
+  "name": "RceBackFlowGift"
+ },
+ "04a2": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-78V",
+  "name": "RceZhanGongRank"
+ },
+ "04a3": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-12u",
+  "name": "RceSuperVipRegister"
+ },
+ "04a4": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2lF",
+  "name": "RceDailySignIn"
+ },
+ "04a5": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5jp",
+  "name": "RceWarCollegeOpt"
+ },
+ "04a6": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0pY",
+  "name": "RceSecArmsDealer"
+ },
+ "04a7": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6iZ",
+  "name": "RceWarGameOpt"
+ },
+ "04a8": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-r0",
+  "name": "RceWarGameShop"
+ },
+ "04a9": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-57N",
+  "name": "RceHappyLib"
+ },
+ "04aa": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0xT",
+  "name": "RceMilitarySoulOpt"
+ },
+ "04ab": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5gF",
+  "name": "RceSuperStormOpt"
+ },
+ "04ac": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3vS",
+  "name": "RceHappyBuy"
+ },
+ "04ad": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2Nk",
+  "name": "RceCountryChatMsg"
+ },
+ "04ae": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2fA",
+  "name": "RceRebate"
+ },
+ "04af": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4eB",
+  "name": "RceDoubleElevenOfficer"
+ },
+ "04b0": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-jz",
+  "name": "RceBossOpt"
+ },
+ "04b1": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2T5",
+  "name": "RceGuildRedEnvelopeOpt"
+ },
+ "04b2": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2iy",
+  "name": "RceBigGift"
+ },
+ "04b3": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5UG",
+  "name": "RceChristmas"
+ },
+ "04b4": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4Jc",
+  "name": "RceJammerOpt"
+ },
+ "04b5": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-lU",
+  "name": "RceHappyCard"
+ },
+ "04b6": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1uJ",
+  "name": "RceArmRace"
+ },
+ "04b7": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-79U",
+  "name": "RceBlueGrowGift"
+ },
+ "04b8": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2nB",
+  "name": "RceSiteTestCredit"
+ },
+ "04b9": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6F7",
+  "name": "RceSiteTestLogin"
+ },
+ "04ba": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6rC",
+  "name": "RceAssistGift"
+ },
+ "04bb": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-50Y",
+  "name": "RceWeaponSearch"
+ },
+ "04bc": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-VF",
+  "name": "RceQQHallGift"
+ },
+ "04bd": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-G3",
+  "name": "RceDuanWuVip"
+ },
+ "04be": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-49W",
+  "name": ""
+ },
+ "04bf": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4FP",
+  "name": "RceBuyGift"
+ },
+ "04c0": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3bt",
+  "name": "RceTrapModify"
+ },
+ "04c1": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1rG",
+  "name": "RceMedalHonorOpt"
+ },
+ "04c2": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3MZ",
+  "name": "RceZhaoCaiJinBao"
+ },
+ "04c3": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-7H-",
+  "name": "RceOneYuanPurchase"
+ },
+ "04c4": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4Li",
+  "name": "RceBuyGreatAdmiral"
+ },
+ "04c5": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5Oh",
+  "name": "RceOneYuanCredit"
+ },
+ "04c6": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-lL",
+  "name": "RceNationCelebration"
+ },
+ "04c7": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6zW",
+  "name": ""
+ },
+ "04c8": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6fZ",
+  "name": "RceRobBase"
+ },
+ "04c9": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1C8",
+  "name": "RceSuperZhaoMu"
+ },
+ "04ca": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0ge",
+  "name": "RceCharitmasSnowMan"
+ },
+ "04cb": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6fD",
+  "name": "RceWPCCraft"
+ },
+ "04cc": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1Vc",
+  "name": "RceRedpacketOpt"
+ },
+ "04cd": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-7-X",
+  "name": "RceSpriteLucklyBagOpt"
+ },
+ "04ce": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-48n",
+  "name": "RceSpriteZhuanZhuanZhuan"
+ },
+ "04cf": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6vR",
+  "name": "RceOptimusPrimeScore"
+ },
+ "04d0": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2y",
+  "name": "RceFierceFightingOpt"
+ },
+ "04d1": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2Jy",
+  "name": "RceBlackShopOpt"
+ },
+ "04d2": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0up",
+  "name": "RceOptimusPrimeTurntable"
+ },
+ "04d3": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4aV",
+  "name": "RceWarTankResearchOpt"
+ },
+ "04d4": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1XW",
+  "name": "RceFiveYearActive"
+ },
+ "04d5": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6FA",
+  "name": "RceMysticalBlueBox"
+ },
+ "04d6": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2av",
+  "name": "RceTrenchMortarOpt"
+ },
+ "04d7": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5X7",
+  "name": "RceHalloween"
+ },
+ "04d8": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-26r",
+  "name": "RceMortarLimitAct"
+ },
+ "04d9": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1Gn",
+  "name": "RcePreciseStrikeOpt"
+ },
+ "04da": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3O1",
+  "name": "RceAdviserOpt"
+ },
+ "04db": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2pf",
+  "name": "RceSixYearBuildGuild"
+ },
+ "04dc": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1W5",
+  "name": "RceAdviserDaily"
+ },
+ "04dd": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4zv",
+  "name": "RceAdviserVisitUpAtv"
+ },
+ "04de": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-Kr",
+  "name": "RceWeekQuestOpt"
+ },
+ "04df": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0tY",
+  "name": "RceTurtleShellGame"
+ },
+ "04e0": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4I",
+  "name": "RceGoldenPig"
+ },
+ "04e1": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0o6",
+  "name": "RceJunBeiOpt"
+ },
+ "04e2": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3Hj",
+  "name": "RceVipFuLiPkg"
+ },
+ "04e3": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-vP",
+  "name": "RceShenJiangDaRen"
+ },
+ "04e4": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6GA",
+  "name": "RceChinaJie"
+ },
+ "04e5": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0tZ",
+  "name": "RceMouseYouHaveMoney"
+ },
+ "04e6": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-587",
+  "name": "RceCallBackAct"
+ },
+ "04e7": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0SL",
+  "name": "RceGuoZhanDaRen"
+ },
+ "04e8": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6ln",
+  "name": "RceBattleToken"
+ },
+ "04e9": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4bF",
+  "name": "RcePingTu"
+ },
+ "04ea": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-Tq",
+  "name": "RceCommanderStation"
+ },
+ "04eb": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2nU",
+  "name": "RceQixiActive"
+ },
+ "04ec": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-58l",
+  "name": "RceLootBrother"
+ },
+ "04ed": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-61g",
+  "name": "RceWishPool"
+ },
+ "04ee": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5NY",
+  "name": "RceConsumeRank"
+ },
+ "04ef": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2PX",
+  "name": "RceDailygiftbuy"
+ },
+ "04f0": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-CZ",
+  "name": "RceHeroEquipOpt"
+ },
+ "04f1": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0h7",
+  "name": "RceMortarSuppyGiftOpt"
+ },
+ "04f2": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-7Sl",
+  "name": "RceRechargeRebateOpt"
+ },
+ "04f3": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6D6",
+  "name": "RceGuildBuildOpt"
+ },
+ "04f4": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-3Gt",
+  "name": "RceQQBirthdayGift"
+ },
+ "04f5": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2jf",
+  "name": "RceQQgiftBuildGuild"
+ },
+ "04f6": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-2u6",
+  "name": "RceSpecialStore"
+ },
+ "04f7": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-5C8",
+  "name": "RceZhongQiuActive"
+ },
+ "04f8": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-0Dt",
+  "name": "RceGiftTenMonth"
+ },
+ "04f9": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-17B",
+  "name": "RceBindGuildAct"
+ },
+ "04fa": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-4vU",
+  "name": "RceTaskOpt"
+ },
+ "04fb": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-1h-",
+  "name": "RceMaterialProtect"
+ },
+ "04fc": {
+  "class": "com.sincetimes.redwar.game.comnunicate.protocol:_-6bM",
+  "name": "RceSeaTreasure"
+ }
+}
