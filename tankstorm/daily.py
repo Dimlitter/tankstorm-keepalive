@@ -44,20 +44,46 @@ log = get_logger()
 
 STATE_FILE = os.path.join(LOG_DIR, "daily-state.json")
 
-# 字段名命中这些词 = 可能花钱，值必须为 0
+# 字段名命中这些词 = 可能花钱/耗券，值必须为 0
+#
+# credit 就是勋章（RceWPCExplore.credit、RceMineModify.credit、
+# RceCountryOpt.costCredit 都是），useItemID/useItemCnt 是"优先使用XX券"那个
+# 勾选框对应的字段。游戏里免费次数用完后，同一个按钮会转而扣券或扣勋章，
+# 所以这些字段必须钉死为 0。
 DANGER_FIELD = re.compile(
     r"buy|cost|price|money|gold|coin|diamond|gem|pay|charge|"
-    r"num|cnt|count|times|amount|soul|medal|credit", re.I)
+    r"num|cnt|count|times|amount|soul|medal|credit|"
+    r"item|card|ticket|discount", re.I)
 
 # 这些任务放到最后执行（它们领的是"前面动作累积出来的"奖励）
 ORDER_LAST = {"每日任务", "周任务"}
+
+
+class Guard:
+    """发送前的状态闸门：先读服务器下发的剩余免费次数，>0 才允许发。
+
+    截图实测：开采石油/金属冶炼/矿区探索/军备制造/配件探索都是
+    「免费N次 + 用完转扣券或勋章」，同一个按钮两种行为。所以这类任务
+    绝不能盲发，必须先确认服务器认为你还有免费次数。
+
+    rse_msg  等待哪条服务器消息（如 RseWPCExplore）
+    field    读它的哪个字段（如 leftFreeCnt）
+    trigger  可选：为了让服务器下发状态，先要发的查询请求 (opcode, fields)
+    """
+
+    def __init__(self, rse_msg, field, trigger=None, timeout=8.0):
+        self.rse_msg = rse_msg
+        self.field = field
+        self.trigger = trigger
+        self.timeout = timeout
 
 
 class Task:
     """一个每日任务 = 一条待发送的 C→S 消息。"""
 
     def __init__(self, key, name, opcode, msg, fields, confidence,
-                 note="", max_per_day=1):
+                 note="", max_per_day=1, guard=None):
+        self.guard = guard
         self.key = key
         self.name = name
         self.opcode = opcode
@@ -107,16 +133,75 @@ TASKS = [
        {1: ("int32", 0), 2: ("int32", 0)},
        "待确认", "未开通月卡则无意义，config 里默认关闭"),
 
-    # ---- 有免费次数（用户确认过有免费额度）----
-    _t("军事演习", "军事演习（占空场）", "04a7", "RceWarGameOpt",
+    # ---- 有免费次数的：必须带 guard，免费用完就停 ----
+    #
+    # 截图实测各模块的免费额度与付费变体：
+    #   开采石油   免费 3/3、1/1        第三档 500 勋章
+    #   金属冶炼   免费 3/3、1/1        高级   500 勋章
+    #   特工派遣   免费 3/3、1/1        高级   需紫色特工令
+    #   配件探索   免费 1/1             10次 100 勋章、50次 500 勋章
+    #   军备制造   免费 3/3             10次 300 勋章、50次 1500 勋章
+    #   矿区探索   低/中级 刷新 5/5     高级   100 勋章
+    #   征战世界   免费重征 2/2         付费重征 1/1
+    # 一律只做免费档，且 guard 读到剩余次数 >0 才发。
+
+    _t("英雄开采", "英雄中心·开采石油（免费档）", "0402", "RceHeroVisit",
+       {3: ("int32", 1), 4: ("int32", 0)},
+       "待确认", "free 字段置 1；只做前两档，第三档 500 勋章不碰",
+       max_per_day=4),
+
+    _t("英雄培养", "英雄培养（消耗金属石油，用户允许）", "0401", "RceHeroOpt",
+       {2: ("int32", 0)}, "待确认", "花金属/石油，用户明确表示可接受"),
+
+    _t("将领冶炼", "将领·金属冶炼（免费档）", "0450", "RceAdmiralVisit",
+       {3: ("int32", 1), 4: ("int32", 0)},
+       "待确认", "free 字段置 1；高级档 500 勋章不碰", max_per_day=4),
+
+    _t("参谋派遣", "参谋·免费派遣", "04dc", "RceAdviserDaily",
+       {1: ("int32", 0), 2: ("int32", 0), 3: ("int32", 0)},
+       "待确认", "nbuycnt 恒为 0，绝不购买",
+       guard=Guard("RseAdviserDaily", "nfreeTimes")),
+
+    _t("特工派遣", "远程火炮·特工派遣（免费档）", "045d", "RceStrategicArmyOpt",
+       {1: ("int32", 0), 2: ("int32", 0)},
+       "待确认", "只做初级/中级免费档", max_per_day=4),
+
+    _t("配件探索", "配件中心·基地探索（免费）", "043a", "RceWPCExplore",
+       {1: ("int32", 0), 2: ("int32", 0)},
+       "待确认", "credit/useItemID/useItemCnt/exploreCnt 全部为 0",
+       guard=Guard("RseWPCExplore", "leftFreeCnt")),
+
+    _t("军备制造", "军备研究·制造（免费 3 次）", "04cb", "RceWPCCraft",
+       {1: ("int32", 0)}, "待确认", "只做免费档，10次/50次是勋章档",
+       max_per_day=3),
+
+    _t("战略训练", "战争学院·战略技能训练（每日 7 次）", "04a5", "RceWarCollegeOpt",
+       {1: ("int32", 0), 3: ("int32", 0)},
+       "待确认", "每日 7 次免费；购买训练次数绝不触发", max_per_day=7),
+
+    _t("军事演习", "战争学院·军事演习（占空场）", "04a7", "RceWarGameOpt",
        {1: ("int32", 0), 2: ("int32", 0), 4: ("bool", False)},
        "待确认", "需先查空演习场再占领，siteID 依赖实时状态"),
 
-    _t("军备探索", "军备探索（免费次数）", "043a", "RceWPCExplore",
-       {}, "待确认", "有免费次数，字段需实测"),
+    _t("国家宝箱", "国家·宝箱领取并开启", "0463", "RceCountryOpt",
+       {4: ("int32", 0)}, "待确认", "costCredit 必须为 0"),
 
-    _t("矿区争夺", "矿区刷新/占领", "041e", "RceMineModify",
-       {}, "待确认", "只刷新低级矿区；发现空矿场才占领，否则仅刷新"),
+    _t("公会捐献", "公会·捐献（50w 金属石油档）", "0479", "RceGuildOpt",
+       {2: ("int32", 0), 12: ("int32", 0)},
+       "待确认", "contributeID 选 50w 档；捐的是金属石油不是勋章"),
+
+    _t("公会战", "公会战·领奖并报名", "0479", "RceGuildOpt",
+       {2: ("int32", 0), 22: ("int32", 0)},
+       "待确认", "先领上一场奖励宝箱，再报名本场"),
+
+    _t("征战世界", "征战世界·自动征战（免费 2 次）", "048b", "RcePveBattleOpt",
+       {2: ("int32", 0)}, "待确认", "只用免费重征次数，付费重征不碰",
+       max_per_day=2),
+
+    _t("矿区争夺", "矿区争夺·刷新低级矿区", "041e", "RceMineModify",
+       {1: ("int32", 0), 5: ("int32", 0)},
+       "待确认", "只刷低/中级（高级要 100 勋章）；credit 恒为 0；"
+                 "发现空矿场才占领，否则仅刷新", max_per_day=5),
 
     # ---- 必须最后执行 ----
     _t("周任务", "周任务领奖", "04de", "RceWeekQuestOpt",
@@ -163,6 +248,57 @@ def _save_state(st):
 
 
 # ---------------------------------------------------------------- 执行
+
+def _pump(sock, rec, msg_name, timeout):
+    """读 socket 直到收到指定服务器消息（或超时）。返回解码后的字段字典或 None。
+
+    必须自己收包：daily.run 跑在保活主循环之前，此时还没人在 recv，
+    干等永远等不到。sock 已被 rec.wrap() 包过，recv 到的字节会自动进录制器。
+    """
+    if rec is None:
+        return None
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        got = rec.latest.get(msg_name)
+        if got and got[0] >= deadline - timeout:      # 本次等待期内收到的才算
+            return got[1]
+        try:
+            sock.settimeout(0.5)
+            if not sock.recv(8192):
+                return None
+        except Exception:
+            pass
+    got = rec.latest.get(msg_name)
+    return got[1] if got else None
+
+
+def _check_guard(task, rec, sock, dry):
+    """执行状态闸门。返回 (是否放行, 说明)。"""
+    g = task.guard
+    if g is None:
+        return True, ""
+    if dry:
+        return True, f"干跑：跳过 {g.rse_msg}.{g.field} 检查"
+    if rec is None:
+        return False, "无录制器，读不到状态"
+
+    if g.trigger:                                     # 先发查询请求让服务器下发状态
+        try:
+            top, tfields = g.trigger
+            sender.send_frame(sock, top, encode_message(tfields), rec.rc4_c2s)
+        except Exception as exc:
+            return False, f"状态查询发送失败：{exc}"
+
+    data = _pump(sock, rec, g.rse_msg, g.timeout)
+    if data is None:
+        return False, f"{g.timeout:.0f}s 内没收到 {g.rse_msg}，放弃（宁可不做也不误扣）"
+    left = data.get(g.field)
+    if left is None:
+        return False, f"{g.rse_msg} 里没有 {g.field} 字段"
+    if not isinstance(left, int) or left <= 0:
+        return False, f"剩余免费次数 {g.field}={left}，已用完，跳过（避免扣券/勋章）"
+    return True, f"剩余免费 {g.field}={left}"
+
 
 def _check_safety(task, field_names):
     """发送前的安全检查。返回 (是否放行, 原因)。"""
@@ -220,6 +356,15 @@ def run(rec, sock, config: dict, schema=None) -> dict:
             results[task.key] = f"安全检查拦截：{why}"
             log.error("[%s] %s", task.key, results[task.key])
             continue
+
+        # 状态闸门：免费次数用完就不发，这是防扣券/扣勋章的第二道闸
+        passed, gwhy = _check_guard(task, rec, sock, dry)
+        if not passed:
+            results[task.key] = f"闸门未通过：{gwhy}"
+            log.info("[%s] %s", task.key, results[task.key])
+            continue
+        if gwhy:
+            log.debug("[%s] 闸门：%s", task.key, gwhy)
 
         body = encode_message(task.fields)
         desc = ", ".join(f"{field_names.get(k, k)}={v[1]!r}" for k, v in sorted(task.fields.items()))

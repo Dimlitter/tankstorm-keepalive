@@ -264,6 +264,9 @@ class Recorder:
         self.auto_reject = conf.get("自动拒绝超级强攻", False)
         self.on_alert = on_alert
         self.on_super_storm = on_super_storm   # 收到 027c 时的回调
+        # 每种服务器消息的最新一条解码结果 {消息名: (收到时刻, 字段字典)}。
+        # 每日任务靠它读"剩余免费次数"再决定发不发，避免免费用完后扣券/扣勋章。
+        self.latest = {}
         self.reader = FrameReader(on_desync=self._note_desync)          # s2c
         self.reader_out = FrameReader(on_desync=self._note_desync)      # c2s
         self.counts = {}
@@ -580,6 +583,10 @@ class Recorder:
                     data = SCH.decode(plain, op)
                     if data is not None:
                         rec["data"] = data
+                        # 缓存最新一条，供每日任务"先读状态再决策"用
+                        # （如 RseWPCExplore.leftFreeCnt 剩余免费探索次数）
+                        if not outgoing:
+                            self.latest[rec.get("msg", op)] = (time.time(), data)
 
             # ---- 以下为明文消息的原有逻辑，行为保持不变 ----
             text = _readable_text(body) if len(body) <= 65536 else ""
