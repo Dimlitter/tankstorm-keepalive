@@ -66,12 +66,14 @@ tankstorm/
   stream_recorder.py        socket 旁路，原始双向字节流落盘（解密的前提）
   proto_encode.py           轻量 protobuf 编码器，构造 C→S 请求 body
   sender.py                 组帧 + RC4 加密 + 发送主动请求（非豁免 opcode 必须加密）
+  daily.py                  每日任务引擎（白名单 + 危险字段校验 + 干跑 + 每日上限）
   notify.py                 PushPlus 推送（掉线需扫码时把二维码发到微信）
   engine.py                 HTTP 任务引擎（社交任务用）
 tools/
   ── 抓包与日志分析 ──
   pcap_analyze.py           解析 Wireshark 抓包 → 定位登录握手+心跳（零依赖）
   analyze_frames.py         分析录制日志，定位异常事件消息
+  capture_daily.py          从录制日志提取真实客户端发的每日任务参数
   har2endpoints.py          HAR → 社交 HTTP 任务模板
   ── SWF 逆向工具链 ──
   swfparse.py               SWF 容器：解压 + 遍历 tag
@@ -285,7 +287,61 @@ python tools/analyze_frames.py --unknown          # 只看没见过的消息类�
 python tools/redwar_rc4.py logs/streams/<会话>/s2c.bin --uid <你的uid> --write
 ```
 
-## 第 5 步（可选）：社交 HTTP 任务
+## 第 5 步（可选）：每日任务自动领取
+
+登录后自动发出免费领取类请求。`config.json → 每日任务`。
+
+### ⚠️ 先理解一件事：游戏的确认框保护不了脚本
+
+游戏里消耗勋章会弹"是否消耗"确认框，但那是**纯客户端 UI**——已由 SWF 字节码确认：
+
+- `'是否消耗'` 出现在 `onAllBtn1Click` / `onAllBtn2Click`（按钮点击处理器）
+- `'确认购买'` 出现在 `Buytip::processPanel`（面板类）
+- **协议里不存在任何二次确认消息**，抽奖类消息都是单包完成
+
+**脚本直接发包不经过任何对话框，服务器收到就扣。** 所以参数绝不能猜，
+必须在脚本这一侧把危险字段拦死。
+
+### 四层安全机制
+
+| 层 | 作用 |
+|---|---|
+| **白名单** | 只允许发 `daily.py` 的 `TASKS` 表里登记的 opcode，表外的连构造机会都没有 |
+| **危险字段硬校验** | 字段名命中 `buy/cost/num/cnt/count/price/soul/medal` 等的，值必须为 0，否则拒发告警 |
+| **干跑模式**（默认开） | 只打印将要发送的帧和字段，不真发 |
+| **每日次数上限** | 每个任务每天最多 N 次，防逻辑出错循环刷 |
+
+### 参数怎么来：抓包实测，不靠猜
+
+`TASKS` 表里每个任务有 `confidence` 标记，**`待确认` 的默认不执行**。转成 `实测` 的流程：
+
+1. `config.json` 里确认 `录制.录制上行 = true`、`录制.实时解密 = true`
+2. 跑保活，然后**手动在游戏里点一次**要自动化的操作（签到 / 免费抽奖 / 领任务奖）
+3. ```bat
+   D:\miniconda\python.exe tools\capture_daily.py
+   ```
+   它会打出真实客户端发的字段值，以及可直接粘贴进 `TASKS` 的形式
+4. 填进 `tankstorm/daily.py`，把该任务 `confidence` 改成 `"实测"`
+5. 先 `干跑=true` 跑一遍核对，再改 `false`
+
+### 执行顺序（重要）
+
+代码强制把**周任务、每日任务排到最后**——前面那些操作本身会推进它们的进度，
+先领就漏了。`ordered_tasks()` 保证这一点，改 `TASKS` 表的顺序也不会破坏。
+
+### 默认配置
+
+| 任务 | 默认 | 说明 |
+|---|---|---|
+| 每日签到 / 七天乐 / 每日资源 / 战功排名 | 开 | 纯领取 |
+| 周任务 / 每日任务 | 开 | 强制最后执行 |
+| **月卡领取** | **关** | 没开通月卡时无意义；开通了再打开 |
+| 军事演习 / 军备探索 / 矿区争夺 | 关 | 有免费次数但参数依赖实时状态，实测后再开 |
+
+> 「免费次数用完自动购买」**在代码层面禁止**——`nbuycnt` 这类字段非零直接拒发，
+> 不提供开关。
+
+## 第 6 步（可选）：社交 HTTP 任务
 
 好友赠礼/邀请/召回是现成 HTTP 接口（`joyorder.war`/`receiveGift.war`/`recall.war`）。
 需要的话按 `endpoints.json` 填模板，用 `python main.py` 跑。核心游戏任务（签到/领奖/

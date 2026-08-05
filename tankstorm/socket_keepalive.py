@@ -19,7 +19,7 @@
 import socket
 import time
 
-from . import notify, protocol, sender
+from . import daily, notify, protocol, sender
 from .log import get_logger
 from .qzone import get_game_context
 from .recorder import Recorder
@@ -116,6 +116,14 @@ def _one_session(qq, spec: dict, conf: dict, config: dict, rec=None) -> str:
         if rec:
             # sid 是加密载荷分析时的头号候选密钥材料，记进会话元信息
             rec.note("login_ok", sid=ctx.get("sid"), uid=ctx.get("uid"))
+
+        # 每日任务：登录完成后跑一次。失败不影响保活主循环——保活是主业务，
+        # 领奖失败大不了明天再领，不能因此把连接掀翻。
+        if config.get("每日任务", {}).get("启用", False):
+            try:
+                daily.run(rec, sock, config)
+            except Exception as exc:
+                log.error("每日任务执行异常（不影响保活）: %s", exc)
 
         hb = protocol.build_heartbeat(spec, ctx)
         last_beat = 0.0
