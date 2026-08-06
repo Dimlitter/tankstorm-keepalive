@@ -360,12 +360,15 @@ class QQSession:
                      "不需要扫码（扫码图仍保存在 %s 作为备用）", push_uin, QRCODE_FILE)
         else:
             log.info("请用手机 QQ 扫码登录（二维码已保存: %s）", QRCODE_FILE)
-        if os.name == "nt":
+        # 只在"本机交互式使用且没有别的送达方式"时才弹图片查看器。
+        # 有 on_qr（PushPlus 推送）时再弹窗没意义；推送登录更是压根不需要看图。
+        if os.name == "nt" and on_qr is None and not pushed:
             try:
-                os.startfile(QRCODE_FILE)  # 本机运行时直接弹出图片
+                os.startfile(QRCODE_FILE)
             except OSError:
                 pass
-        _print_qr_ascii(QRCODE_FILE)
+        if not pushed:
+            _print_qr_ascii(QRCODE_FILE)
         if on_qr:
             try:
                 # 带上 pushed，让调用方的文案跟实际走的路径一致
