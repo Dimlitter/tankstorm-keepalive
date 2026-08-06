@@ -89,14 +89,22 @@ def main() -> int:
     if args.keepalive:
         return socket_keepalive.run(qq, config)
 
-    # 扫码时把二维码推送到 PushPlus（服务器无屏幕时用手机扫）
+    # 需要人工介入时把二维码推到 PushPlus。配了 QQ 号则走「推送登录」，
+    # 手机QQ点确认即可，不用扫码（存图后同机扫码会被腾讯拒）。
+    push_uin = (config.get("登录", {}) or {}).get("推送登录QQ号") or qq.uin or None
+
     def on_qr(path):
-        notify.send_qrcode(config, "坦克风暴：请扫码登录", path)
+        if push_uin:
+            notify.send_qrcode(config, "坦克风暴：请在手机QQ点「确认登录」", path,
+                               note=f"已向 QQ {push_uin} 推送登录确认，"
+                                    f"<b>打开手机QQ点确认即可，不用扫码</b>。")
+        else:
+            notify.send_qrcode(config, "坦克风暴：请扫码登录", path)
 
     if args.login:
-        if not qq.qr_login(on_qr=on_qr):
+        if not qq.qr_login(on_qr=on_qr, push_uin=push_uin):
             return 1
-    elif not qq.ensure_login(on_qr=on_qr):
+    elif not qq.ensure_login(on_qr=on_qr, push_uin=push_uin):
         return 1
 
     ctx = qzone.get_game_context(qq)

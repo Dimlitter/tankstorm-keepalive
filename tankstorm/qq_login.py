@@ -251,15 +251,32 @@ class QQSession:
 
     # ---------- 扫码登录 ----------
 
-    def qr_login(self, timeout_sec: int = 180, on_qr=None) -> bool:
-        """扫码登录。on_qr(qrcode_path) 在二维码生成后回调（用于推送到手机等）。"""
+    def qr_login(self, timeout_sec: int = 180, on_qr=None, push_uin=None) -> bool:
+        """扫码登录。on_qr(qrcode_path) 在二维码生成后回调（用于推送到手机等）。
+
+        push_uin 非空时启用**推送登录**：不用扫码，腾讯直接往该 QQ 号的手机客户端
+        推一条登录确认，用户点"确认登录"即可。这解决了"把二维码图片存到本地、
+        用同一台手机的相册扫码"被拒（提示"限制本地扫码登录"）的问题 ——
+        腾讯的防钓鱼策略要求二维码显示在**另一块屏幕**上，而推送登录没有这个限制。
+
+        参数取自真实客户端抓包：ptqrshow?qr_push=1&qr_push_uin=<uin>&type=1
+        """
         s = self.session
+        # uin 要在清 cookie 之前取，否则就拿不到了
+        if push_uin is None:
+            push_uin = self.uin or None
         s.cookies.clear()
 
-        r = s.get("https://ssl.ptlogin2.qq.com/ptqrshow", params={
+        params = {
             "appid": PTLOGIN_APPID, "e": "2", "l": "M", "s": "3", "d": "72",
             "v": "4", "t": str(random.random()), "daid": DAID, "pt_3rd_aid": "0",
-        }, timeout=15)
+        }
+        pushed = False
+        if push_uin:
+            params.update({"qr_push": "1", "qr_push_uin": str(push_uin), "type": "1"})
+            pushed = True
+
+        r = s.get("https://ssl.ptlogin2.qq.com/ptqrshow", params=params, timeout=15)
         with open(QRCODE_FILE, "wb") as f:
             f.write(r.content)
         qrsig = s.cookies.get("qrsig")
@@ -267,7 +284,11 @@ class QQSession:
             log.error("未获取到 qrsig，二维码请求失败")
             return False
 
-        log.info("请用手机 QQ 扫码登录（二维码已保存: %s）", QRCODE_FILE)
+        if pushed:
+            log.info("已向 QQ %s 推送登录确认 —— 打开手机QQ点「确认登录」即可，"
+                     "不需要扫码（扫码图仍保存在 %s 作为备用）", push_uin, QRCODE_FILE)
+        else:
+            log.info("请用手机 QQ 扫码登录（二维码已保存: %s）", QRCODE_FILE)
         if os.name == "nt":
             try:
                 os.startfile(QRCODE_FILE)  # 本机运行时直接弹出图片
@@ -315,10 +336,11 @@ class QQSession:
         log.error("扫码超时（%d 秒）", timeout_sec)
         return False
 
-    def ensure_login(self, on_qr=None) -> bool:
-        """保证登录可用。顺序：现成 cookie → 长效凭据静默续期 → 扫码。
+    def ensure_login(self, on_qr=None, push_uin=None) -> bool:
+        """保证登录可用。顺序：现成 cookie → 长效凭据静默续期 → 推送/扫码登录。
 
-        扫码是最后手段 —— 它需要你本人在场，而守护进程要无人值守地跑。
+        需要人工介入的那步是最后手段 —— 守护进程要无人值守地跑。
+        push_uin 见 qr_login()：给了就用推送登录，免去扫码。
         """
         if self.is_valid():
             left = self.ticket_status().get("skey")
@@ -331,4 +353,4 @@ class QQSession:
             return True
         if self.silent_renew():
             return True
-        return self.qr_login(on_qr=on_qr)
+        return self.qr_login(on_qr=on_qr, push_uin=push_uin)

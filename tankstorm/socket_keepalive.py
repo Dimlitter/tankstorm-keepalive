@@ -165,23 +165,35 @@ def _one_session(qq, spec: dict, conf: dict, config: dict, rec=None) -> str:
 def relogin_with_push(qq, config: dict) -> bool:
     """需要重新扫码时：生成二维码并通过 PushPlus 推送给用户，等待扫码。
     二维码过期/超时则自动重发新码，一直重试直到扫码成功（守护进程不能自己退场）。"""
-    def on_qr(path):
-        notify.send_qrcode(config, "坦克风暴：需要重新扫码登录", path)
-
     # 先试静默续期：skey 只活约 24 小时，但 superkey/RK/ptcz 是长效的，
-    # 能换发新 skey 而不必惊动你。成功就不用扫码了。
+    # 能换发新 skey 而不必惊动你。成功就不用你动手了。
     if qq.silent_renew():
-        log.info("已用长效凭据静默续期，无需扫码")
+        log.info("已用长效凭据静默续期，无需人工介入")
         return True
+
+    # 推送登录：直接往手机QQ推确认，免去扫码。
+    # 这解决了"二维码图存本地、同一台手机相册扫码"被腾讯拒（限制本地扫码登录）的问题。
+    push_uin = (config.get("登录", {}) or {}).get("推送登录QQ号") or qq.uin or None
+
+    def on_qr(path):
+        if push_uin:
+            notify.send_qrcode(
+                config, "坦克风暴：请在手机QQ点「确认登录」", path,
+                note=f"已向 QQ {push_uin} 推送登录确认，<b>打开手机QQ点确认即可，"
+                     f"不用扫码</b>。<br>若没收到推送，可用<b>另一台设备</b>打开本条消息，"
+                     f"再用手机QQ扫下面的码（同一台手机存图后扫会被拒）。")
+        else:
+            notify.send_qrcode(config, "坦克风暴：需要重新扫码登录", path)
 
     attempt = 0
     while True:
         attempt += 1
-        log.info("登录态失效，已把二维码推送到 PushPlus，等待扫码（第 %d 次尝试）", attempt)
-        if qq.qr_login(on_qr=on_qr):
-            notify.send(config, "坦克风暴：已重新登录", "扫码成功，保活已恢复在线。")
+        log.info("登录态失效，已%s（第 %d 次尝试）",
+                 f"向 QQ {push_uin} 推送登录确认" if push_uin else "推送二维码", attempt)
+        if qq.qr_login(on_qr=on_qr, push_uin=push_uin):
+            notify.send(config, "坦克风暴：已重新登录", "登录成功，保活已恢复在线。")
             return True
-        log.warning("本轮扫码未完成（超时/过期），15 秒后重发新二维码")
+        log.warning("本轮登录未完成（超时/过期），15 秒后重试", )
         time.sleep(15)
 
 
