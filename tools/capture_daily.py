@@ -10,14 +10,46 @@
 
 所以正确做法是：**看真实客户端在你点"免费"时发了什么，原样复刻。**
 
-用法
-----
-1. 确保 config.json 里 录制.录制上行 = true、录制.实时解密 = true
-2. 跑 python main.py --keepalive
-3. 手动在游戏里点一次要自动化的操作（签到 / 免费抽奖 / 领任务奖…）
-4. 停下来，运行：
+重要：守护进程录不到你在浏览器里的操作
+--------------------------------------
+保活进程和浏览器里的 Flash 是**两条独立的 TCP 连接**，录制器只录守护进程自己
+那条。你在浏览器里点按钮，守护进程完全看不见（而且一个账号通常只能一个会话，
+两边还会互相踢）。所以要抓"真实客户端点免费按钮时发了什么"，只能：
 
-       python tools/capture_daily.py                 # 列出今天抓到的所有上行请求
+  **在你自己电脑上开游戏 + Wireshark 抓包 + 用 RC4 解密**
+
+完整流程
+--------
+0. **先停掉服务器上的保活**，否则两个会话互踢。
+
+1. 浏览器打开游戏，F12 看 iframe 的 FlashVars，记下 `uid` / `sid` / `level`
+   / `firstLogin` —— 解密要用（`python main.py --check` 也会打印这些）。
+
+2. Wireshark 开抓，过滤器：
+
+       ip.addr == 193.112.238.18 && tcp.port == 8001
+
+   **必须在游戏加载前就开始抓** —— RC4 密钥流从连接建立起累积，
+   中间少一个字节后面全部解不开。
+
+3. 在游戏里把要自动化的操作**手动点一遍**（签到、免费开采、免费冶炼、
+   配件探索、军备制造…）。
+
+4. 停止抓包 → 右键那条连接 → 追踪 → TCP 流 → 显示为 Raw →
+   **两个方向分别导出** 成 c2s.bin 和 s2c.bin（上下行密钥不同，不能混）。
+
+5. 解密上行（就是客户端发的请求）：
+
+       python tools/redwar_rc4.py c2s.bin --uid <uid> --sid <sid> \
+              --level <level> --first-login <firstLogin> --write
+
+6. 从解密结果里提参数：
+
+       python tools/capture_daily.py c2s.bin.decrypted/frames.jsonl
+
+也可以直接读守护进程自己的日志（只含守护进程发的包，用于核对脚本行为）：
+
+       python tools/capture_daily.py                 # 默认读 logs/frames-*.jsonl
        python tools/capture_daily.py --op 04a4       # 只看某个 opcode
        python tools/capture_daily.py --since 14:30   # 只看某时刻之后
 
@@ -69,6 +101,9 @@ def main():
         print(f"没有录制日志。先跑保活（录制上行=true），再手动操作游戏。\n目录：{LOG_DIR}")
         return 1
 
+    # 显式给了文件（多半是 redwar_rc4.py 解密出的 frames.jsonl）就不过滤方向：
+    # 那种文件本身只含单个方向，没有 dir 字段。
+    explicit = bool(args.files)
     recs = []
     for p in paths:
         with open(p, encoding="utf-8") as f:
@@ -80,11 +115,14 @@ def main():
                     r = json.loads(line)
                 except json.JSONDecodeError:
                     continue
-                if r.get("dir") == "c2s":        # 只要客户端发出的
+                if explicit or r.get("dir") == "c2s":
                     recs.append(r)
 
     if not recs:
-        print("日志里没有上行(c2s)记录。确认 config.json 的 录制.录制上行 = true 并重启保活。")
+        print("没有可用记录。\n"
+              "  · 读守护进程日志时：确认 config.json 的 录制.录制上行 = true 并重启保活\n"
+              "  · 想抓你手动操作的包：守护进程录不到浏览器的连接，\n"
+              "    需 Wireshark 抓包 + redwar_rc4.py 解密，步骤见本文件开头注释")
         return 1
 
     if args.since:

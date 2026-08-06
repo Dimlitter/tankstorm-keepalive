@@ -334,16 +334,36 @@ python tools/redwar_rc4.py logs/streams/<会话>/s2c.bin --uid <你的uid> --wri
 
 ### 参数怎么来：抓包实测，不靠猜
 
-`TASKS` 表里每个任务有 `confidence` 标记，**`待确认` 的默认不执行**。转成 `实测` 的流程：
+`TASKS` 表里每个任务有 `confidence` 标记，**`待确认` 的默认不执行**。
 
-1. `config.json` 里确认 `录制.录制上行 = true`、`录制.实时解密 = true`
-2. 跑保活，然后**手动在游戏里点一次**要自动化的操作（签到 / 免费抽奖 / 领任务奖）
-3. ```bat
-   D:\miniconda\python.exe tools\capture_daily.py
+> ⚠️ **守护进程录不到你在浏览器里的操作**：保活进程和浏览器里的 Flash 是
+> **两条独立的 TCP 连接**，录制器只录守护进程自己那条。而且一个账号通常只能
+> 一个会话，两边还会互相踢。所以要抓"真实客户端点免费按钮时发了什么"，
+> 必须在**你自己电脑上开游戏 + Wireshark 抓包 + RC4 解密**。
+
+转成 `实测` 的完整流程：
+
+1. **先停掉服务器上的保活**（否则两个会话互踢）
+2. 浏览器打开游戏，记下 FlashVars 里的 `uid` / `sid` / `level` / `firstLogin`
+   （`python main.py --check` 也会打印）
+3. Wireshark 开抓，**必须在游戏加载前就开始**（RC4 密钥流从连接建立起累积，
+   中途少一个字节后面全解不开）：
    ```
-   它会打出真实客户端发的字段值，以及可直接粘贴进 `TASKS` 的形式
-4. 填进 `tankstorm/daily.py`，把该任务 `confidence` 改成 `"实测"`
-5. 先 `干跑=true` 跑一遍核对，再改 `false`
+   ip.addr == 193.112.238.18 && tcp.port == 8001
+   ```
+4. 在游戏里把要自动化的操作**手动点一遍**
+5. 停止抓包 → 右键连接 → 追踪 TCP 流 → 显示为 Raw → **两个方向分别导出**
+   （上下行密钥不同，不能混）
+6. 解密上行并提参数：
+   ```bat
+   D:\miniconda\python.exe tools\redwar_rc4.py c2s.bin --uid <uid> --sid <sid> --level <level> --first-login <firstLogin> --write
+   D:\miniconda\python.exe tools\capture_daily.py c2s.bin.decrypted\frames.jsonl
+   ```
+7. 把打印出的字段值填进 `tankstorm/daily.py`，`confidence` 改成 `"实测"`
+8. 先 `干跑=true` 跑一遍核对，再改 `false`
+
+`capture_daily.py` 不带参数时读的是守护进程自己的日志（`logs/frames-*.jsonl`），
+那只含**脚本发的包**，用于核对脚本行为，不是你手动操作的记录。
 
 ### 执行顺序（重要）
 
