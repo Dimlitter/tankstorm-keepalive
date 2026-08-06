@@ -25,6 +25,11 @@ log = get_logger()
 PTLOGIN_APPID = "549000912"  # QQ空间的 ptlogin aid（游戏页 302 时携带的就是它）
 DAID = "5"
 
+# 设备/长效凭据：推送登录靠它们识别"推给哪台设备"，重新登录时不能清掉。
+# 清空后 ptqrshow?qr_push=1 会直接失败（返回错误文本而非二维码）。
+DEVICE_COOKIES = {"ptcz", "RK", "superkey", "supertoken", "superuin",
+                  "pt2gguin", "pt_recent_uins", "ETK"}
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 COOKIE_FILE = os.path.join(BASE_DIR, "cookies.json")
 QRCODE_FILE = os.path.join(BASE_DIR, "qrcode.png")
@@ -249,7 +254,56 @@ class QQSession:
         log.info("登录态已失效 (status=%s, location=%s...)", r.status_code, loc[:80])
         return False
 
-    # ---------- 扫码登录 ----------
+    # ---------- 扫码 / 推送登录 ----------
+
+    def _clear_session_cookies(self, keep=()) -> None:
+        """清掉会话票据，但保留 keep 里的设备/长效凭据。
+
+        推送登录依赖 ptcz/RK/superkey 识别设备，全清就推不出去。
+        """
+        keep = set(keep)
+        doomed = [(c.name, c.domain, c.path)
+                  for c in self.session.cookies if c.name not in keep]
+        for name, domain, path in doomed:
+            try:
+                self.session.cookies.clear(domain, path, name)
+            except KeyError:
+                pass
+
+    def _ptqrshow(self, push_uin=None):
+        """请求二维码/推送。成功返回 response，失败返回 None 并说明原因。
+
+        腾讯在拒绝时不会返回 PNG，而是回一段文本或空内容；此前代码把它当成图片
+        写进 qrcode.png，然后只报一句"未获取到 qrsig"，看不出真正原因。
+        """
+        params = {
+            "appid": PTLOGIN_APPID, "e": "2", "l": "M", "s": "3", "d": "72",
+            "v": "4", "t": str(random.random()), "daid": DAID, "pt_3rd_aid": "0",
+            "ptlang": "2052",
+        }
+        if push_uin:
+            params.update({"qr_push": "1", "qr_push_uin": str(push_uin), "type": "1"})
+        try:
+            r = self.session.get("https://ssl.ptlogin2.qq.com/ptqrshow",
+                                 params=params,
+                                 headers={"Referer": "https://xui.ptlogin2.qq.com/"},
+                                 timeout=15)
+        except requests.RequestException as exc:
+            log.warning("ptqrshow 请求异常: %s", exc)
+            return None
+
+        body = r.content or b""
+        is_png = body[:8] == b"\x89PNG\r\n\x1a\n"
+        if not is_png:
+            snippet = body[:200].decode("utf-8", "replace").strip()
+            log.warning("ptqrshow 未返回二维码图（%d 字节，content-type=%s）：%s",
+                        len(body), r.headers.get("Content-Type", "?"),
+                        snippet or "(空)")
+            return None
+        if not self.session.cookies.get("qrsig"):
+            log.warning("ptqrshow 返回了图但没有 qrsig，无法轮询")
+            return None
+        return r
 
     def qr_login(self, timeout_sec: int = 180, on_qr=None, push_uin=None) -> bool:
         """扫码登录。on_qr(qrcode_path) 在二维码生成后回调（用于推送到手机等）。
@@ -265,24 +319,41 @@ class QQSession:
         # uin 要在清 cookie 之前取，否则就拿不到了
         if push_uin is None:
             push_uin = self.uin or None
-        s.cookies.clear()
 
-        params = {
-            "appid": PTLOGIN_APPID, "e": "2", "l": "M", "s": "3", "d": "72",
-            "v": "4", "t": str(random.random()), "daid": DAID, "pt_3rd_aid": "0",
-        }
         pushed = False
+        r = None
         if push_uin:
-            params.update({"qr_push": "1", "qr_push_uin": str(push_uin), "type": "1"})
-            pushed = True
+            # 推送登录必须保留设备凭据：腾讯靠 ptcz/RK/superkey 判断"推给哪台设备"，
+            # 全清了它就不知道往哪推，ptqrshow 会直接返回错误而不是二维码。
+            self._clear_session_cookies(keep=DEVICE_COOKIES)
+            # 真实客户端会先走 xlogin 建立 pt_login_sig，推送通道依赖这个上下文
+            try:
+                s.get("https://xui.ptlogin2.qq.com/cgi-bin/xlogin",
+                      params={"daid": DAID, "appid": PTLOGIN_APPID,
+                              "hide_title_bar": "1", "low_login": "0",
+                              "qlogin_auto_login": "1", "no_verifyimg": "1",
+                              "link_target": "blank", "style": "22",
+                              "target": "self", "s_url": GAME_URL},
+                      timeout=15)
+            except requests.RequestException as exc:
+                log.debug("xlogin 预热失败(忽略): %s", exc)
 
-        r = s.get("https://ssl.ptlogin2.qq.com/ptqrshow", params=params, timeout=15)
+            r = self._ptqrshow(push_uin=push_uin)
+            if r is None:
+                log.warning("推送登录未能建立（QQ %s），回退到普通扫码", push_uin)
+            else:
+                pushed = True
+
+        if r is None:                       # 普通扫码：干净会话
+            s.cookies.clear()
+            r = self._ptqrshow()
+            if r is None:
+                log.error("二维码请求失败，无法登录")
+                return False
+
         with open(QRCODE_FILE, "wb") as f:
             f.write(r.content)
         qrsig = s.cookies.get("qrsig")
-        if not qrsig:
-            log.error("未获取到 qrsig，二维码请求失败")
-            return False
 
         if pushed:
             log.info("已向 QQ %s 推送登录确认 —— 打开手机QQ点「确认登录」即可，"
@@ -297,7 +368,9 @@ class QQSession:
         _print_qr_ascii(QRCODE_FILE)
         if on_qr:
             try:
-                on_qr(QRCODE_FILE)         # 无头服务器上把二维码推送出去
+                # 带上 pushed，让调用方的文案跟实际走的路径一致
+                # （推送失败回退到扫码时，不能还提示"点确认登录"）
+                on_qr(QRCODE_FILE, pushed)
             except Exception as exc:
                 log.warning("二维码推送回调失败: %s", exc)
 

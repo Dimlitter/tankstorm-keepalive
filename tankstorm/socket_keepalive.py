@@ -175,21 +175,27 @@ def relogin_with_push(qq, config: dict) -> bool:
     # 这解决了"二维码图存本地、同一台手机相册扫码"被腾讯拒（限制本地扫码登录）的问题。
     push_uin = (config.get("登录", {}) or {}).get("推送登录QQ号") or qq.uin or None
 
-    def on_qr(path):
-        if push_uin:
+    def on_qr(path, pushed=False):
+        if pushed:
             notify.send_qrcode(
                 config, "坦克风暴：请在手机QQ点「确认登录」", path,
                 note=f"已向 QQ {push_uin} 推送登录确认，<b>打开手机QQ点确认即可，"
                      f"不用扫码</b>。<br>若没收到推送，可用<b>另一台设备</b>打开本条消息，"
                      f"再用手机QQ扫下面的码（同一台手机存图后扫会被拒）。")
         else:
-            notify.send_qrcode(config, "坦克风暴：需要重新扫码登录", path)
+            notify.send_qrcode(
+                config, "坦克风暴：需要扫码登录", path,
+                note="请用<b>另一台设备</b>打开本条消息，再用手机QQ扫码。"
+                     "<br>把图存到手机再用同一台手机相册扫，腾讯会提示"
+                     "「限制本地扫码登录」。")
 
     attempt = 0
     while True:
         attempt += 1
-        log.info("登录态失效，已%s（第 %d 次尝试）",
-                 f"向 QQ {push_uin} 推送登录确认" if push_uin else "推送二维码", attempt)
+        # 注意：这里只说"正在尝试"，别在请求发出前就宣称已推送 —— 之前那样写，
+        # 推送其实失败了日志却显示"已推送"，很误导。
+        log.info("登录态失效，正在%s（第 %d 次尝试）",
+                 f"向 QQ {push_uin} 发起推送登录" if push_uin else "生成二维码", attempt)
         if qq.qr_login(on_qr=on_qr, push_uin=push_uin):
             notify.send(config, "坦克风暴：已重新登录", "登录成功，保活已恢复在线。")
             return True

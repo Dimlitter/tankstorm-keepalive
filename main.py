@@ -93,13 +93,14 @@ def main() -> int:
     # 手机QQ点确认即可，不用扫码（存图后同机扫码会被腾讯拒）。
     push_uin = (config.get("登录", {}) or {}).get("推送登录QQ号") or qq.uin or None
 
-    def on_qr(path):
-        if push_uin:
+    def on_qr(path, pushed=False):
+        if pushed:
             notify.send_qrcode(config, "坦克风暴：请在手机QQ点「确认登录」", path,
                                note=f"已向 QQ {push_uin} 推送登录确认，"
                                     f"<b>打开手机QQ点确认即可，不用扫码</b>。")
         else:
-            notify.send_qrcode(config, "坦克风暴：请扫码登录", path)
+            notify.send_qrcode(config, "坦克风暴：请扫码登录", path,
+                               note="请用<b>另一台设备</b>打开本条消息再扫码。")
 
     if args.login:
         if not qq.qr_login(on_qr=on_qr, push_uin=push_uin):
