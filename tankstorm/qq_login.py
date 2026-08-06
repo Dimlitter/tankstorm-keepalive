@@ -111,17 +111,38 @@ class QQSession:
                 jar = json.load(f)
             for c in jar:
                 self.session.cookies.set(c["name"], c["value"],
-                                         domain=c["domain"], path=c["path"])
+                                         domain=c["domain"], path=c["path"],
+                                         expires=c.get("expires"))
             log.debug("已从 %s 载入 %d 条 cookie", self.cookie_file, len(jar))
         except Exception as exc:
             log.warning("cookie 文件读取失败，将重新登录: %s", exc)
 
     def _save_cookies(self) -> None:
-        jar = [{"name": c.name, "value": c.value, "domain": c.domain, "path": c.path}
+        # 必须保存 expires：没有它就无法判断票据何时到期，只能等请求失败才发现，
+        # 也就没法在到期前静默续期。长效凭据(superkey/RK/ptcz)的有效期也靠它看。
+        jar = [{"name": c.name, "value": c.value, "domain": c.domain,
+                "path": c.path, "expires": c.expires}
                for c in self.session.cookies]
         with open(self.cookie_file, "w", encoding="utf-8") as f:
             json.dump(jar, f, ensure_ascii=False, indent=1)
         log.info("cookie 已保存到 %s", self.cookie_file)
+
+    def ticket_status(self) -> dict:
+        """返回各票据的剩余寿命，用于判断是否该续期。
+
+        {名字: 剩余秒数或 None(会话cookie/无过期)}
+        """
+        now = time.time()
+        out = {}
+        for c in self.session.cookies:
+            out[c.name] = None if not c.expires else round(c.expires - now)
+        return out
+
+    def expires_within(self, seconds: float) -> bool:
+        """核心票据(skey/p_skey)是否将在 seconds 内过期。取不到过期时间时返回 False。"""
+        st = self.ticket_status()
+        vals = [st.get(n) for n in ("skey", "p_skey") if st.get(n) is not None]
+        return bool(vals) and min(vals) <= seconds
 
     # ---------- 登录态 ----------
 
@@ -141,6 +162,77 @@ class QQSession:
     def g_tk(self) -> int:
         key = self._get_p_skey() or self.session.cookies.get("skey") or ""
         return calc_g_tk(key)
+
+    def has_long_term_ticket(self) -> bool:
+        """是否持有长效登录凭据（腾讯"快速登录/下次自动登录"用的那套）。
+
+        skey/p_skey 约 24 小时就过期，但 superkey/RK/ptcz 是长效的 ——
+        浏览器能几周不重新扫码就是靠它们换发新 skey。
+        """
+        names = {c.name for c in self.session.cookies}
+        return bool(names & {"superkey", "RK", "ptcz"})
+
+    def silent_renew(self) -> bool:
+        """尝试用长效凭据静默换发新 skey，成功则不必重新扫码。
+
+        走的是 ptlogin2 的快速登录(qlogin)通道：带着 superkey/RK/ptcz 请求
+        xlogin 建立 login_sig，再走 pt_login 拿新票据。失败时保持原样返回 False，
+        由调用方回退到扫码 —— 绝不能因为续期失败就把现有 cookie 弄坏。
+        """
+        if not self.has_long_term_ticket():
+            log.info("没有长效凭据(superkey/RK/ptcz)，无法静默续期")
+            return False
+
+        before = {c.name: c.value for c in self.session.cookies}
+        try:
+            # 1) xlogin 建立 login_sig —— 快速登录的入口，会带出 pt_login_sig
+            r = self.session.get(
+                "https://xui.ptlogin2.qq.com/cgi-bin/xlogin",
+                params={"proxy_url": "https://qzs.qq.com/qzone/v6/portal/proxy.html",
+                        "daid": DAID, "hide_title_bar": "1", "low_login": "0",
+                        "qlogin_auto_login": "1", "no_verifyimg": "1",
+                        "link_target": "blank", "appid": PTLOGIN_APPID,
+                        "style": "22", "target": "self", "s_url": GAME_URL},
+                timeout=15)
+            login_sig = self.session.cookies.get("pt_login_sig") or ""
+            if not login_sig:
+                log.info("静默续期：未取得 pt_login_sig，放弃")
+                return False
+
+            # 2) 快速登录：服务端凭 superkey/RK/ptcz 识别设备，直接下发新票据
+            r = self.session.get(
+                "https://ptlogin2.qq.com/pt_login",
+                params={"u": self.uin, "aid": PTLOGIN_APPID, "daid": DAID,
+                        "login_sig": login_sig, "u1": GAME_URL,
+                        "ptlang": "2052", "pt_uistyle": "40",
+                        "action": f"0-0-{int(time.time() * 1000)}"},
+                headers={"Referer": "https://xui.ptlogin2.qq.com/"},
+                timeout=15)
+            m = re.search(r"ptuiCB\('(\d+)','\d+','([^']*)','\d+','([^']*)'", r.text)
+            if m and m.group(1) == "0" and m.group(2):
+                self.session.get(m.group(2), allow_redirects=True, timeout=20)
+            elif m:
+                log.info("静默续期被拒(code=%s): %s", m.group(1), m.group(3)[:60])
+                return False
+        except requests.RequestException as exc:
+            log.info("静默续期请求异常: %s", exc)
+            return False
+
+        if self.is_valid():
+            self._save_cookies()
+            left = self.ticket_status().get("skey")
+            log.info("✅ 静默续期成功，无需扫码%s",
+                     f"（新 skey 剩余 {left // 3600} 小时）" if left else "")
+            return True
+
+        # 没成功就还原，别把原来还能用的 cookie 搞坏
+        for name, val in before.items():
+            try:
+                self.session.cookies.set(name, val)
+            except Exception:
+                pass
+        log.info("静默续期未生效，需要重新扫码")
+        return False
 
     def is_valid(self) -> bool:
         """访问游戏页：已登录返回 200 页面，未登录会 302 去 ptlogin。"""
@@ -224,7 +316,19 @@ class QQSession:
         return False
 
     def ensure_login(self, on_qr=None) -> bool:
+        """保证登录可用。顺序：现成 cookie → 长效凭据静默续期 → 扫码。
+
+        扫码是最后手段 —— 它需要你本人在场，而守护进程要无人值守地跑。
+        """
         if self.is_valid():
-            log.info("cookie 有效，uin=%s", self.uin)
+            left = self.ticket_status().get("skey")
+            log.info("cookie 有效，uin=%s%s", self.uin,
+                     f"（skey 剩余约 %.1f 小时）" % (left / 3600) if left else "")
+            # 快到期就提前续，别等失效了才补救
+            if self.expires_within(6 * 3600) and self.has_long_term_ticket():
+                log.info("skey 即将到期，提前静默续期…")
+                self.silent_renew()
+            return True
+        if self.silent_renew():
             return True
         return self.qr_login(on_qr=on_qr)

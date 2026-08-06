@@ -168,6 +168,12 @@ def relogin_with_push(qq, config: dict) -> bool:
     def on_qr(path):
         notify.send_qrcode(config, "坦克风暴：需要重新扫码登录", path)
 
+    # 先试静默续期：skey 只活约 24 小时，但 superkey/RK/ptcz 是长效的，
+    # 能换发新 skey 而不必惊动你。成功就不用扫码了。
+    if qq.silent_renew():
+        log.info("已用长效凭据静默续期，无需扫码")
+        return True
+
     attempt = 0
     while True:
         attempt += 1
