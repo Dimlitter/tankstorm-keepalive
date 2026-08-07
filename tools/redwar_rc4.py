@@ -200,7 +200,20 @@ def try_key(buf, enc, direction, prefix, mid, sid, skip, probe):
         p = rc4.crypt(buf[bo:be])
         if be - bo:
             tot += 1
-            if strength(p) == 2:
+            # 判据优先用 schema 解码 —— 那是我们逐帧验证过的地面真值。
+            # 只靠 strength() 会在小 body 上大量假阴性：上行请求常常只有 2~6 字节
+            # （如 RceGuildBuildOpt{ntype:0}），熵/结构启发式在这种长度上判不出来，
+            # 导致正确密钥被误判成失败（实测 c2s 卡在 50% 噪声水平，
+            # 而同一密钥逐帧 schema 解码是 390/390 全中）。
+            hit = False
+            if SCH is not None:
+                try:
+                    hit = SCH.decode(p, op) is not None
+                except Exception:
+                    hit = False
+            if not hit:
+                hit = strength(p) == 2
+            if hit:
                 good += 1
             if tot >= probe:
                 break
@@ -280,7 +293,12 @@ def main():
         if best and best[0] == 1.0 and best[2] >= 3:
             break
 
-    if not best or best[0] < 0.9:
+    # 阈值 0.75：strength()==2 的"强命中"判据偏严，正确密钥实测也只有 80~83%
+    # （2026-08-08 用真实抓包验证：s2c 16/20、c2s 类似，但逐帧 schema 解码是
+    # 100% 成功的）。而错误密钥的强命中率稳定在 50% 上下的噪声水平，
+    # 所以 0.75 能干净地把两者分开；卡 0.9 会把正确密钥判成失败。
+    PASS = 0.75
+    if not best or best[0] < PASS:
         print(f"\n  ✗ 最好只到 {best[1]}/{best[2]}（{best[0]:.0%}）" if best else "\n  ✗ 无命中")
         print("    排查：sid 对不对？uid 对不对？流是不是从 connect 第一个字节开始录的？"
               "\n    中间漏包会让密钥流永久错位 —— 检查录制期间有没有失步告警。")
@@ -306,7 +324,13 @@ def main():
     ok = bad = 0
     for i, (off, op, seq, bo, be) in enumerate(frames(buf, start)):
         raw = buf[bo:be]
-        if op in ex:
+        # 必须与上面构造 enc 列表时的规则完全一致，否则密钥流消耗对不上。
+        # c2s 里 opcode 不在 0x0400~0x04FF 的（典型是登录行 612c "a,uid,secret"）
+        # 是明文，不过 RC4；此前这里漏了这条判断，把登录行也拿去解密，
+        # 白白推进了密钥流，导致后续所有帧永久错位 —— 表现为"找到了密钥但写出的
+        # 全是乱码"。
+        raw_write = direction == "c2s" and not (0x0400 <= op <= 0x04FF)
+        if op in ex or raw_write:
             body, encd = raw, False
         else:
             body, encd = rc4.crypt(raw), True
