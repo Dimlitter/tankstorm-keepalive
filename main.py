@@ -64,16 +64,35 @@ def main() -> int:
     parser.add_argument("--check", action="store_true", help="只验证登录与参数提取")
     parser.add_argument("--keepalive", action="store_true",
                         help="保持在线守护进程（连游戏 socket 定时心跳）")
+    parser.add_argument("--daily", action="store_true",
+                        help="只跑一轮每日任务后退出（测试用，不常驻）")
+    parser.add_argument("--real", action="store_true",
+                        help="配合 --daily：真实发送（覆盖配置里的干跑）")
     args = parser.parse_args()
 
     config = load_config()
     endpoints = load_json(ENDPOINTS_FILE)
 
     if args.list:
-        for t in endpoints.get("tasks", []):
-            n = len(t.get("requests", []))
-            state = "已配置" if n else "空(待抓包)"
-            print(f"  {t.get('name')}  [{state}, {n} 条请求]")
+        from tankstorm import daily as _daily
+        sw = (config.get("每日任务", {}) or {}).get("任务", {})
+        conf = config.get("每日任务", {}) or {}
+        st = _daily._load_state()
+        print(f"\n每日任务（{'已启用' if conf.get('启用') else '未启用'}，"
+              f"{'干跑模式' if conf.get('干跑', True) else '实发模式'}）")
+        print(f"{'执行顺序':<4} {'任务':<12} {'opcode':<8} {'消息':<22} "
+              f"{'上限':<5} {'今日':<5} {'参数':<6} 开关")
+        print("-" * 92)
+        for i, t in enumerate(_daily.ordered_tasks(), 1):
+            done = st.get("done", {}).get(t.key, 0)
+            on = "✅开" if sw.get(t.key) else "  关"
+            cd = f"/{t.cooldown_sec // 60}分冷却" if t.cooldown_sec else ""
+            mark = "实测" if t.confidence == "实测" else "待确认"
+            print(f"{i:>4}   {t.key:<12} {t.opcode:<8} {t.msg:<22} "
+                  f"{str(t.max_per_day) + cd:<5} {done:<5} {mark:<6} {on}")
+        print("-" * 92)
+        print("『实测』= 参数来自真实抓包，可放心开；『待确认』= 默认跳过，需先抓包核对")
+        print("周任务/每日任务由代码强制排最后（前面的操作会推进它们的进度）\n")
         return 0
 
     # 同日去重：cron 重复触发/手动补跑时避免重复执行
@@ -88,6 +107,14 @@ def main() -> int:
     # 保持在线：长驻守护进程；登录（含二维码 PushPlus 推送）由它内部处理
     if args.keepalive:
         return socket_keepalive.run(qq, config)
+
+    # 只跑一轮每日任务就退出 —— 测试用，不必启动整个守护进程
+    if args.daily:
+        if args.real:
+            config.setdefault("每日任务", {})["干跑"] = False
+            log.warning("⚠️ --real：本次会真实发送请求")
+        config.setdefault("每日任务", {})["启用"] = True
+        return socket_keepalive.run_daily_once(qq, config)
 
     # 需要人工介入时把二维码推到 PushPlus。配了 QQ 号则走「推送登录」，
     # 手机QQ点确认即可，不用扫码（存图后同机扫码会被腾讯拒）。

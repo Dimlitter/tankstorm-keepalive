@@ -162,6 +162,72 @@ def _one_session(qq, spec: dict, conf: dict, config: dict, rec=None) -> str:
             pass
 
 
+def run_daily_once(qq, config: dict) -> int:
+    """连一次游戏、跑一轮每日任务、断开退出。供 `main.py --daily` 测试用。
+
+    与 --keepalive 的区别：不常驻、不发心跳循环，任务跑完就走。
+    登录、建 RC4、实时解密这些前置步骤完全一致，所以测出来的行为可信。
+    """
+    try:
+        spec = protocol.load_spec()
+    except protocol.ProtocolNotConfigured as exc:
+        log.error("%s", exc)
+        return 2
+
+    if not qq.is_valid() and not relogin_with_push(qq, config):
+        return 1
+
+    ctx = get_game_context(qq)
+    host = ctx.get("server") or spec.get("default_host", "tankstorm-proxy.sincetimes.com")
+    port = int(ctx.get("port") or spec.get("default_port", 8001))
+    if not ctx.get("openkey"):
+        log.error("未取得 openkey，登录态可能失效")
+        return 1
+
+    rec = Recorder(config, on_alert=None)
+    try:
+        sock = _connect(host, port)
+    except OSError as exc:
+        log.error("连接失败: %s", exc)
+        return 1
+
+    try:
+        rec.on_connect()
+        sock = rec.wrap(sock, host=host, port=port,
+                        uid=ctx.get("uid"), sid=ctx.get("sid"))
+        rec.enable_crypto(ctx)
+        for data, delay in protocol.build_login_sequence(spec, ctx):
+            sock.sendall(data)
+            if delay:
+                time.sleep(delay)
+        log.info("已登录，uid=%s sid=%s", ctx.get("uid"), ctx.get("sid"))
+
+        # 先收一会儿，让服务器把登录后的状态推完 —— guard 要靠这些判断免费次数
+        sock.settimeout(1.0)
+        deadline = time.time() + 6
+        while time.time() < deadline:
+            try:
+                if not sock.recv(8192):
+                    break
+            except socket.timeout:
+                continue
+        log.info("登录态数据接收完毕，开始执行任务")
+
+        results = daily.run(rec, sock, config)
+        failed = sum(1 for v in results.values()
+                     if "失败" in v or "拦截" in v)
+        return 1 if failed else 0
+    except OSError as exc:
+        log.error("连接中断: %s", exc)
+        return 1
+    finally:
+        try:
+            sock.close()
+        except OSError:
+            pass
+        rec.close()
+
+
 def relogin_with_push(qq, config: dict) -> bool:
     """需要重新扫码时：生成二维码并通过 PushPlus 推送给用户，等待扫码。
     二维码过期/超时则自动重发新码，一直重试直到扫码成功（守护进程不能自己退场）。"""
