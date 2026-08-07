@@ -82,8 +82,12 @@ class Task:
     """一个每日任务 = 一条待发送的 C→S 消息。"""
 
     def __init__(self, key, name, opcode, msg, fields, confidence,
-                 note="", max_per_day=1, guard=None):
+                 note="", max_per_day=1, guard=None, cooldown_sec=0):
         self.guard = guard
+        # 很多任务并非"一天一次"：军事演习占领后有时长，结束才能再占（每天 3 次）；
+        # 英雄训练 8 小时可重复。cooldown_sec>0 表示两次执行之间要等这么久，
+        # 配合 max_per_day 一起限制。守护进程会周期性地重跑任务轮次。
+        self.cooldown_sec = cooldown_sec
         self.key = key
         self.name = name
         self.opcode = opcode
@@ -146,76 +150,78 @@ TASKS = [
     #   征战世界   免费重征 2/2         付费重征 1/1
     # 一律只做免费档，且 guard 读到剩余次数 >0 才发。
 
-    _t("英雄开采", "英雄中心·开采石油（免费档）", "0402", "RceHeroVisit",
+    _t("英雄开采", "英雄中心·开采石油", "0402", "RceHeroVisit",
        {3: ("int32", 1), 4: ("int32", 0)},
-       "实测", "抓包实测客户端只发 {free:1, type:N}，其余字段一概不发。"
-               "type 0/1/2 对应三档；第三档常态是 500 勋章，"
-               "**必须靠 guard 确认还有免费次数**才发", max_per_day=2),
+       "实测", "实测客户端只发 {free:1, type:N}。type 0/1/2 三档，"
+               "第三档常态 500 勋章，靠 guard 判免费次数", max_per_day=3),
 
-    _t("英雄培养", "英雄培养（消耗金属石油，用户允许）", "0401", "RceHeroOpt",
-       {2: ("int32", 0)}, "待确认", "花金属/石油，用户明确表示可接受"),
-
-    _t("将领冶炼", "将领·金属冶炼（免费档）", "0450", "RceAdmiralVisit",
+    _t("将领冶炼", "将领·金属冶炼", "0450", "RceAdmiralVisit",
        {3: ("int32", 1), 4: ("int32", 0)},
-       "实测", "同英雄开采：客户端只发 {free:1, type:N}。高级档 500 勋章，"
-               "**必须靠 guard 确认免费次数**", max_per_day=2),
+       "实测", "同英雄开采：{free:1, type:N}", max_per_day=3),
 
-    _t("参谋派遣", "参谋·免费派遣", "04dc", "RceAdviserDaily",
-       {1: ("int32", 0), 2: ("int32", 0), 3: ("int32", 0)},
-       "待确认", "nbuycnt 恒为 0，绝不购买",
-       guard=Guard("RseAdviserDaily", "nfreeTimes")),
-
-    _t("特工派遣", "远程火炮·特工派遣（免费档）", "045d", "RceStrategicArmyOpt",
+    _t("技能书收集", "将领/参谋·免费技能书", "048a", "RceBookCollection",
        {1: ("int32", 0), 2: ("int32", 0)},
-       "待确认", "只做初级/中级免费档", max_per_day=4),
+       "实测", "实测 {ActiveType:0/1, OptType:0/1} 四种组合；"
+               "ActiveType 区分将领/参谋，OptType 区分查询/领取", max_per_day=4),
 
-    _t("配件探索", "配件中心·野外探索（唯一真免费的场景）", "043a", "RceWPCExplore",
+    _t("参谋操作", "参谋·免费派遣", "04da", "RceAdviserOpt",
+       {1: ("int32", 11)},
+       "实测", "实测 noptType 1(查询)/11/12；不再是我先前猜的 04dc"),
+
+    _t("特工派遣", "远程火炮·特工派遣", "04d6", "RceTrenchMortarOpt",
+       {1: ("int32", 1), 2: ("int32", 1001)},
+       "实测", "实测 {optType:1, subType:1001/1002/1003} 三档；"
+               "optType:0 是查询。不再是我先前猜的 045d", max_per_day=3),
+
+    _t("配件探索", "配件中心·基地探索", "043a", "RceWPCExplore",
        {1: ("int32", 10001)},
        "实测",
-       "⚠️ 抓包实测：三个场景里只有 sceneID=10001 是 useItemCnt=0 的真免费；"
-       "10002 实际发了 useItemCnt=84/useItemID=1005，10003 发了 useItemCnt=414/"
-       "useItemID=1001 —— 那是「优先使用探索卡」勾选框在消耗券。"
-       "所以这里**只做 10001**，且 credit/useItemID/useItemCnt/exploreCnt 全部不发",
-       guard=Guard("RseWPCExplore", "leftFreeCnt")),
+       "实测三个场景 sceneID 10001/10002/10003。useItemID/useItemCnt 是"
+       "**库存上报**（10003 报 414，一次点击不可能消耗 414 张），不是消耗量；"
+       "此处一律不发这两个字段，等价于不走券。服务器响应的 leftTime 才是"
+       "真实剩余免费次数（实测 2→1→0）",
+       guard=Guard("RseWPCExplore", "leftTime"), max_per_day=3),
 
-    _t("军备制造", "军备研究·制造（免费 3 次）", "04cb", "RceWPCCraft",
-       {1: ("int32", 0)}, "待确认", "只做免费档，10次/50次是勋章档",
-       max_per_day=3),
+    _t("军备制造", "军备研究·制造", "04e1", "RceJunBeiOpt",
+       {1: ("int32", 22), 2: ("int32", 1)},
+       "实测", "实测 {type:22, nExlType:1/4}；type 0/21 是查询。"
+               "不再是我先前猜的 04cb", max_per_day=3),
 
-    _t("战略训练", "战争学院·战略技能训练（每日 7 次）", "04a5", "RceWarCollegeOpt",
+    _t("战略训练", "战争学院·战略技能训练", "04a5", "RceWarCollegeOpt",
        {1: ("int32", 4), 3: ("int32", 1)},
-       "实测", "抓包实测训练动作是 {type:4, trainskilltype:1}；"
-               "{type:1} 是打开面板的查询。每日 7 次免费，购买次数绝不触发",
-       max_per_day=7),
+       "实测", "实测训练动作 {type:4, trainskilltype:1}，{type:1} 只是开面板。"
+               "每日 7 次", max_per_day=7),
 
-    _t("军事演习", "战争学院·军事演习（占空场）", "04a7", "RceWarGameOpt",
+    _t("军事演习", "战争学院·军事演习（占场）", "04a7", "RceWarGameOpt",
        {1: ("int32", 1)},
-       "实测", "抓包实测：{type:1} 是查询演习场列表，"
-               "{type:2, siteID:355} 才是占领。siteID 依赖实时空场，"
-               "**先只做查询**，占领逻辑需解析响应后再补"),
+       "实测", "实测 {type:1} 查询场地、{type:2, siteID:N} 占领。"
+               "占领后有时长，结束才能再占，每天 3 次 —— 故设 cooldown。"
+               "siteID 依赖实时空场，占领逻辑待解析响应后补",
+       max_per_day=3, cooldown_sec=3600),
 
-    _t("国家宝箱", "国家·宝箱领取并开启", "0463", "RceCountryOpt",
+    _t("矿区争夺", "矿区争夺·探索/占矿", "049a", "RceResourceOpt",
+       {1: ("int32", 1)},
+       "实测", "实测 {type:1} 查询、{type:2,searchType:1} 探索、"
+               "{type:3,resourceID:N} 占矿。响应含 getTimes(剩余占矿次数)。"
+               "不再是我先前猜的 041e", max_per_day=5, cooldown_sec=600),
+
+    _t("征战世界", "征战世界·自动征战", "045b", "RcePVEFightOpt",
+       {2: ("int32", 6), 1: ("bool", True)},
+       "实测", "实测 {type:6, bAutoTreat:true} 是自动战斗，共发了 123 次；"
+               "{type:2}/{type:5} 是查询与手动。不再是我先前猜的 048b",
+       max_per_day=2, cooldown_sec=300),
+
+    _t("国家宝箱", "国家·宝箱领取", "0463", "RceCountryOpt",
        {4: ("int32", 15)},
-       "实测", "抓包实测 type=15 领取；type=10/11 带 count 参数（开箱），"
-               "costCredit 全程为 0"),
+       "实测", "实测 type=15 领取；type=10/11 带 count 开箱。costCredit 全程 0"),
 
     _t("公会捐献", "公会·捐献", "0479", "RceGuildOpt",
        {2: ("int32", 16), 12: ("int32", 1)},
-       "实测", "抓包实测 {type:16, contributeID:1}；"
-               "contributeID 是档位，1 为实测所用档"),
+       "实测", "实测 {type:16, contributeID:1}"),
 
     _t("公会战", "公会战·领奖/报名", "0479", "RceGuildOpt",
        {2: ("int32", 14)},
-       "实测", "抓包实测 type=0/2/14/16 四种；14 为本次录制中的公会战操作"),
-
-    _t("征战世界", "征战世界·自动征战（免费 2 次）", "048b", "RcePveBattleOpt",
-       {2: ("int32", 0)}, "待确认", "只用免费重征次数，付费重征不碰",
-       max_per_day=2),
-
-    _t("矿区争夺", "矿区争夺·刷新低级矿区", "041e", "RceMineModify",
-       {1: ("int32", 0), 5: ("int32", 0)},
-       "待确认", "只刷低/中级（高级要 100 勋章）；credit 恒为 0；"
-                 "发现空矿场才占领，否则仅刷新", max_per_day=5),
+       "实测", "实测 type=0/2/14/16 四种，14 为本次录制的公会战操作"),
 
     # ---- 必须最后执行 ----
     _t("周任务", "周任务领奖", "04de", "RceWeekQuestOpt",
@@ -248,7 +254,7 @@ def _load_state():
     except (OSError, ValueError):
         st = {}
     if st.get("date") != date.today().isoformat():
-        st = {"date": date.today().isoformat(), "done": {}}
+        st = {"date": date.today().isoformat(), "done": {}, "last": {}}
     return st
 
 
@@ -352,9 +358,18 @@ def run(rec, sock, config: dict, schema=None) -> dict:
 
         done = st["done"].get(task.key, 0)
         if done >= task.max_per_day:
-            results[task.key] = f"今日已执行 {done} 次，跳过"
+            results[task.key] = f"今日已执行 {done}/{task.max_per_day} 次，跳过"
             log.info("[%s] %s", task.key, results[task.key])
             continue
+
+        # 冷却：军事演习占领后要等演习结束、矿区占矿有间隔，不能连着刷
+        if task.cooldown_sec:
+            last = st.get("last", {}).get(task.key, 0)
+            wait = task.cooldown_sec - (time.time() - last)
+            if wait > 0:
+                results[task.key] = f"冷却中，还需 {wait / 60:.0f} 分钟"
+                log.info("[%s] %s", task.key, results[task.key])
+                continue
 
         if task.confidence != "实测" and not allow_unverified:
             results[task.key] = "参数未实测，已跳过（见 tools/capture_daily.py）"
@@ -393,6 +408,7 @@ def run(rec, sock, config: dict, schema=None) -> dict:
         try:
             sender.send_frame(sock, task.opcode, body, rec.rc4_c2s)
             st["done"][task.key] = done + 1
+            st.setdefault("last", {})[task.key] = time.time()   # 冷却计时起点
             _save_state(st)
             results[task.key] = "已发送"
             log.info("[%s] 已发送 %s(%s)  {%s}", task.key, task.msg, task.opcode, desc)
