@@ -58,6 +58,43 @@ DANGER_FIELD = re.compile(
 # 这些任务放到最后执行（它们领的是"前面动作累积出来的"奖励）
 ORDER_LAST = {"每日任务", "周任务"}
 
+# 服务器响应里 ret 的含义
+# ------------------------
+# 2026-08-08 抓包实测：本次录制的操作全部成功，8 种响应的 ret 一律为 0
+# （RseJunBeiOpt/RseHeroVisit/RseAdmiralVisit/RseWarGameOpt/RseGuildOpt/
+#   RseBookCollection/RseCountryOpt/RseResourceOpt），所以 ret==0 = 成功。
+# 但 RseWPCExplore 是例外：它的 ret 是 12672/12671/76032 这种大数，
+# 那是**本次获得的资源量**而非状态码，不能拿它判成败。
+#
+# 注意：本次抓包里没有失败样本，所以"ret!=0 即失败"是推断而非实测。
+# 保守起见，一旦判为失败就当天不再重试该任务 —— 宁可少做一次，
+# 也不要在"次数已用完"的情况下反复撞墙。
+RET_IS_PAYLOAD = {"RseWPCExplore"}      # ret 装的是收益，不是状态码
+
+# 响应里这些字段若存在，用来展示"获得了什么"
+REWARD_HINT = ("ret", "leftTime", "getTimes", "leftFreeCnt", "nResult",
+               "addsoul", "num", "cnt")
+
+
+def _rse_name(rce_msg: str) -> str:
+    """请求消息名 → 对应的响应消息名（RceXxx → RseXxx）。"""
+    return "Rse" + rce_msg[3:] if rce_msg.startswith("Rce") else rce_msg
+
+
+def judge(rse_msg: str, data):
+    """判断一次任务的结果。返回 (是否成功, 说明, 是否应停止今日重试)。"""
+    if data is None:
+        # 没等到响应：可能是服务器忽略了（次数用完常见于此），也可能只是慢。
+        # 保守处理 —— 当天不再重试。
+        return False, "未收到响应（可能次数已用完或请求被忽略）", True
+    if not isinstance(data, dict):
+        return True, str(data)[:80], False
+    ret = data.get("ret")
+    if ret is not None and rse_msg not in RET_IS_PAYLOAD and ret != 0:
+        return False, f"服务器返回 ret={ret}（非 0，判为失败）", True
+    bits = [f"{k}={data[k]}" for k in REWARD_HINT if k in data]
+    return True, ("成功" + ("：" + " ".join(bits) if bits else "")), False
+
 
 class Guard:
     """发送前的状态闸门：先读服务器下发的剩余免费次数，>0 才允许发。
@@ -339,15 +376,16 @@ def run(rec, sock, config: dict, schema=None) -> dict:
     conf = (config.get("每日任务", {}) or {})
     if not conf.get("启用", False):
         log.info("每日任务未启用（config.json 每日任务.启用=false）")
-        return {}
+        return {}, {}
 
     dry = conf.get("干跑", True)
     switches = conf.get("任务", {})
     allow_unverified = conf.get("允许未实测参数", False)
     gap = float(conf.get("间隔秒", 3))
 
+    resp_timeout = float(conf.get("响应等待秒", 6))
     st = _load_state()
-    results = {}
+    results, details = {}, {}
 
     log.info("=== 每日任务开始（%s）===", "干跑模式，不会真发" if dry else "实发模式")
 
@@ -405,19 +443,56 @@ def run(rec, sock, config: dict, schema=None) -> dict:
             results[task.key] = f"干跑：{task.msg} body {len(body)}B"
             continue
 
+        rse = _rse_name(task.msg)
+        # 记下发送前该响应的时间戳，避免把上一次的旧响应误当成本次结果
+        before = (rec.latest.get(rse) or (0,))[0] if rec else 0
         try:
             sender.send_frame(sock, task.opcode, body, rec.rc4_c2s)
             st["done"][task.key] = done + 1
-            st.setdefault("last", {})[task.key] = time.time()   # 冷却计时起点
+            st.setdefault("last", {})[task.key] = time.time()
             _save_state(st)
-            results[task.key] = "已发送"
             log.info("[%s] 已发送 %s(%s)  {%s}", task.key, task.msg, task.opcode, desc)
         except Exception as exc:
             results[task.key] = f"发送失败：{exc}"
             log.error("[%s] %s", task.key, results[task.key])
+            continue
+
+        # 收响应并判成败 —— 不能只管发不管结果，否则"三次机会"用完了还在撞墙
+        data = _await_response(sock, rec, rse, before, resp_timeout)
+        ok, why, stop = judge(rse, data)
+        results[task.key] = why
+        if ok:
+            log.info("[%s] ✅ %s", task.key, why)
+        else:
+            log.warning("[%s] ❌ %s", task.key, why)
+            if stop:
+                # 判为"做不了了"就把今日次数打满，别再浪费请求
+                st["done"][task.key] = task.max_per_day
+                _save_state(st)
+                log.info("[%s] 今日不再重试", task.key)
+        if data is not None:
+            details[task.key] = data
         time.sleep(gap)
 
     log.info("=== 每日任务结束 ===")
     for k, v in results.items():
-        log.info("  %-10s %s", k, v)
-    return results
+        log.info("  %-12s %s", k, v)
+    return results, details
+
+
+def _await_response(sock, rec, rse_msg, since_ts, timeout):
+    """发完请求后等对应的服务器响应。只认 since_ts 之后到达的，避免读到旧的。"""
+    if rec is None:
+        return None
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        got = rec.latest.get(rse_msg)
+        if got and got[0] > since_ts:
+            return got[1]
+        try:
+            sock.settimeout(0.5)
+            if not sock.recv(8192):
+                break
+        except Exception:
+            pass
+    return None

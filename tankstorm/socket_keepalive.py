@@ -121,7 +121,8 @@ def _one_session(qq, spec: dict, conf: dict, config: dict, rec=None) -> str:
         # 领奖失败大不了明天再领，不能因此把连接掀翻。
         if config.get("每日任务", {}).get("启用", False):
             try:
-                daily.run(rec, sock, config)
+                res, det = daily.run(rec, sock, config)
+                _push_daily_summary(config, res, det)
             except Exception as exc:
                 log.error("每日任务执行异常（不影响保活）: %s", exc)
 
@@ -160,6 +161,40 @@ def _one_session(qq, spec: dict, conf: dict, config: dict, rec=None) -> str:
             sock.close()
         except OSError:
             pass
+
+
+def _push_daily_summary(config: dict, results: dict, details: dict) -> None:
+    """把每日任务成果推到 PushPlus，并在日志里打一份对照表。
+
+    只有真正执行过的才推 —— 全是"未开启/冷却中"的轮次不值得打扰。
+    """
+    acted = {k: v for k, v in results.items()
+             if v and not any(s in v for s in ("未开启", "冷却中", "未实测", "干跑"))}
+    if not acted:
+        return
+
+    okn = sum(1 for v in acted.values() if v.startswith("成功"))
+    bad = len(acted) - okn
+
+    log.info("―― 每日任务成果 ―― 成功 %d，未成 %d", okn, bad)
+    rows = []
+    for k, v in acted.items():
+        icon = "✅" if v.startswith("成功") else "❌"
+        log.info("  %s %-12s %s", icon, k, v)
+        extra = ""
+        d = details.get(k)
+        if isinstance(d, dict):
+            kv = [f"{a}={d[a]}" for a in daily.REWARD_HINT if a in d]
+            if kv:
+                extra = f"<br><span style='color:#888'>{' '.join(kv)}</span>"
+        rows.append(f"<tr><td>{icon}</td><td><b>{k}</b></td>"
+                    f"<td>{v}{extra}</td></tr>")
+
+    title = f"坦克风暴每日任务：成功 {okn}" + (f"，未成 {bad}" if bad else "")
+    html = ("<p>本轮共执行 %d 项</p><table border='1' cellpadding='6' "
+            "style='border-collapse:collapse;font-size:14px'>%s</table>"
+            % (len(acted), "".join(rows)))
+    notify.send(config, title, html, template="html")
 
 
 def run_daily_once(qq, config: dict) -> int:
@@ -213,7 +248,8 @@ def run_daily_once(qq, config: dict) -> int:
                 continue
         log.info("登录态数据接收完毕，开始执行任务")
 
-        results = daily.run(rec, sock, config)
+        results, details = daily.run(rec, sock, config)
+        _push_daily_summary(config, results, details)
         failed = sum(1 for v in results.values()
                      if "失败" in v or "拦截" in v)
         return 1 if failed else 0
