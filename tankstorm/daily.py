@@ -508,8 +508,11 @@ def run(rec, sock, config: dict, schema=None) -> dict:
         before = (rec.latest.get(rse) or (0,))[0] if rec else 0
         try:
             sender.send_frame(sock, task.opcode, body, rec.rc4_c2s)
-            st["done"][task.key] = done + 1
-            st.setdefault("last", {})[task.key] = time.time()
+            # 注意：这里**不能**立刻给 done 计数。
+            # 之前在这里就 +1，导致失败的尝试也在烧每日配额 —— 跑几次失败之后
+            # 所有任务都显示"今日已执行 N/N，跳过"，明明一次都没成。
+            # 计数放到判定成功之后。
+            st.setdefault("last", {})[task.key] = time.time()   # 冷却仍按发送计时
             _save_state(st)
             log.info("[%s] 已发送 %s(%s)  {%s}", task.key, task.msg, task.opcode, desc)
         except Exception as exc:
@@ -522,7 +525,11 @@ def run(rec, sock, config: dict, schema=None) -> dict:
         ok, why, stop = judge(rse, data)
         results[task.key] = why
         if ok:
-            log.info("[%s] ✅ %s", task.key, why)
+            # 只有**确认成功**才算用掉一次每日额度
+            st["done"][task.key] = done + 1
+            _save_state(st)
+            log.info("[%s] ✅ %s（今日 %d/%d）", task.key, why,
+                     done + 1, task.max_per_day)
         else:
             log.warning("[%s] ❌ %s", task.key, why)
             if stop:

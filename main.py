@@ -68,10 +68,22 @@ def main() -> int:
                         help="只跑一轮每日任务后退出（测试用，不常驻）")
     parser.add_argument("--real", action="store_true",
                         help="（已废弃，保留兼容：现在 --daily 一律真实发送）")
+    parser.add_argument("--reset", action="store_true",
+                        help="清空今日任务计数（失败的尝试误占了额度时用）")
     args = parser.parse_args()
 
     config = load_config()
     endpoints = load_json(ENDPOINTS_FILE)
+
+    if args.reset:
+        from tankstorm import daily as _daily
+        if os.path.exists(_daily.STATE_FILE):
+            os.remove(_daily.STATE_FILE)
+            print(f"已清空今日任务计数：{_daily.STATE_FILE}")
+        else:
+            print("今日计数本来就是空的")
+        if not args.daily:
+            return 0
 
     if args.list:
         from tankstorm import daily as _daily
