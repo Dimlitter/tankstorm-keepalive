@@ -67,7 +67,7 @@ def main() -> int:
     parser.add_argument("--daily", action="store_true",
                         help="只跑一轮每日任务后退出（测试用，不常驻）")
     parser.add_argument("--real", action="store_true",
-                        help="配合 --daily：真实发送（覆盖配置里的干跑）")
+                        help="（已废弃，保留兼容：现在 --daily 一律真实发送）")
     args = parser.parse_args()
 
     config = load_config()
@@ -79,7 +79,7 @@ def main() -> int:
         conf = config.get("每日任务", {}) or {}
         st = _daily._load_state()
         print(f"\n每日任务（{'已启用' if conf.get('启用') else '未启用'}，"
-              f"{'干跑模式' if conf.get('干跑', True) else '实发模式'}）")
+              f"实发模式）")
         print(f"{'执行顺序':<4} {'任务':<12} {'opcode':<8} {'消息':<22} "
               f"{'上限':<5} {'今日':<5} {'参数':<6} 开关")
         print("-" * 92)
@@ -110,10 +110,8 @@ def main() -> int:
 
     # 只跑一轮每日任务就退出 —— 测试用，不必启动整个守护进程
     if args.daily:
-        if args.real:
-            config.setdefault("每日任务", {})["干跑"] = False
-            log.warning("⚠️ --real：本次会真实发送请求")
         config.setdefault("每日任务", {})["启用"] = True
+        log.info("--daily：真实发送模式（干跑已移除，它给不出有效信息）")
         return socket_keepalive.run_daily_once(qq, config)
 
     # 需要人工介入时把二维码推到 PushPlus。配了 QQ 号则走「推送登录」，

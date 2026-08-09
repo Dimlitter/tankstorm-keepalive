@@ -6,8 +6,8 @@
    连构造的机会都没有。
 2. **危险字段硬校验**：字段名命中 buy/cost/num/count/cnt/price 等的，值必须为 0，
    否则拒发并告警。这是防"免费次数用完自动买"的最后一道闸。
-3. **干跑模式**（默认开）：只打印将要发送的帧和字段，不真发。确认无误再关。
-4. **每日次数上限**：每个任务每天最多发 N 次，防逻辑出错循环刷。
+3. **状态闸门**：先读服务器下发的剩余免费次数，>0 才发；读不到就保守拒发。
+4. **每日次数上限 + 冷却**：每天最多 N 次，可重复任务两次之间还要等冷却。
 
 为什么必须硬校验，而不能依赖游戏的确认框
 ----------------------------------------
@@ -81,6 +81,29 @@ def _rse_name(rce_msg: str) -> str:
     return "Rse" + rce_msg[3:] if rce_msg.startswith("Rce") else rce_msg
 
 
+# 响应里表示"还剩几次"的字段。动作做完后据此决定要不要继续 ——
+# 这些字段只在**动作响应**里才有（RseHeroVisit.hasCreditVisit=[2,1,1]、
+# RseWPCExplore.leftTime=2→1→0），所以不能拿来做事前闸门，
+# 只能事后读。这是 2026-08-09 修正的设计：先做，再看还剩几次。
+LEFT_FIELDS = ("hasCreditVisit", "leftTime", "leftFreeCnt", "nfreeTimes",
+               "getTimes", "nRemainFreeNum")
+
+
+def _left_count(data):
+    """从响应里取剩余次数。返回 None 表示这条响应没提供该信息。"""
+    if not isinstance(data, dict):
+        return None
+    for f in LEFT_FIELDS:
+        v = data.get(f)
+        if isinstance(v, int):
+            return v
+        if isinstance(v, (list, tuple)):
+            nums = [x for x in v if isinstance(x, int)]
+            if nums:
+                return max(nums)
+    return None
+
+
 def judge(rse_msg: str, data):
     """判断一次任务的结果。返回 (是否成功, 说明, 是否应停止今日重试)。"""
     if data is None:
@@ -93,7 +116,12 @@ def judge(rse_msg: str, data):
     if ret is not None and rse_msg not in RET_IS_PAYLOAD and ret != 0:
         return False, f"服务器返回 ret={ret}（非 0，判为失败）", True
     bits = [f"{k}={data[k]}" for k in REWARD_HINT if k in data]
-    return True, ("成功" + ("：" + " ".join(bits) if bits else "")), False
+    msg = "成功" + ("：" + " ".join(bits) if bits else "")
+    # 成功了，但如果响应说剩余次数已归零，就别再来了
+    left = _left_count(data)
+    if left is not None and left <= 0:
+        return True, msg + "（剩余次数已用完，今日到此为止）", True
+    return True, msg, False
 
 
 class Guard:
@@ -116,10 +144,30 @@ class Guard:
 
 
 class Task:
-    """一个每日任务 = 一条待发送的 C→S 消息。"""
+    """一个每日任务 = 前置请求 + 一条动作消息。
+
+    **prelude 是必须的**（2026-08-09 定位）：真实客户端每个动作前都会先发一个
+    "开面板 / 查询"请求，服务端据此建立会话上下文。此前脚本直接发动作、跳过这步，
+    结果就是"参数一模一样却不生效" —— 抓包顺序铁证：
+
+        RceHeroOpen{type:0}      → RceHeroVisit{free:1,type:0}
+        RceAdmiralOpen{type:0}   → RceAdmiralVisit{free:1,type:0}
+        RceCountryOpen{}         → RceCountryOpt{type:15}
+        RceWPCBaseOpen{type:1}   → RceWPCExplore{sceneID:10001}
+        RceWarCollegeOpt{type:1} → RceWarCollegeOpt{type:4,...}
+        RceWarGameOpt{type:1}    → RceWarGameOpt{type:2,siteID:N}
+        RceTrenchMortarOpt{optType:0} → {optType:1,subType:1001}
+        RceJunBeiOpt{type:21}    → RceJunBeiOpt{type:22,nExlType:1}
+        RceAdviserOpt{noptType:1}→ RceAdviserOpt{noptType:11}
+        RceResourceOpt{type:1}   → RceResourceOpt{type:2,...}
+
+    prelude 形如 [(opcode, {字段号: (类型, 值)}), ...]，按序发送，不判成败。
+    """
 
     def __init__(self, key, name, opcode, msg, fields, confidence,
-                 note="", max_per_day=1, guard=None, cooldown_sec=0):
+                 note="", max_per_day=1, guard=None, cooldown_sec=0,
+                 prelude=()):
+        self.prelude = list(prelude)
         self.guard = guard
         # 很多任务并非"一天一次"：军事演习占领后有时长，结束才能再占（每天 3 次）；
         # 英雄训练 8 小时可重复。cooldown_sec>0 表示两次执行之间要等这么久，
@@ -147,8 +195,8 @@ class Task:
 # ---------------------------------------------------------------- 任务表
 #
 # fields 形如 {字段号: ("int32"|"string", 值)}；字段号来自 docs/redwar.proto。
-# 目前全部标 "待确认" —— 参数值需要用 tools/capture_daily.py 从你手动操作的
-# 抓包里提取真实值后再改成 "实测"。在那之前干跑模式会打印出来给你比对。
+# 标 "实测" 的参数来自解密后的真实上行请求；"待确认" 的默认跳过，
+# 需先用 tools/capture_daily.py 从抓包里提取真实值后再转正。
 
 def _t(*a, **kw):
     return Task(*a, **kw)
@@ -189,76 +237,86 @@ TASKS = [
 
     _t("英雄开采", "英雄中心·开采石油", "0402", "RceHeroVisit",
        {3: ("int32", 1), 4: ("int32", 0)},
-       "实测", "实测客户端只发 {free:1, type:N}。type 0/1/2 三档，"
-               "第三档常态 500 勋章，靠 guard 判免费次数", max_per_day=3),
+       "实测", "实测顺序：RceHeroOpen{type:0} 开面板 → RceHeroVisit{free:1,type:0}。"
+               "响应的 hasCreditVisit=[三档剩余免费次数]，实测 [2,1,1]→[1,1,1]→[0,1,1]",
+       max_per_day=3,
+       prelude=[("0400", {3: ("int32", 0)})]),
 
     _t("将领冶炼", "将领·金属冶炼", "0450", "RceAdmiralVisit",
        {3: ("int32", 1), 4: ("int32", 0)},
-       "实测", "同英雄开采：{free:1, type:N}", max_per_day=3),
+       "实测", "实测顺序：RceAdmiralOpen{type:0} → RceAdmiralVisit{free:1,type:0}",
+       max_per_day=3,
+       prelude=[("044e", {3: ("int32", 0)})]),
 
     _t("技能书收集", "将领/参谋·免费技能书", "048a", "RceBookCollection",
-       {1: ("int32", 0), 2: ("int32", 0)},
-       "实测", "实测 {ActiveType:0/1, OptType:0/1} 四种组合；"
-               "ActiveType 区分将领/参谋，OptType 区分查询/领取", max_per_day=4),
+       {1: ("int32", 1), 2: ("int32", 0)},
+       "实测", "实测 {OptType:0} 查询 → {OptType:1} 领取；ActiveType 0=将领 1=参谋",
+       max_per_day=2,
+       prelude=[("048a", {1: ("int32", 0), 2: ("int32", 0)})]),
 
     _t("参谋操作", "参谋·免费派遣", "04da", "RceAdviserOpt",
        {1: ("int32", 11)},
-       "实测", "实测 noptType 1(查询)/11/12；不再是我先前猜的 04dc"),
+       "实测", "实测 noptType:1 查询 → 11 → 12",
+       prelude=[("04da", {1: ("int32", 1)})]),
 
     _t("特工派遣", "远程火炮·特工派遣", "04d6", "RceTrenchMortarOpt",
        {1: ("int32", 1), 2: ("int32", 1001)},
-       "实测", "实测 {optType:1, subType:1001/1002/1003} 三档；"
-               "optType:0 是查询。不再是我先前猜的 045d", max_per_day=3),
+       "实测", "实测 optType:0 查询 → optType:1 + subType 1001/1002/1003 三档",
+       max_per_day=3,
+       prelude=[("04d6", {1: ("int32", 0)})]),
 
     _t("配件探索", "配件中心·基地探索", "043a", "RceWPCExplore",
        {1: ("int32", 10001)},
-       "实测",
-       "实测三个场景 sceneID 10001/10002/10003。useItemID/useItemCnt 是"
-       "**库存上报**（10003 报 414，一次点击不可能消耗 414 张），不是消耗量；"
-       "此处一律不发这两个字段，等价于不走券。服务器响应的 leftTime 才是"
-       "真实剩余免费次数（实测 2→1→0）",
-       guard=Guard("RseWPCExplore", "leftTime"), max_per_day=3),
+       "实测", "实测 RceWPCBaseOpen{type:1} 开面板 → RceWPCExplore{sceneID:10001}。"
+               "useItemID/useItemCnt 是库存上报不是消耗，此处一律不发",
+       max_per_day=3,
+       prelude=[("0437", {1: ("int32", 1)})]),
 
     _t("军备制造", "军备研究·制造", "04e1", "RceJunBeiOpt",
        {1: ("int32", 22), 2: ("int32", 1)},
-       "实测", "实测 {type:22, nExlType:1/4}；type 0/21 是查询。"
-               "不再是我先前猜的 04cb", max_per_day=3),
+       "实测", "实测 type:21 查询 → type:0 → type:21 → type:22 制造",
+       max_per_day=3,
+       prelude=[("04e1", {1: ("int32", 21)}), ("04e1", {1: ("int32", 0)})]),
 
     _t("战略训练", "战争学院·战略技能训练", "04a5", "RceWarCollegeOpt",
        {1: ("int32", 4), 3: ("int32", 1)},
-       "实测", "实测训练动作 {type:4, trainskilltype:1}，{type:1} 只是开面板。"
-               "每日 7 次", max_per_day=7),
+       "实测", "实测 {type:1} 开面板 → {type:4,trainskilltype:1} 训练，每日 7 次",
+       max_per_day=7,
+       prelude=[("04a5", {1: ("int32", 1)})]),
 
-    _t("军事演习", "战争学院·军事演习（占场）", "04a7", "RceWarGameOpt",
+    _t("军事演习", "战争学院·军事演习（查场地）", "04a7", "RceWarGameOpt",
        {1: ("int32", 1)},
-       "实测", "实测 {type:1} 查询场地、{type:2, siteID:N} 占领。"
-               "占领后有时长，结束才能再占，每天 3 次 —— 故设 cooldown。"
-               "siteID 依赖实时空场，占领逻辑待解析响应后补",
+       "实测", "实测 {type:1} 查询场地 → {type:2,siteID:N} 占领。"
+               "siteID 必须从查询响应里挑空场，占领步骤待补状态机",
        max_per_day=3, cooldown_sec=3600),
 
-    _t("矿区争夺", "矿区争夺·探索/占矿", "049a", "RceResourceOpt",
-       {1: ("int32", 1)},
-       "实测", "实测 {type:1} 查询、{type:2,searchType:1} 探索、"
-               "{type:3,resourceID:N} 占矿。响应含 getTimes(剩余占矿次数)。"
-               "不再是我先前猜的 041e", max_per_day=5, cooldown_sec=600),
+    _t("矿区争夺", "矿区争夺·探索", "049a", "RceResourceOpt",
+       {1: ("int32", 2), 3: ("int32", 1)},
+       "实测", "实测 {type:1} 查询 → {type:2,searchType:1} 探索 → "
+               "{type:3,resourceID:N} 占矿。占矿的 resourceID 来自探索响应",
+       max_per_day=5, cooldown_sec=600,
+       prelude=[("049a", {1: ("int32", 1)})]),
 
     _t("征战世界", "征战世界·自动征战", "045b", "RcePVEFightOpt",
        {2: ("int32", 6), 1: ("bool", True)},
-       "实测", "实测 {type:6, bAutoTreat:true} 是自动战斗，共发了 123 次；"
-               "{type:2}/{type:5} 是查询与手动。不再是我先前猜的 048b",
-       max_per_day=2, cooldown_sec=300),
+       "实测", "实测 {type:2} 查询 → {type:6,bAutoTreat:true} 自动战斗",
+       max_per_day=2, cooldown_sec=300,
+       prelude=[("045b", {2: ("int32", 2)})]),
 
     _t("国家宝箱", "国家·宝箱领取", "0463", "RceCountryOpt",
        {4: ("int32", 15)},
-       "实测", "实测 type=15 领取；type=10/11 带 count 开箱。costCredit 全程 0"),
+       "实测", "实测 RceCountryOpen{} 开面板 → RceCountryOpt{type:15}",
+       prelude=[("0462", {})]),
 
     _t("公会捐献", "公会·捐献", "0479", "RceGuildOpt",
        {2: ("int32", 16), 12: ("int32", 1)},
-       "实测", "实测 {type:16, contributeID:1}"),
+       "实测", "实测 type:0 → type:2 → type:14 → type:16 捐献",
+       prelude=[("0479", {2: ("int32", 0)}), ("0479", {2: ("int32", 2)})]),
 
     _t("公会战", "公会战·领奖/报名", "0479", "RceGuildOpt",
        {2: ("int32", 14)},
-       "实测", "实测 type=0/2/14/16 四种，14 为本次录制的公会战操作"),
+       "实测", "实测 type:0 查询 → type:2 → type:14",
+       prelude=[("0479", {2: ("int32", 0)})]),
 
     # ---- 必须最后执行 ----
     _t("周任务", "周任务领奖", "04de", "RceWeekQuestOpt",
@@ -269,8 +327,10 @@ TASKS = [
        "待确认", "必须最后执行：前面的操作会推进它的进度"),
 ]
 
-# 白名单：只有这里的 opcode 允许发送
-ALLOWED_OPCODES = {t.opcode for t in TASKS}
+# 白名单：动作 opcode 和前置 opcode 都要在内 —— 前置请求同样是真实发出的包，
+# 漏掉的话等于给它开了后门，绕过白名单检查。
+ALLOWED_OPCODES = ({t.opcode for t in TASKS}
+                   | {op for t in TASKS for op, _ in t.prelude})
 
 
 def ordered_tasks():
@@ -329,13 +389,11 @@ def _pump(sock, rec, msg_name, timeout):
     return got[1] if got else None
 
 
-def _check_guard(task, rec, sock, dry):
+def _check_guard(task, rec, sock):
     """执行状态闸门。返回 (是否放行, 说明)。"""
     g = task.guard
     if g is None:
         return True, ""
-    if dry:
-        return True, f"干跑：跳过 {g.rse_msg}.{g.field} 检查"
     if rec is None:
         return False, "无录制器，读不到状态"
 
@@ -352,6 +410,12 @@ def _check_guard(task, rec, sock, dry):
     left = data.get(g.field)
     if left is None:
         return False, f"{g.rse_msg} 里没有 {g.field} 字段"
+    # hasCreditVisit 是 [三档各自剩余次数] 这种数组，任一档 >0 即可继续
+    if isinstance(left, (list, tuple)):
+        nums = [x for x in left if isinstance(x, int)]
+        if not nums or max(nums) <= 0:
+            return False, f"各档免费次数均已用完 {g.field}={left}"
+        return True, f"剩余免费 {g.field}={left}"
     if not isinstance(left, int) or left <= 0:
         return False, f"剩余免费次数 {g.field}={left}，已用完，跳过（避免扣券/勋章）"
     return True, f"剩余免费 {g.field}={left}"
@@ -378,7 +442,6 @@ def run(rec, sock, config: dict, schema=None) -> dict:
         log.info("每日任务未启用（config.json 每日任务.启用=false）")
         return {}, {}
 
-    dry = conf.get("干跑", True)
     switches = conf.get("任务", {})
     allow_unverified = conf.get("允许未实测参数", False)
     gap = float(conf.get("间隔秒", 3))
@@ -387,7 +450,7 @@ def run(rec, sock, config: dict, schema=None) -> dict:
     st = _load_state()
     results, details = {}, {}
 
-    log.info("=== 每日任务开始（%s）===", "干跑模式，不会真发" if dry else "实发模式")
+    log.info("=== 每日任务开始（实发）===")
 
     for task in ordered_tasks():
         if not switches.get(task.key, False):
@@ -424,24 +487,21 @@ def run(rec, sock, config: dict, schema=None) -> dict:
             log.error("[%s] %s", task.key, results[task.key])
             continue
 
-        # 状态闸门：免费次数用完就不发，这是防扣券/扣勋章的第二道闸
-        passed, gwhy = _check_guard(task, rec, sock, dry)
-        if not passed:
-            results[task.key] = f"闸门未通过：{gwhy}"
-            log.info("[%s] %s", task.key, results[task.key])
-            continue
-        if gwhy:
-            log.debug("[%s] 闸门：%s", task.key, gwhy)
-
         body = encode_message(task.fields)
-        desc = ", ".join(f"{field_names.get(k, k)}={v[1]!r}" for k, v in sorted(task.fields.items()))
-        if dry:
-            frame_preview = sender.build_frame(task.opcode, body)
-            log.info("[干跑] %s → %s(%s) body=%dB 帧=%dB  {%s}",
-                     task.key, task.msg, task.opcode, len(body),
-                     len(frame_preview), desc)
-            results[task.key] = f"干跑：{task.msg} body {len(body)}B"
-            continue
+        desc = ", ".join(f"{field_names.get(k, k)}={v[1]!r}"
+                         for k, v in sorted(task.fields.items()))
+
+        # 前置请求：真实客户端每个动作前都会先开面板/查询，服务端据此建上下文。
+        # 少了这步，动作发出去参数再对也不生效 —— 这是 2026-08-09 定位到的根因。
+        for pop, pfields in task.prelude:
+            try:
+                sender.send_frame(sock, pop, encode_message(pfields), rec.rc4_c2s)
+                log.debug("[%s] 前置 %s", task.key, pop)
+                time.sleep(0.4)
+            except Exception as exc:
+                log.warning("[%s] 前置请求 %s 失败: %s", task.key, pop, exc)
+        if task.prelude:
+            time.sleep(0.6)     # 给服务端一点时间把面板数据推回来
 
         rse = _rse_name(task.msg)
         # 记下发送前该响应的时间戳，避免把上一次的旧响应误当成本次结果

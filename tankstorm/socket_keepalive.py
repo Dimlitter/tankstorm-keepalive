@@ -169,7 +169,7 @@ def _push_daily_summary(config: dict, results: dict, details: dict) -> None:
     只有真正执行过的才推 —— 全是"未开启/冷却中"的轮次不值得打扰。
     """
     acted = {k: v for k, v in results.items()
-             if v and not any(s in v for s in ("未开启", "冷却中", "未实测", "干跑"))}
+             if v and not any(s in v for s in ("未开启", "冷却中", "未实测"))}
     if not acted:
         return
 

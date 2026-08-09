@@ -42,7 +42,7 @@ python main.py --list
 ```
 
 ```
-每日任务（已启用，干跑模式）
+每日任务（已启用，实发模式）
 执行顺序 任务           opcode   消息                     上限    今日    参数     开关
    1   每日签到         04a4     RceDailySignIn         1     0     实测     ✅开
    6   英雄开采         0402     RceHeroVisit           3     0     实测     ✅开
@@ -53,46 +53,29 @@ python main.py --list
 - **实测** = 参数来自真实抓包，可放心开
 - **待确认** = 默认跳过，需先抓包核对（见下方「补充未实测任务」）
 
-## 4. 先干跑一遍（不会真发）
+## 4. 跑一轮试试
 
 ```bash
 python main.py --daily
 ```
 
-只连一次、跑一轮任务、退出。**默认干跑**，只打印将要发送的帧，一个字节都不发：
+只连一次、跑一轮任务、退出。**直接真实发送**——干跑只能打印字节数，给不出任何有效信息，已移除。
 
-```
-[干跑] 每日签到 → RceDailySignIn(04a4) body=2B 帧=10B  {nType=0, nActivetype=0}
-[干跑] 英雄开采 → RceHeroVisit(0402) body=4B 帧=12B  {free=1, type=0}
-```
-
-对着输出确认无误，再往下走。
-
-## 5. 真实执行
-
-```bash
-python main.py --daily --real
-```
-
-`--real` 只对这一次生效，不改配置。
-
-**每发一个请求都会等服务器响应并判成败**，跑完打出成果表：
+每个任务会先发**前置请求**（开面板/查询）再发动作 —— 真实客户端就是这个顺序，
+少了这一步服务端不认，参数再对也不生效。发完等响应判成败：
 
 ```
 ―― 每日任务成果 ―― 成功 5，未成 1
   ✅ 每日签到      成功：ret=0
   ✅ 配件探索      成功：ret=12672 leftTime=2      ← ret 是这次拿到的石油
-  ✅ 矿区争夺      成功：ret=0 getTimes=5 addsoul=5
+  ✅ 英雄开采      成功：hasCreditVisit=[2,1,1]     ← 三档各剩几次
   ❌ 特工派遣      未收到响应（可能次数已用完或请求被忽略）
 ```
 
-同一份成果会**推送到你的 PushPlus**（表格形式，带每项拿到了什么）。
+同一份成果会**推送到你的 PushPlus**。剩余次数归零时会标注「今日到此为止」，
+之后不再重试。
 
-> 判定规则：`ret == 0` 视为成功（抓包实测 8 种响应均如此）。
-> `RseWPCExplore` 例外——它的 `ret` 装的是**获得的资源量**不是状态码。
-> **失败或超时就当天不再重试该任务**，避免"三次机会用完了还在撞墙"。
-
-## 6. 挂上常驻
+## 5. 挂上常驻
 
 确认没问题后，保活 + 每日任务一起常驻：
 
@@ -114,7 +97,6 @@ nohup ./run_keepalive.sh >> logs/keepalive.log 2>&1 &
 ```json
 "每日任务": {
     "启用": true,
-    "干跑": true,              // 确认无误后改 false
     "任务": {
         "每日签到": true,
         "英雄开采": true,
@@ -147,8 +129,7 @@ python -c "import main,tankstorm.notify as n; n.send(main.load_config(),'坦克�
 | `python main.py --login` | 登录（推送确认到手机） |
 | `python main.py --check` | 验证登录态，打印 uid/sid/level 等 |
 | `python main.py --list` | 列出所有任务及状态 |
-| `python main.py --daily` | 跑一轮任务（干跑，不真发） |
-| `python main.py --daily --real` | 跑一轮任务（真实发送） |
+| `python main.py --daily` | 跑一轮任务并打印成果（真实发送） |
 | `python main.py --keepalive` | 保活常驻（含每日任务） |
 
 ---
@@ -161,8 +142,9 @@ python -c "import main,tankstorm.notify as n; n.send(main.load_config(),'坦克�
 |---|---|
 | **白名单** | 只允许发任务表里登记的 opcode，表外的连构造机会都没有 |
 | **危险字段拦截** | 字段名带 `credit/cost/buy/item/card/ticket` 等的，值必须为 0，否则拒发 |
-| **状态闸门** | 先读服务器下发的剩余免费次数，`>0` 才发；读不到就**保守拒发** |
-| **干跑 + 每日上限** | 默认不真发；每个任务有每日次数和冷却限制 |
+| **前置请求** | 复刻真实客户端的开面板/查询顺序，不凭空构造服务端不认的调用 |
+| **事后读剩余次数** | 动作响应里的 `hasCreditVisit`/`leftTime` 归零就停，不再重试 |
+| **每日上限 + 冷却** | 每天最多 N 次；可重复任务两次之间还要等冷却 |
 
 > ⚠️ 游戏里那个"消耗勋章"确认框是**纯客户端 UI**，脚本发包不经过它，
 > 服务器收到就扣。所以保护必须做在脚本这一侧 —— 这也是为什么参数**只能抓包实测，不能猜**。
@@ -211,7 +193,7 @@ tankstorm/
   protocol.py           拼/拆 socket 包
   crypto.py             RC4 与密钥推导
   socket_keepalive.py   保活守护进程
-  daily.py              每日任务引擎（白名单/危险字段/闸门/冷却）
+  daily.py              每日任务引擎（白名单/危险字段/前置请求/冷却）
   sender.py             组帧 + 加密 + 发送
   proto_encode.py       protobuf 编码
   schema.py/.json       563 opcode、873 消息的对照
