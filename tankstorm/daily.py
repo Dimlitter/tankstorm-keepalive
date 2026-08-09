@@ -6,7 +6,8 @@
    连构造的机会都没有。
 2. **危险字段硬校验**：字段名命中 buy/cost/num/count/cnt/price 等的，值必须为 0，
    否则拒发并告警。这是防"免费次数用完自动买"的最后一道闸。
-3. **状态闸门**：先读服务器下发的剩余免费次数，>0 才发；读不到就保守拒发。
+3. **状态闸门**：先读前置请求（开面板）响应里的剩余免费次数，>0 才发；
+   读不到就保守拒发。这是照抄真实客户端的判断（见 Gate 的注释）。
 4. **每日次数上限 + 冷却**：每天最多 N 次，可重复任务两次之间还要等冷却。
 
 为什么必须硬校验，而不能依赖游戏的确认框
@@ -60,20 +61,33 @@ ORDER_LAST = {"每日任务", "周任务"}
 
 # 服务器响应里 ret 的含义
 # ------------------------
-# 2026-08-08 抓包实测：本次录制的操作全部成功，8 种响应的 ret 一律为 0
-# （RseJunBeiOpt/RseHeroVisit/RseAdmiralVisit/RseWarGameOpt/RseGuildOpt/
-#   RseBookCollection/RseCountryOpt/RseResourceOpt），所以 ret==0 = 成功。
-# 但 RseWPCExplore 是例外：它的 ret 是 12672/12671/76032 这种大数，
-# 那是**本次获得的资源量**而非状态码，不能拿它判成败。
+# 2026-08-09 从 SWF 字节码确认（不再是推断）：RseHeroVisit 的处理函数
+# _-5TJ:_-18n::_-3gC 开头就是
+#     if (msg.ret != 0) {
+#         if (msg.ret == 1) { BUY.open(); return; }        // 弹充值/购买面板
+#         POPUPS.alert(Locales.Get('heroRecruitError' + msg.ret));  return;
+#     }
+#     ... 正常流程 ...
+# 所以：
+#   ret == 0  成功
+#   ret == 1  要花钱才能做（客户端会弹商店），对脚本而言就是失败
+#   ret >= 2  具体错误，文案键是 heroRecruitError{ret}
+# 文案本身在外部语言包里，SWF 常量池只有 'heroRecruitError' 这个前缀，
+# 所以 ret=3 的中文说明还拿不到；但"非 0 即失败"这条已经是铁的。
 #
-# 注意：本次抓包里没有失败样本，所以"ret!=0 即失败"是推断而非实测。
 # 保守起见，一旦判为失败就当天不再重试该任务 —— 宁可少做一次，
 # 也不要在"次数已用完"的情况下反复撞墙。
-RET_IS_PAYLOAD = {"RseWPCExplore"}      # ret 装的是收益，不是状态码
+#
+# 曾经这里有个 RET_IS_PAYLOAD = {"RseWPCExplore"} 的例外，理由是"它的 ret 是
+# 12672/76032 这种大数，装的是收益不是状态码"。那其实是 schema 字段名错位
+# 导致的误读：RseWPCExplore 真正的 ret 是 7 号字段，而当时读的 6 号字段
+# 是 leftTime（冷却秒数，12672 秒≈3.5 小时，数量级正好对得上）。
+# 字段名修正后它和别的响应一样按 ret 判，例外已删除。
 
 # 响应里这些字段若存在，用来展示"获得了什么"
-REWARD_HINT = ("ret", "leftTime", "getTimes", "leftFreeCnt", "nResult",
-               "addsoul", "num", "cnt")
+REWARD_HINT = ("ret", "freeVisitCnt", "leftFreeCnt", "getTimes", "leftTime",
+               "nResult", "addsoul", "addoil", "addmetal", "jungong",
+               "trainExp", "nAddRes")
 
 
 def _rse_name(rce_msg: str) -> str:
@@ -81,24 +95,32 @@ def _rse_name(rce_msg: str) -> str:
     return "Rse" + rce_msg[3:] if rce_msg.startswith("Rce") else rce_msg
 
 
-# 响应里表示"还剩几次"的字段。动作做完后据此决定要不要继续 ——
-# 这些字段只在**动作响应**里才有（RseHeroVisit.hasCreditVisit=[2,1,1]、
-# RseWPCExplore.leftTime=2→1→0），所以不能拿来做事前闸门，
-# 只能事后读。这是 2026-08-09 修正的设计：先做，再看还剩几次。
-LEFT_FIELDS = ("hasCreditVisit", "leftTime", "leftFreeCnt", "nfreeTimes",
-               "getTimes", "nRemainFreeNum")
+# 响应里表示"还剩几次"的字段（名字以修正后的 schema 为准）。
+#
+# 注意这里**不能**放 leftTime 和 finishVisitTime：它们是冷却/完成时刻（秒），
+# 不是次数。此前把 leftTime 当次数用，读到 12672 就以为"还剩一万多次"。
+# 也不能放 hasCreditVisit —— 它是 bool（"是否还能花勋章再来一次"），
+# 而 Python 里 isinstance(True, int) 为真，会被当成"剩 1 次"。
+LEFT_FIELDS = ("freeVisitCnt", "leftFreeCnt", "getTimes", "nfreeTimes",
+               "nRemainFreeNum")
 
 
 def _left_count(data):
-    """从响应里取剩余次数。返回 None 表示这条响应没提供该信息。"""
+    """从响应里取剩余次数。返回 None 表示这条响应没提供该信息。
+
+    freeVisitCnt 这类字段是 [各档剩余次数] 的数组（实测 [2,1,1]→[1,1,1]），
+    取最大值：任一档还有免费次数就算还能做。
+    """
     if not isinstance(data, dict):
         return None
     for f in LEFT_FIELDS:
         v = data.get(f)
+        if isinstance(v, bool):            # bool 是 int 的子类，必须先挡掉
+            continue
         if isinstance(v, int):
             return v
         if isinstance(v, (list, tuple)):
-            nums = [x for x in v if isinstance(x, int)]
+            nums = [x for x in v if isinstance(x, int) and not isinstance(x, bool)]
             if nums:
                 return max(nums)
     return None
@@ -113,8 +135,10 @@ def judge(rse_msg: str, data):
     if not isinstance(data, dict):
         return True, str(data)[:80], False
     ret = data.get("ret")
-    if ret is not None and rse_msg not in RET_IS_PAYLOAD and ret != 0:
-        return False, f"服务器返回 ret={ret}（非 0，判为失败）", True
+    if isinstance(ret, int) and ret != 0:
+        why = ("需要花钱才能做（客户端此时会弹商店），已跳过"
+               if ret == 1 else f"服务器返回 ret={ret}（错误码 heroRecruitError{ret}）")
+        return False, why, True
     bits = [f"{k}={data[k]}" for k in REWARD_HINT if k in data]
     msg = "成功" + ("：" + " ".join(bits) if bits else "")
     # 成功了，但如果响应说剩余次数已归零，就别再来了
@@ -124,22 +148,35 @@ def judge(rse_msg: str, data):
     return True, msg, False
 
 
-class Guard:
-    """发送前的状态闸门：先读服务器下发的剩余免费次数，>0 才允许发。
+class Gate:
+    """动作前的免费次数闸门：读**前置请求的响应**，还有免费次数才发动作。
 
-    截图实测：开采石油/金属冶炼/矿区探索/军备制造/配件探索都是
-    「免费N次 + 用完转扣券或勋章」，同一个按钮两种行为。所以这类任务
-    绝不能盲发，必须先确认服务器认为你还有免费次数。
+    为什么这样是对的（2026-08-09 从 SWF 反汇编确认）
+    ------------------------------------------------
+    真实客户端点"开采"时走的是 _-5TJ:_-18n::_-1RB：
 
-    rse_msg  等待哪条服务器消息（如 RseWPCExplore）
-    field    读它的哪个字段（如 leftFreeCnt）
-    trigger  可选：为了让服务器下发状态，先要发的查询请求 (opcode, fields)
+        var left:int = _-h1.freeVisitCnt[type];   // _-h1 就是 RseHeroOpen 响应本身
+        if (left > 0) {
+            req.type = type; req.free = 1; Transport.Send(req);   // 免费档
+        } else {
+            ... 走扣道具 / 扣勋章的分支 ...
+        }
+
+    也就是说**免费次数就在开面板的响应里**，动作之前就能读到。
+    此前一版把闸门去掉了，理由是"剩余次数只有动作响应里才有，首次运行必然
+    等不到"——那是因为当时读的是动作响应 RseHeroVisit；而客户端读的是
+    开面板响应 RseHeroOpen。前置请求本来就要发，它的响应正好就是闸门数据。
+
+    读不到状态就**不发**：宁可这一轮不做，也不能在免费次数已尽时把请求发出去，
+    那正是客户端会转而扣券/扣勋章的位置。
+
+    rse_msg  等哪条响应（如 RseHeroOpen），它是 prelude 的回包
+    field    读哪个字段（如 freeVisitCnt），数组则任一档 >0 即放行
     """
 
-    def __init__(self, rse_msg, field, trigger=None, timeout=8.0):
+    def __init__(self, rse_msg, field, timeout=6.0):
         self.rse_msg = rse_msg
         self.field = field
-        self.trigger = trigger
         self.timeout = timeout
 
 
@@ -165,10 +202,10 @@ class Task:
     """
 
     def __init__(self, key, name, opcode, msg, fields, confidence,
-                 note="", max_per_day=1, guard=None, cooldown_sec=0,
+                 note="", max_per_day=1, gate=None, cooldown_sec=0,
                  prelude=()):
         self.prelude = list(prelude)
-        self.guard = guard
+        self.gate = gate                # 读 prelude 的响应，免费次数 >0 才发
         # 很多任务并非"一天一次"：军事演习占领后有时长，结束才能再占（每天 3 次）；
         # 英雄训练 8 小时可重复。cooldown_sec>0 表示两次执行之间要等这么久，
         # 配合 max_per_day 一起限制。守护进程会周期性地重跑任务轮次。
@@ -238,15 +275,18 @@ TASKS = [
     _t("英雄开采", "英雄中心·开采石油", "0402", "RceHeroVisit",
        {3: ("int32", 1), 4: ("int32", 0)},
        "实测", "实测顺序：RceHeroOpen{type:0} 开面板 → RceHeroVisit{free:1,type:0}。"
-               "响应的 hasCreditVisit=[三档剩余免费次数]，实测 [2,1,1]→[1,1,1]→[0,1,1]",
+               "开面板响应 RseHeroOpen.freeVisitCnt=[三档剩余免费次数]，"
+               "实测 [2,1,1]→[1,1,1]→[0,1,1]（客户端就是读这个决定走免费档还是付费档）",
        max_per_day=3,
-       prelude=[("0400", {3: ("int32", 0)})]),
+       prelude=[("0400", {3: ("int32", 0)})],
+       gate=Gate("RseHeroOpen", "freeVisitCnt")),
 
     _t("将领冶炼", "将领·金属冶炼", "0450", "RceAdmiralVisit",
        {3: ("int32", 1), 4: ("int32", 0)},
        "实测", "实测顺序：RceAdmiralOpen{type:0} → RceAdmiralVisit{free:1,type:0}",
        max_per_day=3,
-       prelude=[("044e", {3: ("int32", 0)})]),
+       prelude=[("044e", {3: ("int32", 0)})],
+       gate=Gate("RseAdmiralOpen", "freeVisitCnt")),
 
     _t("技能书收集", "将领/参谋·免费技能书", "048a", "RceBookCollection",
        {1: ("int32", 1), 2: ("int32", 0)},
@@ -261,16 +301,21 @@ TASKS = [
 
     _t("特工派遣", "远程火炮·特工派遣", "04d6", "RceTrenchMortarOpt",
        {1: ("int32", 1), 2: ("int32", 1001)},
-       "实测", "实测 optType:0 查询 → optType:1 + subType 1001/1002/1003 三档",
+       "实测", "实测 optType:0 查询 → optType:1 + subType 1001/1002/1003 三档。"
+               "查询响应 RseTrenchMortarOpt.freeVisitCnt 给出各档剩余免费次数",
        max_per_day=3,
-       prelude=[("04d6", {1: ("int32", 0)})]),
+       prelude=[("04d6", {1: ("int32", 0)})],
+       gate=Gate("RseTrenchMortarOpt", "freeVisitCnt")),
 
     _t("配件探索", "配件中心·基地探索", "043a", "RceWPCExplore",
        {1: ("int32", 10001)},
        "实测", "实测 RceWPCBaseOpen{type:1} 开面板 → RceWPCExplore{sceneID:10001}。"
-               "useItemID/useItemCnt 是库存上报不是消耗，此处一律不发",
+               "useItemID/useItemCnt 是库存上报不是消耗，此处一律不发。"
+               "开面板响应 RseWPCBaseOpen.leftFreeCnt 才是剩余免费次数，"
+               "leftTime 是冷却秒数（此前把它当次数用过）",
        max_per_day=3,
-       prelude=[("0437", {1: ("int32", 1)})]),
+       prelude=[("0437", {1: ("int32", 1)})],
+       gate=Gate("RseWPCBaseOpen", "leftFreeCnt")),
 
     _t("军备制造", "军备研究·制造", "04e1", "RceJunBeiOpt",
        {1: ("int32", 22), 2: ("int32", 1)},
@@ -366,59 +411,29 @@ def _save_state(st):
 
 # ---------------------------------------------------------------- 执行
 
-def _pump(sock, rec, msg_name, timeout):
-    """读 socket 直到收到指定服务器消息（或超时）。返回解码后的字段字典或 None。
+def _check_gate(gate, data):
+    """判断闸门。返回 (是否放行, 说明, 免费次数是否已归零)。
 
-    必须自己收包：daily.run 跑在保活主循环之前，此时还没人在 recv，
-    干等永远等不到。sock 已被 rec.wrap() 包过，recv 到的字节会自动进录制器。
+    最后一项用来区分"确定没次数了"和"读不到"：前者可以把今日次数打满，
+    后者只是这一轮不做，不该消耗配额。
     """
-    if rec is None:
-        return None
-    deadline = time.time() + timeout
-    while time.time() < deadline:
-        got = rec.latest.get(msg_name)
-        if got and got[0] >= deadline - timeout:      # 本次等待期内收到的才算
-            return got[1]
-        try:
-            sock.settimeout(0.5)
-            if not sock.recv(8192):
-                return None
-        except Exception:
-            pass
-    got = rec.latest.get(msg_name)
-    return got[1] if got else None
-
-
-def _check_guard(task, rec, sock):
-    """执行状态闸门。返回 (是否放行, 说明)。"""
-    g = task.guard
-    if g is None:
-        return True, ""
-    if rec is None:
-        return False, "无录制器，读不到状态"
-
-    if g.trigger:                                     # 先发查询请求让服务器下发状态
-        try:
-            top, tfields = g.trigger
-            sender.send_frame(sock, top, encode_message(tfields), rec.rc4_c2s)
-        except Exception as exc:
-            return False, f"状态查询发送失败：{exc}"
-
-    data = _pump(sock, rec, g.rse_msg, g.timeout)
     if data is None:
-        return False, f"{g.timeout:.0f}s 内没收到 {g.rse_msg}，放弃（宁可不做也不误扣）"
-    left = data.get(g.field)
+        return False, f"{gate.timeout:.0f}s 内没收到 {gate.rse_msg}，" \
+                      "这一轮不做（宁可少做也不误扣券/勋章）", False
+    left = data.get(gate.field)
     if left is None:
-        return False, f"{g.rse_msg} 里没有 {g.field} 字段"
-    # hasCreditVisit 是 [三档各自剩余次数] 这种数组，任一档 >0 即可继续
+        return False, f"{gate.rse_msg} 里没有 {gate.field} 字段，这一轮不做", False
+    # freeVisitCnt 是 [各档剩余次数] 的数组，任一档 >0 即可继续
     if isinstance(left, (list, tuple)):
-        nums = [x for x in left if isinstance(x, int)]
+        nums = [x for x in left if isinstance(x, int) and not isinstance(x, bool)]
         if not nums or max(nums) <= 0:
-            return False, f"各档免费次数均已用完 {g.field}={left}"
-        return True, f"剩余免费 {g.field}={left}"
-    if not isinstance(left, int) or left <= 0:
-        return False, f"剩余免费次数 {g.field}={left}，已用完，跳过（避免扣券/勋章）"
-    return True, f"剩余免费 {g.field}={left}"
+            return False, f"各档免费次数均已用完 {gate.field}={left}", True
+        return True, f"剩余免费 {gate.field}={left}", False
+    if isinstance(left, bool) or not isinstance(left, int):
+        return False, f"{gate.field}={left!r} 不是次数，这一轮不做", False
+    if left <= 0:
+        return False, f"免费次数已用完 {gate.field}={left}（再发就会扣券/勋章）", True
+    return True, f"剩余免费 {gate.field}={left}", False
 
 
 def _check_safety(task, field_names):
@@ -493,6 +508,8 @@ def run(rec, sock, config: dict, schema=None) -> dict:
 
         # 前置请求：真实客户端每个动作前都会先开面板/查询，服务端据此建上下文。
         # 少了这步，动作发出去参数再对也不生效 —— 这是 2026-08-09 定位到的根因。
+        gate_before = ((rec.latest.get(task.gate.rse_msg) or (0,))[0]
+                       if rec and task.gate else 0)
         for pop, pfields in task.prelude:
             try:
                 sender.send_frame(sock, pop, encode_message(pfields), rec.rc4_c2s)
@@ -502,6 +519,23 @@ def run(rec, sock, config: dict, schema=None) -> dict:
                 log.warning("[%s] 前置请求 %s 失败: %s", task.key, pop, exc)
         if task.prelude:
             time.sleep(0.6)     # 给服务端一点时间把面板数据推回来
+
+        # 闸门：前置请求的响应里就有剩余免费次数，客户端正是读它决定
+        # 走免费档还是扣券/扣勋章档。读不到就不发。
+        if task.gate:
+            gdata = _await_response(sock, rec, task.gate.rse_msg,
+                                    gate_before, task.gate.timeout)
+            passed, why, exhausted = _check_gate(task.gate, gdata)
+            if not passed:
+                results[task.key] = f"闸门拦截：{why}"
+                log.info("[%s] %s", task.key, results[task.key])
+                if exhausted:
+                    # 确定没免费次数了，今天别再来
+                    st["done"][task.key] = task.max_per_day
+                    _save_state(st)
+                time.sleep(gap)
+                continue
+            log.info("[%s] 闸门放行：%s", task.key, why)
 
         rse = _rse_name(task.msg)
         # 记下发送前该响应的时间戳，避免把上一次的旧响应误当成本次结果

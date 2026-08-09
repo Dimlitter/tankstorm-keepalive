@@ -1,7 +1,8 @@
 syntax = "proto2";
 
 // 由 extract_proto.py 从 RedWar SWF 还原
-// 字段号/类型来自 writeExternal 的立即数，字段名来自 protobuf-as3 的报错模板
+// 字段号/类型来自 writeExternal 的立即数，
+// 字段名来自 readExternal 中该字段 case 分支里的报错模板
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-6Cb
 message Academy {
@@ -35,10 +36,10 @@ message AdmiralCombine {
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-0aJ
 message AdmiralCombineInfo {
-  optional message    armySoul = 1;
-  optional message    book = 2;
-  optional int32      field3 = 3;
-  optional int32      field4 = 4;
+  optional message    field1 = 1;
+  optional message    admiralmarklist = 2;
+  optional int32      armySoul = 3;
+  optional int32      book = 4;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-7S2
@@ -51,18 +52,18 @@ message AdmiralData {
   optional int32      addAtk = 6;
   optional int32      addCrt = 7;
   optional int32      addDef = 8;
-  optional message    finalAtk = 10;
-  optional int32      finalHP = 11;
-  optional int32      finalCrt = 12;
-  optional int32      finalDef = 13;
-  optional int32      useSoulCnt = 14;
-  optional int32      trainSkill = 15;
-  optional int32      buffTime = 16;
-  optional message    admiralEquip = 17;
-  optional int32      unlockmdh = 18;
-  optional message    nscore = 19;
-  optional bool       field20 = 20;
-  optional int32      field21 = 21;
+  optional message    skill = 10;
+  optional int32      medalhonorList = 11;
+  optional int32      finalAtk = 12;
+  optional int32      finalHP = 13;
+  optional int32      finalCrt = 14;
+  optional int32      finalDef = 15;
+  optional int32      useSoulCnt = 16;
+  optional message    trainSkill = 17;
+  optional int32      buffTime = 18;
+  optional message    admiralEquip = 19;
+  optional bool       unlockmdh = 20;
+  optional int32      nscore = 21;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-4Q4
@@ -130,18 +131,18 @@ message AdviserData {
   optional int32      nLevel = 2;
   optional int32      nStar = 3;
   optional int32      nExp = 4;
-  optional int32      nEpicComCnt = 5;
-  optional int32      nTalentPoint = 6;
-  optional int32      nStairCom = 7;
-  optional int32      nAdmlLoestStar = 8;
-  optional int32      nWay = 9;
-  optional message    nNowStarHave = 10;
-  optional int32      nSkillData = 11;
-  optional int32      nEpicZhuanshuComCnt = 12;
-  optional int32      field13 = 13;
-  optional int32      field14 = 14;
-  optional message    field15 = 15;
-  optional int32      field16 = 16;
+  optional int32      field5 = 5;
+  optional int32      nEpicComCnt = 6;
+  optional int32      field7 = 7;
+  optional int32      field8 = 8;
+  optional int32      nTalentPoint = 9;
+  optional message    field10 = 10;
+  optional int32      nStairCom = 11;
+  optional int32      nAdmlLoestStar = 12;
+  optional int32      nWay = 13;
+  optional int32      nNowStarHave = 14;
+  optional message    nSkillData = 15;
+  optional int32      nEpicZhuanshuComCnt = 16;
   optional int32      field17 = 17;
 }
 
@@ -197,9 +198,9 @@ message AiAttack {
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-6kH
 message AiAttackQueued {
-  optional message    warned = 1;
-  optional int32      startUnits = 2;
-  optional int32      field3 = 3;
+  optional message    attack = 1;
+  optional int32      warned = 2;
+  optional int32      startUnits = 3;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-6Ll
@@ -220,9 +221,9 @@ message ArenaAchieveNode {
 message ArenaRankCountry {
   optional int32      countryid = 1;
   optional uint32     nRankTime = 2;
-  optional message    nArenaNum = 3;
+  optional message    field3 = 3;
   optional message    field4 = 4;
-  optional uint32     field5 = 5;
+  optional uint32     nArenaNum = 5;
   optional message    field6 = 6;
   optional message    field7 = 7;
 }
@@ -290,12 +291,12 @@ message ArmyCltAtkProp {
   optional int32      dps = 5;
   optional int32      curlArmyID = 6;
   optional int32      hurtHP = 7;
-  optional message    clipSize = 8;
-  optional message    reloadTime = 9;
-  optional int32      viewRange = 10;
-  optional int32      sign = 11;
-  optional int32      field12 = 12;
-  optional string     field13 = 13;
+  optional message    record = 8;
+  optional message    field9 = 9;
+  optional int32      clipSize = 10;
+  optional int32      reloadTime = 11;
+  optional int32      viewRange = 12;
+  optional string     sign = 13;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-3pE
@@ -308,20 +309,20 @@ message ArmyCltAtkRecord {
 // com.sincetimes.redwar.game.comnunicate.protocol:_-4--
 message ArmyOptInfo {
   optional int32      type = 1;
-  optional message    selfx = 2;
-  optional float      selfy = 3;
-  optional float      angle = 4;
-  optional int32      health = 5;
-  optional int32      targetX = 6;
-  optional float      targetY = 7;
-  optional float      field8 = 8;
+  optional message    field2 = 2;
+  optional float      selfx = 3;
+  optional float      selfy = 4;
+  optional int32      angle = 5;
+  optional int32      health = 6;
+  optional float      targetX = 7;
+  optional float      targetY = 8;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-24N
 message ArmyProp {
-  optional message    armyId = 1;
-  optional int32      armyType = 2;
-  optional int32      field3 = 3;
+  optional message    field1 = 1;
+  optional int32      armyId = 2;
+  optional int32      armyType = 3;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-7OB
@@ -332,9 +333,9 @@ message ArmyPropUnit {
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-6u3
 message AttackReport {
-  optional message    r1 = 1;
-  optional string     r2 = 2;
-  optional string     field3 = 3;
+  optional message    events = 1;
+  optional string     r1 = 2;
+  optional string     r2 = 3;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-5Dc
@@ -376,30 +377,30 @@ message BagItemLog {
   optional int32      oil = 6;
   optional int32      credit = 7;
   optional int32      honor = 8;
-  optional int32      feats = 9;
-  optional int32      thew = 10;
-  optional int32      morale = 11;
-  optional int32      zhangong = 12;
-  optional int32      gScore = 13;
-  optional int32      soul = 14;
-  optional int32      cntrScore = 15;
-  optional int32      nMilitarySoul = 16;
-  optional int32      adviserSoul = 17;
-  optional int32      nNormalGuildBasePoint = 18;
-  optional int32      nHighGuildBasePoint = 19;
-  optional int32      field20 = 20;
-  optional int32      field21 = 21;
-  optional int32      field22 = 22;
-  optional int32      field23 = 23;
+  optional int32      itemType = 9;
+  optional int32      itemCnt = 10;
+  optional int32      armyType = 11;
+  optional int32      field12 = 12;
+  optional int32      field13 = 13;
+  optional int32      field14 = 14;
+  optional int32      field15 = 15;
+  optional int32      field16 = 16;
+  optional int32      admiralID = 17;
+  optional int32      field18 = 18;
+  optional int32      feats = 19;
+  optional int32      thew = 20;
+  optional int32      morale = 21;
+  optional int32      zhangong = 22;
+  optional int32      equipID = 23;
   optional int32      field24 = 24;
-  optional int32      field25 = 25;
-  optional int32      field26 = 26;
-  optional int32      field27 = 27;
+  optional int32      gScore = 25;
+  optional int32      soul = 26;
+  optional int32      cntrScore = 27;
   optional int32      field28 = 28;
   optional int32      field29 = 29;
   optional int32      field30 = 30;
   optional int32      field31 = 31;
-  optional int32      field32 = 32;
+  optional int32      nMilitarySoul = 32;
   optional int32      field33 = 33;
   optional int32      field34 = 34;
   optional int32      field35 = 35;
@@ -408,17 +409,17 @@ message BagItemLog {
   optional int32      field38 = 38;
   optional int32      field39 = 39;
   optional int32      field40 = 40;
-  optional int32      field41 = 41;
+  optional int32      adviserid = 41;
   optional int32      field42 = 42;
   optional int32      field43 = 43;
   optional int32      field44 = 44;
-  optional int32      field45 = 45;
-  optional int32      field46 = 46;
+  optional int32      adviserSoul = 45;
+  optional int32      dynamic = 46;
   optional int32      field47 = 47;
   optional int32      field48 = 48;
   optional int32      field49 = 49;
-  optional int32      field50 = 50;
-  optional int32      field51 = 51;
+  optional int32      nNormalGuildBasePoint = 50;
+  optional int32      nHighGuildBasePoint = 51;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-1G1
@@ -439,10 +440,10 @@ message BaseExploreRewardGift {
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-4FG
 message BattleAlter {
-  optional message    effects = 1;
+  optional message    army = 1;
   optional message    field2 = 2;
-  optional message    field3 = 3;
-  optional string     field4 = 4;
+  optional message    build = 3;
+  optional string     effects = 4;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-2zx
@@ -471,15 +472,15 @@ message BindGuildTask {
 // com.sincetimes.redwar.game.comnunicate.protocol:_-4v9
 message BirthdaycakeFloor {
   optional int32      putfloor = 1;
-  optional message    cakeType = 2;
-  optional int32      field3 = 3;
+  optional message    cakeunit = 2;
+  optional int32      cakeType = 3;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-3LX
 message BirthdaycakeInfo {
   optional bool       hasCake = 1;
-  optional message    showType = 2;
-  optional int32      field3 = 3;
+  optional message    cakefloor = 2;
+  optional int32      showType = 3;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-1DS
@@ -499,17 +500,17 @@ message BookCollection {
 message BossBattlePlayerUnit {
   optional string     uid = 1;
   optional string     name = 2;
-  optional int32      power = 3;
-  optional int32      praiseCont = 4;
-  optional int32      declaration = 5;
-  optional int32      damage = 6;
-  optional string     pic = 7;
-  optional string     level = 8;
-  optional string     guildname = 9;
-  optional int32      countryID = 10;
-  optional string     reason = 11;
-  optional int32      field12 = 12;
-  optional int32      field13 = 13;
+  optional int32      admiralID = 3;
+  optional int32      admiralTrainLv = 4;
+  optional int32      power = 5;
+  optional int32      praiseCont = 6;
+  optional string     declaration = 7;
+  optional string     damage = 8;
+  optional string     pic = 9;
+  optional int32      level = 10;
+  optional string     guildname = 11;
+  optional int32      countryID = 12;
+  optional int32      reason = 13;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-0F
@@ -577,35 +578,35 @@ message BuildingData {
   optional int32      pod = 14;
   optional int32      hp = 15;
   optional int32      f = 16;
-  optional bool       bdel = 18;
-  optional string     prcArmy = 19;
-  optional int32      isVipMine = 20;
-  optional bool       destroytime = 21;
-  optional message    RemouldLvl = 22;
-  optional bool       buffdata = 23;
-  optional message    bChgStyle = 25;
-  optional bool       dieway = 26;
-  optional int32      hpCheck = 27;
-  optional int32      hpWin = 28;
-  optional message    isJizuo = 29;
-  optional bool       zhuziValue = 30;
-  optional message    trap = 31;
-  optional int32      isRedwarVipMine = 32;
-  optional int32      range = 33;
-  optional bool       damage = 34;
-  optional int32      speed = 35;
-  optional message    rate = 36;
-  optional bool       recycleFlag = 37;
-  optional int32      enhancetype = 38;
-  optional int32      enhanceend = 39;
-  optional int32      isRedwarVipTrap = 40;
-  optional int32      pr = 41;
-  optional bool       rIP = 42;
-  optional int32      rCP = 43;
-  optional int32      cP = 44;
-  optional bool       cR = 45;
-  optional int32      field47 = 47;
-  optional int32      field48 = 48;
+  optional bool       field18 = 18;
+  optional string     bdel = 19;
+  optional int32      prcArmy = 20;
+  optional bool       isVipMine = 21;
+  optional message    destroytime = 22;
+  optional bool       RemouldLvl = 23;
+  optional message    buffdata = 25;
+  optional bool       bChgStyle = 26;
+  optional int32      dieway = 27;
+  optional int32      hpCheck = 28;
+  optional message    hpWin = 29;
+  optional bool       isJizuo = 30;
+  optional message    zhuziValue = 31;
+  optional int32      trap = 32;
+  optional int32      isRedwarVipMine = 33;
+  optional bool       range = 34;
+  optional int32      damage = 35;
+  optional message    speed = 36;
+  optional bool       rate = 37;
+  optional int32      recycleFlag = 38;
+  optional int32      enhancetype = 39;
+  optional int32      enhanceend = 40;
+  optional int32      isRedwarVipTrap = 41;
+  optional bool       pr = 42;
+  optional int32      rIP = 43;
+  optional int32      rCP = 44;
+  optional bool       field45 = 45;
+  optional int32      cP = 47;
+  optional int32      cR = 48;
   optional message    field49 = 49;
 }
 
@@ -663,14 +664,14 @@ message CarLogInfo {
   optional int32      region = 3;
   optional int32      combatpower = 4;
   optional int32      type = 5;
-  optional message    endtime = 6;
-  optional int32      field7 = 7;
+  optional message    loseitem = 6;
+  optional int32      endtime = 7;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-2sW
 message CathecticRecord {
   optional int32      id = 1;
-  optional int32      field2 = 2;
+  optional int32      records = 2;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-51Q
@@ -686,11 +687,11 @@ message CityBloodBattle {
   optional int32      defCity = 9;
   optional int32      defTotalCnt = 10;
   optional int32      defLeftCnt = 11;
-  optional message    winCity = 12;
-  optional int32      overTime = 13;
-  optional int32      type = 14;
-  optional int32      bSuper = 15;
-  optional bool       field16 = 16;
+  optional message    field12 = 12;
+  optional int32      winCity = 13;
+  optional int32      overTime = 14;
+  optional int32      type = 15;
+  optional bool       bSuper = 16;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-1MP
@@ -910,8 +911,8 @@ message CrossPromotion {
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-iH
 message DailyTask {
-  optional message    totalPoint = 1;
-  optional int32      field2 = 2;
+  optional message    tasks = 1;
+  optional int32      totalPoint = 2;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-El
@@ -923,18 +924,18 @@ message DefenceBuild {
 // com.sincetimes.redwar.game.comnunicate.protocol:_-Sl
 message DefenseActivityArmy {
   optional int32      armyType = 1;
-  optional int32      posX = 2;
-  optional int32      posY = 3;
-  optional int32      hp = 4;
-  optional int32      field5 = 5;
+  optional int32      field2 = 2;
+  optional int32      posX = 3;
+  optional int32      posY = 4;
+  optional int32      hp = 5;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-qk
 message DefenseActivityNode {
   optional int32      activityid = 1;
   optional int32      activitycut = 2;
-  optional bool       lstcustomtime = 3;
-  optional int32      field4 = 4;
+  optional bool       field3 = 3;
+  optional int32      lstcustomtime = 4;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-1hc
@@ -1229,20 +1230,20 @@ message GrabberInfo {
 // com.sincetimes.redwar.game.comnunicate.protocol:_-79G
 message GroupCountryData {
   optional int32      countryID = 1;
-  optional int32      field2 = 2;
+  optional int32      wintimes = 2;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-N2
 message GroupCountryRank {
   optional int32      topcountry = 1;
-  optional message    field2 = 2;
+  optional message    cdata = 2;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-1uj
 message GuidlBtlRetWay {
   optional int32      winGuildID = 1;
-  optional message    field2 = 2;
-  optional message    field3 = 3;
+  optional message    userLst1 = 2;
+  optional message    userLst2 = 3;
   optional message    field4 = 4;
 }
 
@@ -1329,19 +1330,19 @@ message GuildData {
   optional string     leaderName = 12;
   optional int32      delateTM = 14;
   optional int32      leaderLastTM = 15;
-  optional message    totalRank = 16;
-  optional int32      guildBtlScore = 17;
-  optional int32      guildPKRank = 18;
-  optional int32      totalPKRank = 19;
-  optional int32      session = 20;
-  optional int32      contribute = 21;
-  optional int32      leaguePoint = 22;
-  optional int32      chgLeaderTM = 23;
-  optional int32      nguildboxlv = 24;
-  optional int32      nguildboxexp = 25;
-  optional int32      lMaxPower = 26;
-  optional int64      nRegion = 27;
-  optional int32      field28 = 28;
+  optional message    build = 16;
+  optional int32      totalRank = 17;
+  optional int32      guildBtlScore = 18;
+  optional int32      guildPKRank = 19;
+  optional int32      totalPKRank = 20;
+  optional int32      session = 21;
+  optional int32      contribute = 22;
+  optional int32      leaguePoint = 23;
+  optional int32      chgLeaderTM = 24;
+  optional int32      nguildboxlv = 25;
+  optional int32      nguildboxexp = 26;
+  optional int64      lMaxPower = 27;
+  optional int32      nRegion = 28;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-uc
@@ -1385,11 +1386,11 @@ message GuildShopPmt {
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-6YC
 message GuildStake {
-  optional int32      LuckyScienceID = 1;
-  optional int32      LuckyScienceExp = 2;
+  optional int32      field1 = 1;
+  optional int32      addExp = 2;
   optional int32      field3 = 3;
-  optional int32      field4 = 4;
-  optional int32      field5 = 5;
+  optional int32      LuckyScienceID = 4;
+  optional int32      LuckyScienceExp = 5;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-53e
@@ -1397,8 +1398,8 @@ message GuildTask {
   optional int32      completecnt = 1;
   optional int32      curid = 2;
   optional int32      status = 3;
-  optional int32      progress = 4;
-  optional int32      field5 = 5;
+  optional int32      field4 = 4;
+  optional int32      progress = 5;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-4N8
@@ -1433,14 +1434,14 @@ message GvgCity {
 // com.sincetimes.redwar.game.comnunicate.protocol:_-A1
 message GvgFightTeam {
   optional int32      guildID = 1;
-  optional string     hasRedEnvelopeHead = 2;
-  optional string     field3 = 3;
-  optional int32      field4 = 4;
-  optional int32      field5 = 5;
+  optional string     userName = 2;
+  optional string     userPic = 3;
+  optional int32      atkAdd = 4;
+  optional int32      hpAdd = 5;
   optional int32      field6 = 6;
-  optional string     field7 = 7;
-  optional bool       field8 = 8;
-  optional bool       field9 = 9;
+  optional string     userID = 7;
+  optional bool       isOffLine = 8;
+  optional bool       hasRedEnvelopeHead = 9;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-7Yh
@@ -1550,13 +1551,13 @@ message HeroForceGem {
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-3Wt
 message HeroInuse {
-  optional message    nAtkOpenNum = 1;
-  optional message    nDefOpenNum = 2;
-  optional message    nAutoOpenNum = 3;
-  optional message    field4 = 4;
-  optional int32      field5 = 5;
-  optional int32      field6 = 6;
-  optional int32      field7 = 7;
+  optional message    heroAtkLst = 1;
+  optional message    heroDefLst = 2;
+  optional message    heroAutoLst = 3;
+  optional message    heroARenaLst = 4;
+  optional int32      nAtkOpenNum = 5;
+  optional int32      nDefOpenNum = 6;
+  optional int32      nAutoOpenNum = 7;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-6iW
@@ -1614,19 +1615,19 @@ message InNewComerGiftList {
 // com.sincetimes.redwar.game.comnunicate.protocol:_-6uR
 message InviteFrdMsg {
   optional int32      inviteFrdCntForNew = 1;
-  optional int32      coupon = 2;
+  optional int32      field2 = 2;
   optional bool       field3 = 3;
   optional int32      field4 = 4;
   optional message    field5 = 5;
-  optional int32      field6 = 6;
+  optional int32      coupon = 6;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-3Cn
 message InviteFriendMsgByLogon {
-  optional int64      credit = 1;
-  optional string     field2 = 2;
-  optional string     field3 = 3;
-  optional int32      field4 = 4;
+  optional int64      userid = 1;
+  optional string     name = 2;
+  optional string     url = 3;
+  optional int32      credit = 4;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-5W6
@@ -1644,16 +1645,16 @@ message InviteFriends_Unit {
   optional int32      friendcredit = 4;
   optional bool       invitegain = 5;
   optional int32      lvlgain = 6;
-  optional message    field7 = 7;
+  optional message    record = 7;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-3bk
 message InvitedFrdLvMsg {
   optional int32      lv = 1;
-  optional int64      field2 = 2;
+  optional int64      uids = 2;
   optional string     field3 = 3;
-  optional string     field4 = 4;
-  optional string     field5 = 5;
+  optional string     urls = 4;
+  optional string     names = 5;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-2ND
@@ -1697,7 +1698,7 @@ message JunBeiLetter {
 // com.sincetimes.redwar.game.comnunicate.protocol:_-3tW
 message JunBeiSkillTree {
   optional int32      nType = 1;
-  optional int32      field2 = 2;
+  optional int32      lstSkillID = 2;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-68F
@@ -1713,18 +1714,18 @@ message JunBeiWarLog {
 // com.sincetimes.redwar.game.comnunicate.protocol:_-af
 message LeagueMsg {
   optional int32      leagueID = 1;
-  optional message    winID = 2;
-  optional message    playerRankReward = 3;
-  optional message    guildRankReward = 4;
-  optional int32      bWin = 5;
-  optional int32      selfPoint = 6;
-  optional int32      selfRank = 7;
-  optional bool       selfguildPoint = 8;
-  optional int32      selfguildRank = 9;
-  optional int32      bFinishSet = 10;
-  optional int32      field11 = 11;
-  optional int32      field12 = 12;
-  optional bool       field13 = 13;
+  optional message    field2 = 2;
+  optional message    field3 = 3;
+  optional message    guildRank = 4;
+  optional int32      winID = 5;
+  optional int32      playerRankReward = 6;
+  optional int32      guildRankReward = 7;
+  optional bool       bWin = 8;
+  optional int32      selfPoint = 9;
+  optional int32      selfRank = 10;
+  optional int32      selfguildPoint = 11;
+  optional int32      selfguildRank = 12;
+  optional bool       bFinishSet = 13;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-41r
@@ -1799,8 +1800,8 @@ message MedalHonor {
 // com.sincetimes.redwar.game.comnunicate.protocol:_-5s-
 message MedalHonrFloor {
   optional int32      putfloor = 1;
-  optional message    cakeType = 2;
-  optional int32      field3 = 3;
+  optional message    cakefloor = 2;
+  optional int32      cakeType = 3;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-zF
@@ -1813,7 +1814,7 @@ message MedalHonrLoot {
 message MilitarySoulInfo {
   optional int32      nSoulID = 1;
   optional int32      nSoulLv = 2;
-  optional message    field3 = 3;
+  optional message    skillList = 3;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-23y
@@ -1836,9 +1837,9 @@ message MineEx {
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-1DJ
 message Monsterbaiter {
-  optional int32      musk = 1;
-  optional int32      angle = 2;
-  optional int32      field3 = 3;
+  optional int32      queue = 1;
+  optional int32      musk = 2;
+  optional int32      angle = 3;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-47q
@@ -1910,9 +1911,9 @@ message MsgGuildDuelGuildInfo {
 message MsgGuildDuelPkInfo {
   optional int32      nSeason = 1;
   optional int32      nDay = 2;
-  optional int32      cGuildOne = 3;
-  optional message    cGuildTwo = 4;
-  optional message    field5 = 5;
+  optional int32      field3 = 3;
+  optional message    cGuildOne = 4;
+  optional message    cGuildTwo = 5;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-22M
@@ -1923,7 +1924,7 @@ message MsgGuildGroupTask {
   optional int32      nTotalNeed = 4;
   optional string     lholder = 5;
   optional bool       bGetReward = 6;
-  optional message    field7 = 7;
+  optional message    lstHelper = 7;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-r8
@@ -1997,7 +1998,7 @@ message MsgSeaTreasureRankUser {
 // com.sincetimes.redwar.game.comnunicate.protocol:_-7Vl
 message MsgSeaTreasureRewardGroup {
   optional int32      type = 1;
-  optional message    field2 = 2;
+  optional message    items = 2;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-Ge
@@ -2042,15 +2043,15 @@ message MsgTaskModule {
   optional int32      nSeasonID = 6;
   optional int32      nFreeNum = 7;
   optional int32      nTaskFreshDay = 8;
-  optional message    nPoint = 9;
-  optional string     nCurRandNum = 10;
-  optional int32      nAppointRewardID = 11;
-  optional string     cPassInfo = 12;
-  optional int32      nFinishTaskNum = 13;
-  optional int32      field14 = 14;
+  optional message    field9 = 9;
+  optional string     nPoint = 10;
+  optional int32      field11 = 11;
+  optional string     field12 = 12;
+  optional int32      nCurRandNum = 13;
+  optional int32      nAppointRewardID = 14;
   optional message    field15 = 15;
-  optional message    field16 = 16;
-  optional int32      field17 = 17;
+  optional message    cPassInfo = 16;
+  optional int32      nFinishTaskNum = 17;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-7PD
@@ -2086,7 +2087,7 @@ message MsgValueWithType {
 // com.sincetimes.redwar.game.comnunicate.protocol:_-3JH
 message Mushroom {
   optional int32      s = 1;
-  optional message    field2 = 2;
+  optional message    l = 2;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-2Ez
@@ -2094,9 +2095,9 @@ message MyCarInfo {
   optional int32      quality = 1;
   optional int32      PlunderTimes = 2;
   optional int32      endtime = 3;
-  optional message    RefreshTimes = 4;
-  optional message    field5 = 5;
-  optional int32      field6 = 6;
+  optional message    field4 = 4;
+  optional message    loseitem = 5;
+  optional int32      RefreshTimes = 6;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-0TZ
@@ -2128,12 +2129,12 @@ message OneYuan {
   optional int32      flag = 1;
   optional int32      total = 2;
   optional int32      participation = 3;
-  optional string     win = 4;
-  optional message    bFetch = 5;
-  optional bool       bSendPrize = 6;
-  optional bool       redwarkey = 7;
+  optional string     selfkey = 4;
+  optional message    win = 5;
+  optional bool       bFetch = 6;
+  optional bool       bSendPrize = 7;
   optional string     field8 = 8;
-  optional int32      field9 = 9;
+  optional int32      redwarkey = 9;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-RT
@@ -2141,22 +2142,22 @@ message OneYuanCredit {
   optional int32      flag = 1;
   optional int32      stage = 2;
   optional int32      toatlbuy = 3;
-  optional int32      field4 = 4;
+  optional int32      selfkey = 4;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-3W9
 message OneYuanCreditResult {
   optional int32      flag = 1;
   optional int32      nTotalPage = 2;
-  optional message    field3 = 3;
+  optional message    result = 3;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-3n8
 message OneYuanRecord {
   optional int32      flag = 1;
   optional int32      stage = 2;
-  optional int32      redwarkey = 3;
-  optional int32      field4 = 4;
+  optional int32      selfkey = 3;
+  optional int32      redwarkey = 4;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-4H2
@@ -2191,9 +2192,9 @@ message PVEArmyRecord {
   optional int32      nFinalHp = 4;
   optional int32      nGrade = 5;
   optional int32      nMaxHp = 6;
-  optional message    nHeroGrade = 7;
-  optional int32      nHeroLV = 8;
-  optional int32      field9 = 9;
+  optional message    field7 = 7;
+  optional int32      nHeroGrade = 8;
+  optional int32      nHeroLV = 9;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-6yX
@@ -2205,9 +2206,9 @@ message PVEFightData {
   optional message    lastfightRecord = 5;
   optional int32      itemid = 6;
   optional int32      itemcnt = 7;
-  optional int32      vipcardaddtimes = 8;
-  optional int32      field9 = 9;
-  optional int32      field10 = 10;
+  optional int32      exItemid = 8;
+  optional int32      exItemcnt = 9;
+  optional int32      vipcardaddtimes = 10;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-1Cg
@@ -2224,9 +2225,9 @@ message PVEFightGeneral {
   optional int32      nGeneralEqpHp = 10;
   optional int32      nGeneralBuffAtk = 11;
   optional int32      nGeneralBuffHp = 12;
-  optional message    nRducAdmXiangxin = 13;
-  optional int32      nAddAdmXiangxin = 14;
-  optional int32      field15 = 15;
+  optional message    field13 = 13;
+  optional int32      nRducAdmXiangxin = 14;
+  optional int32      nAddAdmXiangxin = 15;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-1vR
@@ -2237,43 +2238,43 @@ message PVEFightMH {
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-3bQ
 message PVEFightRecord {
-  optional message    wayIndex = 1;
-  optional int32      totalway = 2;
-  optional int32      nCustomIndex = 3;
-  optional int32      nameEnemy = 4;
-  optional string     iconEnemy = 5;
-  optional string     nUidEnemy = 6;
-  optional string     nPosEnemy = 7;
-  optional int32      nFightPointS = 8;
-  optional uint32     nFightPointE = 9;
-  optional uint32     nLvlSelf = 10;
-  optional int32      nLvlEnemy = 11;
-  optional int32      nSelfResource = 12;
-  optional int32      nEnemyResource = 13;
-  optional int32      bWCDef = 14;
-  optional int32      bWCDefEnemy = 15;
-  optional int32      jammerInfo = 16;
-  optional bool       field17 = 17;
-  optional bool       field18 = 18;
-  optional message    field19 = 19;
+  optional message    field1 = 1;
+  optional int32      wayIndex = 2;
+  optional int32      totalway = 3;
+  optional int32      nCustomIndex = 4;
+  optional string     nameEnemy = 5;
+  optional string     iconEnemy = 6;
+  optional string     nUidEnemy = 7;
+  optional int32      nPosEnemy = 8;
+  optional uint32     nFightPointS = 9;
+  optional uint32     nFightPointE = 10;
+  optional int32      nLvlSelf = 11;
+  optional int32      nLvlEnemy = 12;
+  optional int32      nSelfResource = 13;
+  optional int32      nEnemyResource = 14;
+  optional int32      field15 = 15;
+  optional int32      field16 = 16;
+  optional bool       bWCDef = 17;
+  optional bool       bWCDefEnemy = 18;
+  optional message    jammerInfo = 19;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-2vw
 message PVEFightRecordWay {
-  optional message    fightResult = 1;
-  optional message    fightGeneralSelf = 2;
-  optional int32      fightGeneralEnemy = 3;
-  optional message    nSelfTotalHP = 4;
-  optional message    nEnemyTotalHP = 5;
-  optional int32      bLast = 6;
-  optional int32      rAdviserSelf = 7;
-  optional message    rAdviserEnemy = 8;
-  optional message    adviserskillSelf = 9;
-  optional bool       adviserskillEnemy = 10;
-  optional message    field11 = 11;
-  optional message    field12 = 12;
-  optional message    field13 = 13;
-  optional message    field14 = 14;
+  optional message    fightRecordSelf = 1;
+  optional message    fightRecordEnemy = 2;
+  optional int32      fightResult = 3;
+  optional message    fightGeneralSelf = 4;
+  optional message    fightGeneralEnemy = 5;
+  optional int32      nSelfTotalHP = 6;
+  optional int32      nEnemyTotalHP = 7;
+  optional message    field8 = 8;
+  optional message    field9 = 9;
+  optional bool       bLast = 10;
+  optional message    rAdviserSelf = 11;
+  optional message    rAdviserEnemy = 12;
+  optional message    adviserskillSelf = 13;
+  optional message    adviserskillEnemy = 14;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-6RZ
@@ -2294,10 +2295,10 @@ message PVETrenchMortarInfo {
   optional int32      nType = 2;
   optional int32      nLevel = 3;
   optional int32      nGrade = 4;
-  optional int32      nMortaruseskin = 5;
-  optional int32      nAtackTick = 6;
-  optional int32      nEndTick = 7;
-  optional int32      field8 = 8;
+  optional int32      field5 = 5;
+  optional int32      nMortaruseskin = 6;
+  optional int32      nAtackTick = 7;
+  optional int32      nEndTick = 8;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-3qA
@@ -2385,10 +2386,10 @@ message PokerInfo {
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-6Wm
 message ProduceArmy {
-  optional int32      inProduceArmy = 1;
-  optional int32      leftTime = 2;
-  optional int32      field3 = 3;
-  optional int32      field4 = 4;
+  optional int32      armyType = 1;
+  optional int32      field2 = 2;
+  optional int32      inProduceArmy = 3;
+  optional int32      leftTime = 4;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-7PA
@@ -2411,33 +2412,33 @@ message Purchase {
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-7Kx
 message Pve_AdmiralAdd {
-  optional int32      fightGeneral = 1;
+  optional int32      field1 = 1;
   optional int32      field2 = 2;
   optional int32      field3 = 3;
   optional int32      field4 = 4;
-  optional message    field5 = 5;
+  optional message    fightGeneral = 5;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-uW
 message Pve_AdviserProp {
-  optional int32      nChanceHit = 1;
-  optional int32      nAtkAura = 2;
-  optional int32      nHlthAuea = 3;
-  optional int32      nCrtRange = 4;
-  optional int32      nAdviserID = 5;
-  optional int32      nAdviserStar = 6;
-  optional int32      nAdviserSkillId = 7;
-  optional int32      nAdviserSkillLevel = 8;
-  optional int32      nAdviserSkillRank = 9;
-  optional int32      nAdviserMedalAddTankAtkPct = 10;
-  optional int32      nAdviserMedalReduceEnemyTankAtkPct = 11;
-  optional int32      nAdviserMedalReduceTankCrtDamagePct = 12;
-  optional int32      nAdviserMedalAddTankCrtPct = 13;
-  optional int32      nAdviserMedalAddTankHpPct = 14;
-  optional int32      nAdviserMedalReduceEnemyTankDamageDefPct = 15;
-  optional int32      nAdviserMedalAddTankDamageDefPct = 16;
-  optional int32      field17 = 17;
-  optional int32      field18 = 18;
+  optional int32      field1 = 1;
+  optional int32      nChanceHit = 2;
+  optional int32      nAtkAura = 3;
+  optional int32      nHlthAuea = 4;
+  optional int32      nCrtRange = 5;
+  optional int32      field6 = 6;
+  optional int32      nAdviserID = 7;
+  optional int32      nAdviserStar = 8;
+  optional int32      nAdviserSkillId = 9;
+  optional int32      nAdviserSkillLevel = 10;
+  optional int32      nAdviserSkillRank = 11;
+  optional int32      nAdviserMedalAddTankAtkPct = 12;
+  optional int32      nAdviserMedalReduceEnemyTankAtkPct = 13;
+  optional int32      nAdviserMedalReduceTankCrtDamagePct = 14;
+  optional int32      nAdviserMedalAddTankCrtPct = 15;
+  optional int32      nAdviserMedalAddTankHpPct = 16;
+  optional int32      nAdviserMedalReduceEnemyTankDamageDefPct = 17;
+  optional int32      nAdviserMedalAddTankDamageDefPct = 18;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-42a
@@ -2451,30 +2452,30 @@ message Pve_CArmyAtkProp {
   optional int32      nCrt = 7;
   optional int32      nSpeed = 8;
   optional int32      nTurnSpeed = 9;
-  optional int32      nCrtDamage = 10;
-  optional int32      nCrtDef = 11;
-  optional int32      nDamageDef = 12;
-  optional int32      nTotalDamagePct = 13;
-  optional int32      nBuffDamagePct = 14;
-  optional int32      nRangeBase = 15;
-  optional int32      nSpeedBase = 16;
-  optional int32      nBuffWCDamagePct = 17;
-  optional int32      nBuffWCHpPct = 18;
-  optional int32      nPropertyDamagePec = 19;
-  optional int32      nPropertyDamageDefPec = 20;
-  optional int32      nPropertyDamageMinusPec = 21;
-  optional int32      nMHCombinationAddAtk = 22;
-  optional int32      nBaseHp = 25;
-  optional int32      nMHCombAddHp = 26;
-  optional int32      nMHCombAddAtk = 27;
-  optional int32      nHeadUiAddHp = 28;
+  optional int32      field10 = 10;
+  optional int32      nCrtDamage = 11;
+  optional int32      nCrtDef = 12;
+  optional int32      nDamageDef = 13;
+  optional int32      nTotalDamagePct = 14;
+  optional int32      nBuffDamagePct = 15;
+  optional int32      nRangeBase = 16;
+  optional int32      nSpeedBase = 17;
+  optional int32      nBuffWCDamagePct = 18;
+  optional int32      nBuffWCHpPct = 19;
+  optional int32      field20 = 20;
+  optional int32      nPropertyDamagePec = 21;
+  optional int32      nPropertyDamageDefPec = 22;
+  optional int32      nPropertyDamageMinusPec = 25;
+  optional int32      field26 = 26;
+  optional int32      field27 = 27;
+  optional int32      field28 = 28;
   optional int32      field29 = 29;
-  optional int32      field30 = 30;
-  optional int32      field31 = 31;
-  optional int32      field32 = 32;
-  optional int32      field33 = 33;
+  optional int32      nMHCombinationAddAtk = 30;
+  optional int32      nBaseHp = 31;
+  optional int32      nMHCombAddHp = 32;
+  optional int32      nMHCombAddAtk = 33;
   optional int32      field34 = 34;
-  optional int32      field35 = 35;
+  optional int32      nHeadUiAddHp = 35;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-4VS
@@ -2507,45 +2508,45 @@ message Pve_EquipCombAddProp {
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-2GE
 message Pve_FightArmyData {
-  optional message    pvefightjunbeiinfoSelf = 1;
-  optional message    pvefightjunbeiinfoEnemy = 2;
-  optional message    field3 = 3;
+  optional message    field1 = 1;
+  optional message    pvefightjunbeiinfoSelf = 2;
+  optional message    pvefightjunbeiinfoEnemy = 3;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-in
 message Pve_FightSendDataUnit {
-  optional message    pvefightadmiralSelf = 1;
-  optional message    pvefightadmiralEnemy = 2;
-  optional message    pveheroskillSelf = 3;
-  optional message    pveheroskillEnemy = 4;
-  optional message    pvewarTankResearchSelf = 5;
-  optional message    pvewarTankResearchEnemy = 6;
-  optional message    pvectrenchmortarSelf = 7;
-  optional message    pvectrenchmortarEnemy = 8;
-  optional int32      pveadviserpropSelf = 9;
-  optional int32      pveadviserpropEnemy = 10;
-  optional int32      pvereducehpatkSelf = 11;
-  optional int32      pvereducehpatkEnemy = 12;
-  optional message    jammerreducehpSelf = 13;
-  optional message    jammerreducehpEnemy = 14;
-  optional message    heroskillreducehpSelf = 15;
-  optional message    heroskillreducehpEnemy = 16;
-  optional message    gunnergradeAddbuffSelf = 17;
-  optional message    gunnergradeAddbuffEnemy = 18;
-  optional message    heroBiographySelf = 19;
-  optional message    heroBiographyEnemy = 20;
-  optional int32      reduceadmiralSelf = 21;
-  optional int32      reduceadmiraEnemy = 22;
-  optional int32      equipcombaddpropSelf = 23;
-  optional int32      equipcombaddpropEnemy = 24;
-  optional message    field25 = 25;
-  optional message    field26 = 26;
-  optional message    field27 = 27;
-  optional message    field28 = 28;
-  optional message    field29 = 29;
-  optional message    field30 = 30;
-  optional message    field31 = 31;
-  optional message    field32 = 32;
+  optional message    field1 = 1;
+  optional message    field2 = 2;
+  optional message    pvefightadmiralSelf = 3;
+  optional message    field4 = 4;
+  optional message    field5 = 5;
+  optional message    pvefightadmiralEnemy = 6;
+  optional message    pveheroskillSelf = 7;
+  optional message    pveheroskillEnemy = 8;
+  optional int32      field9 = 9;
+  optional int32      field10 = 10;
+  optional int32      field11 = 11;
+  optional int32      field12 = 12;
+  optional message    pvewarTankResearchSelf = 13;
+  optional message    pvewarTankResearchEnemy = 14;
+  optional message    pvectrenchmortarSelf = 15;
+  optional message    pvectrenchmortarEnemy = 16;
+  optional message    pveadviserpropSelf = 17;
+  optional message    pveadviserpropEnemy = 18;
+  optional message    pvereducehpatkSelf = 19;
+  optional message    pvereducehpatkEnemy = 20;
+  optional int32      jammerreducehpSelf = 21;
+  optional int32      jammerreducehpEnemy = 22;
+  optional int32      heroskillreducehpSelf = 23;
+  optional int32      heroskillreducehpEnemy = 24;
+  optional message    gunnergradeAddbuffSelf = 25;
+  optional message    gunnergradeAddbuffEnemy = 26;
+  optional message    heroBiographySelf = 27;
+  optional message    heroBiographyEnemy = 28;
+  optional message    reduceadmiralSelf = 29;
+  optional message    reduceadmiraEnemy = 30;
+  optional message    equipcombaddpropSelf = 31;
+  optional message    equipcombaddpropEnemy = 32;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-5ZT
@@ -2666,11 +2667,11 @@ message QQGifRankGuildLog {
 // com.sincetimes.redwar.game.comnunicate.protocol:_-6cU
 message Quest {
   optional message    g = 1;
-  optional string     field2 = 2;
-  optional string     field3 = 3;
-  optional string     field4 = 4;
-  optional string     field5 = 5;
-  optional string     field6 = 6;
+  optional string     c = 2;
+  optional string     t1 = 3;
+  optional string     t2 = 4;
+  optional string     t3 = 5;
+  optional string     t4 = 6;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-1ZC
@@ -2768,7 +2769,7 @@ message RceActiveUIFlag {
 // com.sincetimes.redwar.game.comnunicate.protocol:_-5Bt   opcode 0x040f
 message RceAddArmy {
   optional int32      type = 1;
-  optional message    field2 = 2;
+  optional message    army = 2;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-1uy   opcode 0x0432
@@ -2791,14 +2792,14 @@ message RceAdmiralOpt {
   optional int32      optType = 3;
   optional int32      id = 4;
   optional int32      otherID = 5;
-  optional int32      costSoul = 6;
-  optional int32      addProp = 7;
-  optional int32      letterid = 8;
-  optional int32      lettercnt = 9;
-  optional int32      itemID2 = 10;
-  optional int32      itemID3 = 11;
-  optional int32      field12 = 12;
-  optional int32      field13 = 13;
+  optional int32      field6 = 6;
+  optional int32      costSoul = 7;
+  optional int32      addProp = 8;
+  optional int32      itemID1 = 9;
+  optional int32      letterid = 10;
+  optional int32      lettercnt = 11;
+  optional int32      itemID2 = 12;
+  optional int32      itemID3 = 13;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-7QD   opcode 0x0456
@@ -2829,14 +2830,14 @@ message RceAdviserOpt {
   optional int32      nitemID = 4;
   optional int32      naddproptype = 5;
   optional int32      naddProp = 6;
-  optional int32      nitemCnt = 7;
-  optional int32      ndbcomid = 8;
-  optional int32      ndbcomidplus = 9;
-  optional int32      nskillid = 10;
-  optional int32      dstUid = 11;
-  optional string     nMedalDbid = 12;
-  optional int32      nMedalDbidPlus = 13;
-  optional int32      field14 = 14;
+  optional int32      field7 = 7;
+  optional int32      nitemCnt = 8;
+  optional int32      ndbcomid = 9;
+  optional int32      ndbcomidplus = 10;
+  optional int32      nskillid = 11;
+  optional string     dstUid = 12;
+  optional int32      nMedalDbid = 13;
+  optional int32      nMedalDbidPlus = 14;
   optional int32      field15 = 15;
 }
 
@@ -2930,16 +2931,16 @@ message RceAttack {
   optional bool       canGetAdmiralExp = 22;
   optional bool       canGetDefAdmiralExp = 23;
   optional int32      damage = 31;
-  optional message    bForward = 32;
-  optional bool       nCurrentHP = 33;
-  optional int64      nTotalHp = 34;
-  optional int64      armyStep = 35;
-  optional int32      armyGroup = 36;
-  optional int32      pveBattlePassID = 37;
-  optional int32      usedsuperweaponnum = 38;
-  optional int32      usedsuperweapontime = 40;
-  optional int32      bSuperStorm = 41;
-  optional bool       field42 = 42;
+  optional message    field32 = 32;
+  optional bool       bForward = 33;
+  optional int64      nCurrentHP = 34;
+  optional int64      nTotalHp = 35;
+  optional int32      armyStep = 36;
+  optional int32      armyGroup = 37;
+  optional int32      pveBattlePassID = 38;
+  optional int32      usedsuperweaponnum = 40;
+  optional int32      usedsuperweapontime = 41;
+  optional bool       bSuperStorm = 42;
   optional message    field43 = 43;
   optional message    field44 = 44;
 }
@@ -2967,7 +2968,7 @@ message RceBagUpgrade {
 // com.sincetimes.redwar.game.comnunicate.protocol:_-6r-   opcode 0x0427
 message RceBaseBattleModify {
   optional int32      type = 1;
-  optional message    field2 = 2;
+  optional message    army = 2;
   optional message    field3 = 3;
 }
 
@@ -2975,10 +2976,10 @@ message RceBaseBattleModify {
 message RceBaseDefNPC {
   optional int32      activityID = 1;
   optional int32      msgtype = 2;
-  optional message    npcID = 3;
-  optional int32      balance = 4;
-  optional bool       stakeIdx = 5;
-  optional int32      field6 = 6;
+  optional message    field3 = 3;
+  optional int32      npcID = 4;
+  optional bool       balance = 5;
+  optional int32      stakeIdx = 6;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-5Pc   opcode 0x045f
@@ -3002,27 +3003,27 @@ message RceBattleModify {
   optional message    enemyPrc = 1;
   optional int32      type = 2;
   optional message    selfPrc = 3;
-  optional int32      damage = 4;
-  optional int32      ElectricPct = 5;
-  optional int32      heroSkill = 6;
-  optional message    r1 = 8;
-  optional string     r2 = 20;
-  optional string     legal = 21;
-  optional bool       armydirect = 22;
-  optional int32      btlType = 23;
-  optional int32      honor = 24;
-  optional int32      feats = 25;
-  optional int32      adimralExp = 26;
-  optional int32      checkIdx = 27;
-  optional int32      slevel = 28;
-  optional int32      defAdimralExp = 29;
-  optional int32      superwpn = 30;
-  optional message    attackedname = 31;
-  optional string     nJammerMedalPer = 32;
-  optional int32      nJammerOilPer = 33;
-  optional int32      timestamp = 34;
-  optional int32      selfArmyopt = 35;
-  optional message    field36 = 36;
+  optional int32      field4 = 4;
+  optional int32      damage = 5;
+  optional int32      ElectricPct = 6;
+  optional message    heroSkill = 8;
+  optional string     r1 = 20;
+  optional string     r2 = 21;
+  optional bool       legal = 22;
+  optional int32      armydirect = 23;
+  optional int32      btlType = 24;
+  optional int32      honor = 25;
+  optional int32      feats = 26;
+  optional int32      adimralExp = 27;
+  optional int32      checkIdx = 28;
+  optional int32      slevel = 29;
+  optional int32      defAdimralExp = 30;
+  optional message    superwpn = 31;
+  optional string     attackedname = 32;
+  optional int32      nJammerMedalPer = 33;
+  optional int32      nJammerOilPer = 34;
+  optional int32      timestamp = 35;
+  optional message    selfArmyopt = 36;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-6ln   opcode 0x04e8
@@ -3098,10 +3099,10 @@ message RceBtlCapture {
   optional string     rescuePic = 32;
   optional int32      begintime = 33;
   optional bool       bForward = 34;
-  optional message    nTotalHp = 35;
-  optional int64      nCurrentHP = 36;
-  optional int64      lossUser = 37;
-  optional bool       field38 = 38;
+  optional message    field35 = 35;
+  optional int64      nTotalHp = 36;
+  optional int64      nCurrentHP = 37;
+  optional bool       lossUser = 38;
   optional message    field43 = 43;
   optional message    field44 = 44;
 }
@@ -3111,30 +3112,30 @@ message RceBuildingModify {
   optional int32      bldType = 1;
   optional int32      id = 2;
   optional int32      type = 3;
-  optional int32      armyID = 4;
-  optional int32      armyType = 5;
-  optional int32      x = 6;
-  optional int32      y = 7;
-  optional int32      loot = 8;
-  optional message    credit = 9;
-  optional int32      time = 10;
-  optional int32      monster = 11;
-  optional message    usehonorcredit = 12;
-  optional int32      captureBaseID = 13;
-  optional string     heroType = 14;
-  optional int32      heroupgradeIndex = 15;
-  optional int32      itemID = 16;
-  optional int32      itemCount = 17;
-  optional int32      towerenhancetype = 18;
-  optional int32      zhuziAll = 19;
-  optional int32      addMedal = 25;
-  optional int32      addOil = 26;
-  optional bool       strName = 27;
-  optional string     nAtkScienceLevel = 28;
-  optional int32      nLv = 29;
-  optional int32      nJammerMedal = 30;
-  optional int32      nJammerOil = 31;
-  optional int32      field32 = 32;
+  optional int32      field4 = 4;
+  optional int32      armyID = 5;
+  optional int32      armyType = 6;
+  optional int32      x = 7;
+  optional int32      y = 8;
+  optional message    loot = 9;
+  optional int32      credit = 10;
+  optional int32      time = 11;
+  optional message    monster = 12;
+  optional int32      usehonorcredit = 13;
+  optional string     captureBaseID = 14;
+  optional int32      heroType = 15;
+  optional int32      heroupgradeIndex = 16;
+  optional int32      itemID = 17;
+  optional int32      itemCount = 18;
+  optional int32      towerenhancetype = 19;
+  optional int32      zhuziAll = 25;
+  optional int32      addMedal = 26;
+  optional bool       addOil = 27;
+  optional string     strName = 28;
+  optional int32      nAtkScienceLevel = 29;
+  optional int32      nLv = 30;
+  optional int32      nJammerMedal = 31;
+  optional int32      nJammerOil = 32;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-4FP   opcode 0x04bf
@@ -3142,7 +3143,7 @@ message RceBuyGift {
   optional int32      type = 1;
   optional int32      giftType = 2;
   optional int32      giftId = 3;
-  optional message    field4 = 4;
+  optional message    items = 4;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-4Li   opcode 0x04c4
@@ -3350,7 +3351,7 @@ message RceDaliyCostOpt {
 // com.sincetimes.redwar.game.comnunicate.protocol:_-1wY   opcode 0x0455
 message RceDebug {
   optional int32      type = 1;
-  optional string     field2 = 2;
+  optional string     info = 2;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-10V   opcode 0x042d
@@ -3388,14 +3389,14 @@ message RceEquipOpt {
   optional int32      baseType = 2;
   optional int32      equipid = 3;
   optional int32      fittingsID = 4;
-  optional int32      itemID2 = 5;
-  optional int32      itemID3 = 6;
-  optional int32      strengthenitemID = 7;
-  optional int32      strengthenitemcount = 8;
-  optional int32      credit = 9;
-  optional int32      admiralId = 10;
-  optional int32      field11 = 11;
-  optional int32      field12 = 12;
+  optional int32      field5 = 5;
+  optional int32      itemID1 = 6;
+  optional int32      itemID2 = 7;
+  optional int32      itemID3 = 8;
+  optional int32      strengthenitemID = 9;
+  optional int32      strengthenitemcount = 10;
+  optional int32      credit = 11;
+  optional int32      admiralId = 12;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-0bP   opcode 0x049e
@@ -3438,10 +3439,10 @@ message RceGet {
   optional string     pf = 7;
   optional string     pfkey = 8;
   optional int32      level = 9;
-  optional int64      wtype = 10;
-  optional int32      region = 11;
-  optional int32      nCountryID = 12;
-  optional int32      field13 = 13;
+  optional int64      field10 = 10;
+  optional int32      wtype = 11;
+  optional int32      region = 12;
+  optional int32      nCountryID = 13;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-0TE   opcode 0x046c
@@ -3482,20 +3483,20 @@ message RceGetRankGift {
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-ZD   opcode 0x042b
 message RceGiftList {
-  optional string     dayGetGift2BagCnt = 10;
-  optional int32      dayAskGift2BagCnt = 11;
-  optional int32      dayGetGiftCnt = 12;
-  optional int32      dayResendGiftCnt = 13;
-  optional int32      msgIdx = 14;
-  optional int32      lastLoginTime = 15;
-  optional int64      daySendGiftCnt = 16;
-  optional int32      field17 = 17;
+  optional string     field10 = 10;
+  optional int32      dayGetGift2BagCnt = 11;
+  optional int32      dayAskGift2BagCnt = 12;
+  optional int32      dayGetGiftCnt = 13;
+  optional int32      dayResendGiftCnt = 14;
+  optional int32      msgIdx = 15;
+  optional int64      lastLoginTime = 16;
+  optional int32      daySendGiftCnt = 17;
   optional int32      field18 = 18;
   optional int32      field19 = 19;
   optional string     field20 = 20;
-  optional int32      field21 = 21;
+  optional int32      getTime = 21;
   optional int32      field22 = 22;
-  optional int32      field23 = 23;
+  optional int32      hasDone = 23;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-7RH   opcode 0x042c
@@ -3546,21 +3547,21 @@ message RceGuildOpt {
   optional int32      contributeID = 12;
   optional int32      guildBuidlID = 13;
   optional int32      guildBuildTarLV = 14;
-  optional int32      shopID = 16;
-  optional int32      guildSetFlag = 17;
-  optional int32      turns = 18;
-  optional string     session = 19;
-  optional string     sendItem = 20;
-  optional string     npcID = 21;
-  optional int32      boxID = 22;
-  optional int32      buffID = 23;
-  optional message    listCountryID = 24;
-  optional string     taskidx = 25;
-  optional int32      atvQstGetReward = 26;
-  optional int32      field27 = 27;
-  optional int32      field28 = 28;
-  optional int32      field29 = 29;
-  optional int32      field30 = 30;
+  optional int32      field16 = 16;
+  optional int32      shopID = 17;
+  optional int32      guildSetFlag = 18;
+  optional string     userWay0 = 19;
+  optional string     userWay1 = 20;
+  optional string     userWay2 = 21;
+  optional int32      turns = 22;
+  optional int32      session = 23;
+  optional message    sendItem = 24;
+  optional string     npcID = 25;
+  optional int32      boxID = 26;
+  optional int32      buffID = 27;
+  optional int32      listCountryID = 28;
+  optional int32      taskidx = 29;
+  optional int32      atvQstGetReward = 30;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-2T5   opcode 0x04b1
@@ -3594,8 +3595,8 @@ message RceHalloween {
   optional int32      nType = 1;
   optional int32      nactivetype = 2;
   optional int32      nIndex = 3;
-  optional int32      nNum = 4;
-  optional int32      field5 = 5;
+  optional int32      wishlist = 4;
+  optional int32      nNum = 5;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-3vS   opcode 0x04ac
@@ -3649,9 +3650,9 @@ message RceHeroEquipOpt {
   optional int32      nType = 1;
   optional int32      nHeroID = 2;
   optional int32      nEquipDBID = 3;
-  optional int32      luckyItem = 4;
-  optional int32      protectItem = 5;
-  optional int32      field6 = 6;
+  optional int32      field4 = 4;
+  optional int32      luckyItem = 5;
+  optional int32      protectItem = 6;
   optional int32      field7 = 7;
   optional int32      field8 = 8;
 }
@@ -3665,19 +3666,19 @@ message RceHeroOpen {
 message RceHeroOpt {
   optional int32      id = 1;
   optional int32      optType = 2;
-  optional int32      otherID = 3;
-  optional int32      itemCnt = 4;
-  optional int32      itemID = 5;
-  optional int32      usetype = 6;
-  optional int32      heroIndex = 7;
-  optional int32      letternum = 8;
-  optional message    otherheroIndex = 9;
-  optional int32      nChangeType = 10;
-  optional int32      beyondid = 11;
-  optional int32      beyondnum = 12;
-  optional int32      fusionid = 13;
-  optional int32      field14 = 14;
-  optional int32      field15 = 15;
+  optional int32      field3 = 3;
+  optional int32      otherID = 4;
+  optional int32      itemCnt = 5;
+  optional int32      itemID = 6;
+  optional int32      usetype = 7;
+  optional int32      heroIndex = 8;
+  optional message    letter = 9;
+  optional int32      letternum = 10;
+  optional int32      otherheroIndex = 11;
+  optional int32      nChangeType = 12;
+  optional int32      beyondid = 13;
+  optional int32      beyondnum = 14;
+  optional int32      fusionid = 15;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-1hY   opcode 0x0404
@@ -3726,9 +3727,9 @@ message RceJammerOpt {
   optional int32      jammerID = 3;
   optional int32      expID = 4;
   optional int32      pageType = 5;
-  optional int32      ischose = 6;
-  optional bool       ischoseStrength = 7;
-  optional bool       field8 = 8;
+  optional int32      field6 = 6;
+  optional bool       ischose = 7;
+  optional bool       ischoseStrength = 8;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-0o6   opcode 0x04e1
@@ -3743,10 +3744,10 @@ message RceJunBeiOpt {
   optional int32      nCnt = 8;
   optional bool       bTurnOn = 9;
   optional int32      nSkillTree = 10;
-  optional message    robLetterID = 11;
-  optional int32      ischose = 12;
+  optional message    lstLetter = 11;
+  optional int32      robLetterID = 12;
   optional int32      field13 = 13;
-  optional bool       field14 = 14;
+  optional bool       ischose = 14;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-4dL   opcode 0x043c
@@ -3787,8 +3788,8 @@ message RceLogGet {
 message RceLootBrother {
   optional int32      nType = 1;
   optional int32      nIndex = 2;
-  optional message    nactivetype = 3;
-  optional int32      field4 = 4;
+  optional message    iteminfo = 3;
+  optional int32      nactivetype = 4;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-jy   opcode 0x045e
@@ -4162,8 +4163,8 @@ message RceResourceOpt {
   optional int32      resourceID = 2;
   optional int32      searchType = 3;
   optional string     uID = 4;
-  optional int32      playerID = 5;
-  optional int32      field6 = 6;
+  optional int32      getId = 5;
+  optional int32      playerID = 6;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-6fZ   opcode 0x04c8
@@ -4299,12 +4300,12 @@ message RceStrategicArmyInfo {
 // com.sincetimes.redwar.game.comnunicate.protocol:_-2gJ   opcode 0x045d
 message RceStrategicArmyOpt {
   optional int32      optype = 1;
-  optional int32      optarmytype = 2;
-  optional int32      optarmycnt = 3;
-  optional int32      generalindex = 4;
-  optional message    choseplan = 5;
-  optional int32      field6 = 6;
-  optional int32      field7 = 7;
+  optional int32      field2 = 2;
+  optional int32      optarmytype = 3;
+  optional int32      optarmycnt = 4;
+  optional message    field5 = 5;
+  optional int32      generalindex = 6;
+  optional int32      choseplan = 7;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-3de   opcode 0x0409
@@ -4339,10 +4340,10 @@ message RceSuperZhaoMu {
 message RceTaskOpt {
   optional int32      kind = 1;
   optional int32      nMsgIndex = 2;
-  optional int32      nFlag = 3;
-  optional int32      nModule = 4;
-  optional int32      nDay = 5;
-  optional int32      field6 = 6;
+  optional int32      field3 = 3;
+  optional int32      nFlag = 4;
+  optional int32      nModule = 5;
+  optional int32      nDay = 6;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-0Rk   opcode 0x0454
@@ -4368,11 +4369,11 @@ message RceTrenchMortarOpt {
   optional int32      subType = 2;
   optional int32      mortarID = 3;
   optional int32      gunnerID = 4;
-  optional int32      itemID = 5;
-  optional int32      itemCnt = 6;
-  optional int32      bInstall = 7;
-  optional bool       strUid = 8;
-  optional string     field9 = 9;
+  optional int32      field5 = 5;
+  optional int32      itemID = 6;
+  optional int32      itemCnt = 7;
+  optional bool       bInstall = 8;
+  optional string     strUid = 9;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-0tY   opcode 0x04df
@@ -4441,9 +4442,9 @@ message RceWPCBookOpt {
   optional int32      fittingsID = 4;
   optional int32      fittingsType = 5;
   optional int32      pageType = 6;
-  optional int32      ischose = 7;
-  optional bool       ischoseStrength = 8;
-  optional bool       field9 = 9;
+  optional int32      field7 = 7;
+  optional bool       ischose = 8;
+  optional bool       ischoseStrength = 9;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-786   opcode 0x04a0
@@ -4460,9 +4461,9 @@ message RceWPCComOpt {
   optional int32      fittingsTpye = 5;
   optional int32      pageType = 6;
   optional int32      extraType = 7;
-  optional int32      ischose = 8;
-  optional bool       ischoseStrength = 9;
-  optional bool       field10 = 10;
+  optional int32      field8 = 8;
+  optional bool       ischose = 9;
+  optional bool       ischoseStrength = 10;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-6fD   opcode 0x04cb
@@ -4558,8 +4559,8 @@ message RceWeekQuestOpt {
 message RceWishPool {
   optional int32      nType = 1;
   optional int32      nWishtype = 2;
-  optional message    activetype = 3;
-  optional int32      field4 = 4;
+  optional message    field3 = 3;
+  optional int32      activetype = 4;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-282   opcode 0x0474
@@ -4667,8 +4668,8 @@ message RedEnvelopeInfo {
   optional bool       bGet = 11;
   optional bool       bSnappedUp = 12;
   optional bool       bOverdue = 13;
-  optional message    strPic = 14;
-  optional string     field15 = 15;
+  optional message    field14 = 14;
+  optional string     strPic = 15;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-0CS
@@ -4782,10 +4783,10 @@ message ResourceBattleRecord {
 message ResourceMsg {
   optional int32      id = 1;
   optional string     name = 2;
-  optional int32      power = 3;
-  optional int32      uid = 4;
-  optional int32      field5 = 5;
-  optional string     field6 = 6;
+  optional int32      admiralID = 3;
+  optional int32      admiralTrainLv = 4;
+  optional int32      power = 5;
+  optional string     uid = 6;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-1Ub
@@ -4829,27 +4830,27 @@ message RseActiveShop {
   optional int32      cnt = 2;
   optional int32      errortype = 3;
   optional int32      activetype = 4;
-  optional int32      type = 5;
-  optional int32      isGetAwd = 6;
-  optional int32      nRoundID = 7;
-  optional bool       field8 = 8;
-  optional int32      field9 = 9;
+  optional int32      buycnt = 5;
+  optional int32      type = 6;
+  optional int32      field7 = 7;
+  optional bool       isGetAwd = 8;
+  optional int32      nRoundID = 9;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-1KT   opcode 0x029e
 message RseActiveUIFlag {
-  optional int32      ntype = 1;
-  optional bool       nopt = 2;
-  optional int32      noptvalue = 3;
-  optional int32      optret = 4;
-  optional int32      giftcouponnum = 5;
-  optional int32      totalrecharge = 6;
-  optional int32      bdaylybless = 7;
-  optional int32      bdaylybox = 8;
-  optional bool       blesstype = 9;
-  optional bool       field10 = 10;
+  optional int32      flag = 1;
+  optional bool       isNew = 2;
+  optional int32      ntype = 3;
+  optional int32      nopt = 4;
+  optional int32      noptvalue = 5;
+  optional int32      optret = 6;
+  optional int32      giftcouponnum = 7;
+  optional int32      totalrecharge = 8;
+  optional bool       bdaylybless = 9;
+  optional bool       bdaylybox = 10;
   optional bool       field11 = 11;
-  optional int32      field12 = 12;
+  optional int32      blesstype = 12;
   optional message    field13 = 13;
 }
 
@@ -4857,7 +4858,7 @@ message RseActiveUIFlag {
 message RseAddArmy {
   optional int32      error = 1;
   optional int32      type = 2;
-  optional message    field3 = 3;
+  optional message    army = 3;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-2N   opcode 0x0233
@@ -4882,42 +4883,42 @@ message RseAdmiralExchange {
 message RseAdmiralOpen {
   optional int32      type = 1;
   optional int32      canUseCnt = 2;
-  optional message    soulCnt = 3;
-  optional int32      hasCreditVisit = 4;
-  optional int32      soul4Admiral = 5;
-  optional int32      admiralletter = 6;
-  optional int32      nRemainSoulBuy = 7;
-  optional bool       hasHalfPrice = 8;
-  optional int32      optimusPrimescore = 9;
-  optional int32      hasGeneralCombine = 10;
-  optional message    heroskillAddpro = 11;
-  optional int32      nActVisitCnt = 12;
-  optional int32      nSuipianEndtime = 13;
-  optional bool       ngetSuipianAwd = 14;
-  optional int32      field15 = 15;
-  optional int32      field16 = 16;
+  optional message    field3 = 3;
+  optional int32      soulCnt = 4;
+  optional int32      field5 = 5;
+  optional int32      freeVisitCnt = 6;
+  optional int32      finishVisitTime = 7;
+  optional bool       hasCreditVisit = 8;
+  optional int32      field9 = 9;
+  optional int32      soul4Admiral = 10;
+  optional message    admiralletter = 11;
+  optional int32      remainNum = 12;
+  optional int32      nRemainSoulBuy = 13;
+  optional bool       hasHalfPrice = 14;
+  optional int32      optimusPrimescore = 15;
+  optional int32      hasGeneralCombine = 16;
   optional message    field17 = 17;
-  optional int32      field18 = 18;
-  optional int32      field19 = 19;
-  optional int32      field20 = 20;
-  optional bool       field21 = 21;
+  optional int32      heroskillAddpro = 18;
+  optional int32      nActVisitCnt = 19;
+  optional int32      nSuipianEndtime = 20;
+  optional bool       ngetSuipianAwd = 21;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-0Fp   opcode 0x0252
 message RseAdmiralOpt {
   optional int32      ret = 1;
   optional int32      optType = 2;
-  optional message    soulCnt = 3;
-  optional int32      admiralInuse = 4;
-  optional int32      itemID = 5;
-  optional message    itemCnt = 6;
-  optional int32      admiralletter = 7;
-  optional int32      trainExp = 8;
-  optional message    getType = 9;
-  optional int32      getsoul = 10;
-  optional int32      admiralcombineinfo = 11;
-  optional int32      field12 = 12;
-  optional message    field13 = 13;
+  optional message    admiral = 3;
+  optional int32      field4 = 4;
+  optional int32      soulCnt = 5;
+  optional message    admiralInuse = 6;
+  optional int32      itemID = 7;
+  optional int32      itemCnt = 8;
+  optional message    admiralletter = 9;
+  optional int32      trainExp = 10;
+  optional int32      getType = 11;
+  optional int32      getsoul = 12;
+  optional message    admiralcombineinfo = 13;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-5o   opcode 0x0259
@@ -4939,41 +4940,41 @@ message RseAdmiralRank {
 message RseAdmiralVisit {
   optional int32      type = 1;
   optional int32      ret = 2;
-  optional int32      hasCreditVisit = 4;
-  optional bool       getType = 5;
-  optional int32      Admiral = 6;
-  optional int32      soulCnt = 7;
-  optional message    itemID = 8;
-  optional int32      itemCnt = 9;
-  optional int32      trainExp = 10;
-  optional int32      admiralletter = 11;
-  optional int32      jungong = 12;
-  optional message    nRemainSoulBuy = 13;
-  optional int32      optimusPrimescore = 14;
-  optional int32      precisestrikepart = 15;
-  optional int32      bGetTenDrawDayAwd = 16;
-  optional int32      nActVisitCnt = 17;
-  optional int32      field18 = 18;
-  optional int32      field19 = 19;
+  optional int32      freeVisitCnt = 4;
+  optional bool       hasCreditVisit = 5;
+  optional int32      finishVisitTime = 6;
+  optional int32      getType = 7;
+  optional message    Admiral = 8;
+  optional int32      soulCnt = 9;
+  optional int32      itemID = 10;
+  optional int32      itemCnt = 11;
+  optional int32      trainExp = 12;
+  optional message    admiralletter = 13;
+  optional int32      jungong = 14;
+  optional int32      remainNum = 15;
+  optional int32      nRemainSoulBuy = 16;
+  optional int32      optimusPrimescore = 17;
+  optional int32      precisestrikepart = 18;
+  optional int32      bGetTenDrawDayAwd = 19;
   optional message    field20 = 20;
-  optional int32      field21 = 21;
+  optional int32      nActVisitCnt = 21;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-0xw   opcode 0x0314
 message RseAdviserDaily {
   optional int32      nret = 1;
   optional int32      noptType = 2;
-  optional int32      nfreeTimes = 3;
-  optional int32      nfreshTimes = 4;
-  optional int32      nDayBuyTimes = 5;
-  optional int32      nRecord = 6;
-  optional int32      nCoolDown = 7;
-  optional int32      nResetTime = 8;
-  optional int32      nDefeatMax = 9;
-  optional message    field10 = 10;
-  optional int32      field11 = 11;
-  optional int32      field12 = 12;
-  optional int32      field13 = 13;
+  optional int32      field3 = 3;
+  optional int32      field4 = 4;
+  optional int32      nfreeTimes = 5;
+  optional int32      nfreshTimes = 6;
+  optional int32      field7 = 7;
+  optional int32      nDayBuyTimes = 8;
+  optional int32      nExp = 9;
+  optional message    nRecord = 10;
+  optional int32      nCoolDown = 11;
+  optional int32      nResetTime = 12;
+  optional int32      nDefeatMax = 13;
   optional bool       field14 = 14;
   optional message    field15 = 15;
 }
@@ -4982,18 +4983,18 @@ message RseAdviserDaily {
 message RseAdviserOpt {
   optional int32      nret = 1;
   optional int32      noptType = 2;
-  optional message    sVisitData = 3;
-  optional message    nDeleteAdviserCnt = 4;
-  optional int32      nGetAdviserSoul = 5;
-  optional message    nVistAdvCnt = 6;
-  optional int32      suipianxianshigouEndTime = 7;
-  optional int32      suipianxianshigouvisitCnt = 8;
-  optional int32      advcombineinfo = 9;
-  optional int32      bend = 10;
-  optional int32      field11 = 11;
-  optional int32      field12 = 12;
-  optional message    field13 = 13;
-  optional bool       field14 = 14;
+  optional message    field3 = 3;
+  optional message    field4 = 4;
+  optional int32      field5 = 5;
+  optional message    sVisitData = 6;
+  optional int32      nDeleteAdviserCnt = 7;
+  optional int32      nGetAdviserSoul = 8;
+  optional int32      field9 = 9;
+  optional int32      nVistAdvCnt = 10;
+  optional int32      suipianxianshigouEndTime = 11;
+  optional int32      suipianxianshigouvisitCnt = 12;
+  optional message    advcombineinfo = 13;
+  optional bool       bend = 14;
   optional message    field15 = 15;
 }
 
@@ -5005,10 +5006,10 @@ message RseAdviserVisitUpAtv {
   optional int32      nDaySoul = 4;
   optional bool       bAwardFive = 5;
   optional bool       bAwardThirty = 6;
-  optional bool       bGetSpcAwd = 7;
-  optional bool       nAdviserSoulNow = 8;
-  optional int32      bnewadviser = 9;
-  optional bool       field10 = 10;
+  optional bool       field7 = 7;
+  optional bool       bGetSpcAwd = 8;
+  optional int32      nAdviserSoulNow = 9;
+  optional bool       bnewadviser = 10;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-750   opcode 0x02cf
@@ -5021,31 +5022,31 @@ message RseAnniversaryActive {
   optional int32      type = 1;
   optional int32      drawtimes = 2;
   optional int32      shopid = 3;
-  optional bool       hasGet = 4;
-  optional bool       todayValue = 5;
-  optional int32      msgType = 6;
-  optional int32      field7 = 7;
+  optional bool       field4 = 4;
+  optional bool       hasGet = 5;
+  optional int32      todayValue = 6;
+  optional int32      msgType = 7;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-3Jy   opcode 0x0270
 message RseArenaInfo {
   optional int32      type = 1;
-  optional uint32     nRankSelf = 2;
-  optional uint32     nRankSelfLast = 3;
-  optional message    bLastRankGet = 4;
-  optional message    nCanFightTimes = 5;
-  optional message    nBuyFightTimes = 6;
-  optional int32      nIntegralScore = 7;
-  optional int32      nJoinPlayers = 8;
-  optional bool       lastfightRecord = 9;
-  optional int32      nLastScore = 10;
-  optional int32      nNowScore = 11;
-  optional int32      bScoreGiftGain = 12;
-  optional int32      field13 = 13;
-  optional message    field14 = 14;
-  optional int32      field15 = 15;
-  optional int32      field16 = 16;
-  optional bool       field17 = 17;
+  optional uint32     field2 = 2;
+  optional uint32     field3 = 3;
+  optional message    arenareportSelf = 4;
+  optional message    arenareportFight = 5;
+  optional message    field6 = 6;
+  optional int32      nRankSelf = 7;
+  optional int32      nRankSelfLast = 8;
+  optional bool       bLastRankGet = 9;
+  optional int32      nCanFightTimes = 10;
+  optional int32      nBuyFightTimes = 11;
+  optional int32      nIntegralScore = 12;
+  optional int32      nJoinPlayers = 13;
+  optional message    lastfightRecord = 14;
+  optional int32      nLastScore = 15;
+  optional int32      nNowScore = 16;
+  optional bool       bScoreGiftGain = 17;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-4Vf   opcode 0x0271
@@ -5063,16 +5064,16 @@ message RseArenaOpt {
 // com.sincetimes.redwar.game.comnunicate.protocol:_-57m   opcode 0x027e
 message RseArenaRankInfo {
   optional int32      type = 1;
-  optional message    nTotalNum = 2;
+  optional message    field2 = 2;
   optional message    field3 = 3;
-  optional int32      field4 = 4;
+  optional int32      nTotalNum = 4;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-6Fm   opcode 0x02e2
 message RseArmRace {
   optional int32      ret = 1;
   optional int32      labSearchCnt = 2;
-  optional message    field3 = 3;
+  optional message    list = 3;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-6UN   opcode 0x026b
@@ -5086,9 +5087,9 @@ message RseArmyGradeOpt {
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-3fh   opcode 0x0289
 message RseArmyPropList {
-  optional message    type = 1;
+  optional message    field1 = 1;
   optional message    field2 = 2;
-  optional int32      field3 = 3;
+  optional int32      type = 3;
   optional message    field4 = 4;
   optional message    field5 = 5;
 }
@@ -5144,7 +5145,7 @@ message RseBackFlowGift {
 message RseBagItemLst {
   optional int32      bagLV = 1;
   optional message    field2 = 2;
-  optional message    field3 = 3;
+  optional message    bagItem = 3;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-6oc   opcode 0x0244
@@ -5195,11 +5196,11 @@ message RseBaseDefNPC {
   optional int32      atkTimes = 4;
   optional int32      npcID = 5;
   optional int32      leftStakeCnt = 6;
-  optional int32      getItemID = 7;
-  optional int32      getItemCnt = 8;
-  optional int32      balance = 9;
-  optional int32      field10 = 10;
-  optional bool       field11 = 11;
+  optional int32      field7 = 7;
+  optional int32      field8 = 8;
+  optional int32      getItemID = 9;
+  optional int32      getItemCnt = 10;
+  optional bool       balance = 11;
   optional int32      field12 = 12;
 }
 
@@ -5249,17 +5250,17 @@ message RseBattleToken {
   optional string     normalreward = 7;
   optional string     goldenreward = 8;
   optional string     goldenspecreward = 9;
-  optional message    buyType = 10;
+  optional message    field10 = 10;
   optional message    field11 = 11;
-  optional int32      field12 = 12;
+  optional int32      buyType = 12;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-2Wm   opcode 0x02db
 message RseBigGift {
   optional int32      nRet = 1;
-  optional int32      ngetFreeGift = 2;
-  optional bool       activType = 3;
-  optional int32      field4 = 4;
+  optional int32      buyid = 2;
+  optional bool       ngetFreeGift = 3;
+  optional int32      activType = 4;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-go   opcode 0x0332
@@ -5270,18 +5271,18 @@ message RseBindGuildAct {
   optional string     bindGuildName = 4;
   optional int32      playerDonateCnt = 5;
   optional int32      guidDonateCnt = 6;
-  optional bool       guildBindState = 7;
-  optional int32      activeType = 8;
-  optional int32      countryId = 9;
-  optional int32      ngetAllbuyAwd = 10;
-  optional int32      level = 11;
-  optional message    isbindGuild = 12;
+  optional bool       field7 = 7;
+  optional int32      guildBindState = 8;
+  optional int32      activeType = 9;
+  optional int32      field10 = 10;
+  optional int32      field11 = 11;
+  optional message    field12 = 12;
   optional message    field13 = 13;
-  optional int32      field14 = 14;
-  optional int32      field15 = 15;
-  optional int32      field16 = 16;
+  optional int32      countryId = 14;
+  optional int32      ngetAllbuyAwd = 15;
+  optional int32      level = 16;
   optional int32      field17 = 17;
-  optional bool       field18 = 18;
+  optional bool       isbindGuild = 18;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-2Q6   opcode 0x0308
@@ -5303,9 +5304,9 @@ message RseBlueGrowGift {
 message RseBookCollection {
   optional int32      OptType = 1;
   optional int32      ret = 2;
-  optional message    ActiveType = 3;
+  optional message    rewardItem = 3;
   optional message    field4 = 4;
-  optional int32      field5 = 5;
+  optional int32      ActiveType = 5;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-2Ew   opcode 0x02d9
@@ -5313,33 +5314,33 @@ message RseBossOpt {
   optional int32      atkType = 1;
   optional int32      type = 2;
   optional int32      ret = 3;
-  optional message    killerUnit = 4;
-  optional message    bossID = 5;
-  optional message    bossDamage = 6;
-  optional int32      selfRank = 7;
-  optional string     bossPoint = 8;
-  optional int32      bGetReward = 9;
-  optional string     bossHp = 10;
-  optional bool       addatk = 11;
-  optional message    creditAddTime = 12;
-  optional string     fightReoprt = 13;
-  optional int32      admiral = 14;
-  optional int32      atkDmg = 15;
-  optional message    OldHp = 16;
-  optional message    bossLevel = 17;
-  optional string     maxSp = 18;
-  optional string     perHp = 19;
-  optional string     cdTime = 20;
-  optional int32      bKill = 21;
-  optional string     bOpen = 22;
-  optional int32      nRewardID = 23;
-  optional int32      nTotalStartNum = 24;
-  optional bool       nTotalFinishNum = 25;
-  optional bool       nAtkReward = 26;
-  optional int32      field27 = 27;
-  optional int32      field28 = 28;
-  optional int32      field29 = 29;
-  optional int32      field30 = 30;
+  optional message    field4 = 4;
+  optional message    killerUnit = 5;
+  optional message    field6 = 6;
+  optional int32      bossID = 7;
+  optional string     bossDamage = 8;
+  optional int32      selfRank = 9;
+  optional string     bossPoint = 10;
+  optional bool       bGetReward = 11;
+  optional message    field12 = 12;
+  optional string     bossHp = 13;
+  optional int32      addatk = 14;
+  optional int32      creditAddTime = 15;
+  optional message    fightReoprt = 16;
+  optional message    admiral = 17;
+  optional string     field18 = 18;
+  optional string     atkDmg = 19;
+  optional string     OldHp = 20;
+  optional int32      bossLevel = 21;
+  optional string     maxSp = 22;
+  optional int32      perHp = 23;
+  optional int32      cdTime = 24;
+  optional bool       bKill = 25;
+  optional bool       bOpen = 26;
+  optional int32      nRewardID = 27;
+  optional int32      nTotalStartNum = 28;
+  optional int32      nTotalFinishNum = 29;
+  optional int32      nAtkReward = 30;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-36z   opcode 0x023e
@@ -5362,35 +5363,35 @@ message RseBuildingModify {
   optional int32      bldType = 5;
   optional int32      armyType = 6;
   optional int32      armyID = 7;
-  optional message    mushRoom = 8;
-  optional message    credit = 9;
-  optional message    level = 10;
-  optional string     basevalue = 11;
-  optional string     basepoints = 12;
-  optional string     honor = 13;
-  optional string     slaveRoom = 14;
-  optional string     feats = 15;
-  optional string     extraMedal = 16;
-  optional message    extraOil = 17;
-  optional string     buildingAddCount = 18;
-  optional string     ZhuZiTimes = 19;
-  optional string     BuildingUpdate = 20;
-  optional int32      vipMetalAddtion = 21;
-  optional int32      vipOilAddtion = 22;
-  optional int32      upgradeherolst = 23;
-  optional int32      towerenhancetype = 24;
-  optional string     nGetResTimes = 25;
-  optional string     colonyName = 26;
-  optional message    colonyPic = 27;
-  optional message    snowmanMetalAdd = 28;
-  optional int32      snowmanOilAdd = 29;
-  optional int32      field30 = 30;
+  optional message    academy = 8;
+  optional message    mushRoom = 9;
+  optional message    army = 10;
+  optional string     resources = 11;
+  optional string     credit = 12;
+  optional string     level = 13;
+  optional string     basevalue = 14;
+  optional string     basepoints = 15;
+  optional string     honor = 16;
+  optional message    slaveRoom = 17;
+  optional string     feats = 18;
+  optional string     extraMedal = 19;
+  optional string     extraOil = 20;
+  optional int32      buildingAddCount = 21;
+  optional int32      ZhuZiTimes = 22;
+  optional int32      field23 = 23;
+  optional int32      BuildingUpdate = 24;
+  optional string     vipMetalAddtion = 25;
+  optional string     vipOilAddtion = 26;
+  optional message    upgradeherolst = 27;
+  optional message    hero = 28;
+  optional int32      towerenhancetype = 29;
+  optional int32      nGetResTimes = 30;
   optional string     field31 = 31;
   optional message    field32 = 32;
-  optional string     field33 = 33;
-  optional string     field34 = 34;
-  optional string     field35 = 35;
-  optional string     field36 = 36;
+  optional string     colonyName = 33;
+  optional string     colonyPic = 34;
+  optional string     snowmanMetalAdd = 35;
+  optional string     snowmanOilAdd = 36;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-6tL   opcode 0x020f
@@ -5398,17 +5399,17 @@ message RseBuildingUpdate {
   optional int32      type = 1;
   optional message    building = 2;
   optional message    army = 3;
-  optional message    mineEx = 4;
-  optional string     credit = 5;
-  optional message    level = 6;
-  optional string     basevalue = 7;
-  optional string     basepoints = 8;
-  optional string     upgradeherolst = 9;
-  optional string     TrapEx = 10;
+  optional message    academy = 4;
+  optional string     resources = 5;
+  optional message    mineEx = 6;
+  optional string     credit = 7;
+  optional string     level = 8;
+  optional string     basevalue = 9;
+  optional string     basepoints = 10;
   optional message    field11 = 11;
-  optional message    field12 = 12;
-  optional message    field13 = 13;
-  optional message    field14 = 14;
+  optional message    upgradeherolst = 12;
+  optional message    hero = 13;
+  optional message    TrapEx = 14;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-3Kk   opcode 0x02f9
@@ -5429,7 +5430,7 @@ message RseBuyGreatAdmiral {
   optional int32      type = 1;
   optional int32      ret = 2;
   optional int32      flag = 3;
-  optional int32      field4 = 4;
+  optional int32      admirals = 4;
   optional int32      field5 = 5;
 }
 
@@ -5439,18 +5440,18 @@ message RseCallBackAct {
   optional int32      ret = 3;
   optional bool       bBack = 4;
   optional int32      closeTime = 5;
-  optional message    nBuyRewardNum = 10;
-  optional message    nTotalPoint = 11;
-  optional message    nActivType = 12;
-  optional int32      nFinishGame = 13;
-  optional int32      nGetGiftIndex = 14;
-  optional message    nGetDailyQpointAwd = 15;
-  optional int32      field16 = 16;
+  optional message    field10 = 10;
+  optional message    field11 = 11;
+  optional message    field12 = 12;
+  optional int32      nBuyRewardNum = 13;
+  optional int32      nTotalPoint = 14;
+  optional message    field15 = 15;
+  optional int32      nActivType = 16;
   optional message    field17 = 17;
-  optional int32      field18 = 18;
-  optional int32      field19 = 19;
+  optional int32      nFinishGame = 18;
+  optional int32      nGetGiftIndex = 19;
   optional bool       field20 = 20;
-  optional bool       field21 = 21;
+  optional bool       nGetDailyQpointAwd = 21;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-1Es   opcode 0x02af
@@ -5473,8 +5474,8 @@ message RseCathectic {
   optional bool       success = 2;
   optional int32      itemCnt = 3;
   optional int32      itemAllCnt = 4;
-  optional message    hasGetCredit = 5;
-  optional bool       field6 = 6;
+  optional message    field5 = 5;
+  optional bool       hasGetCredit = 6;
   optional bool       field7 = 7;
 }
 
@@ -5488,29 +5489,29 @@ message RseCharitmasSnowMan {
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-16p   opcode 0x031d
 message RseChinaJie {
-  optional bool       ntype = 1;
-  optional int32      nAtvtype = 2;
-  optional int32      nTotalQpointCnt = 3;
-  optional bool       nGetQpointAwd = 4;
+  optional bool       field1 = 1;
+  optional int32      ntype = 2;
+  optional int32      nAtvtype = 3;
+  optional bool       field4 = 4;
   optional bool       field5 = 5;
-  optional int32      field6 = 6;
-  optional bool       field7 = 7;
+  optional int32      nTotalQpointCnt = 6;
+  optional bool       nGetQpointAwd = 7;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-1GP   opcode 0x02dc
 message RseChristmas {
   optional int32      ret = 1;
-  optional int32      discount = 2;
+  optional int32      field2 = 2;
   optional int32      field3 = 3;
-  optional int32      field4 = 4;
+  optional int32      discount = 4;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-12G   opcode 0x02e8
 message RseCityBuffInfo {
   optional int32      region = 1;
   optional int32      flag = 2;
-  optional message    state = 3;
-  optional int32      field4 = 4;
+  optional message    field3 = 3;
+  optional int32      state = 4;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-5L9   opcode 0x0243
@@ -5550,16 +5551,16 @@ message RseCommanderStation {
   optional int32      nResult = 2;
   optional int32      nStationType = 3;
   optional bool       nJunBeihasBuy = 4;
-  optional bool       nCardhasBuy = 5;
-  optional bool       nActiveDay = 6;
-  optional int32      nActiveType = 7;
-  optional int32      nLevel = 8;
-  optional bool       nTimes = 9;
-  optional int32      nGetValue = 10;
-  optional int32      nFirstValue = 11;
-  optional int32      field12 = 12;
-  optional int32      field13 = 13;
-  optional int32      field14 = 14;
+  optional bool       field5 = 5;
+  optional bool       nCardhasBuy = 6;
+  optional int32      nActiveDay = 7;
+  optional int32      nActiveType = 8;
+  optional bool       field9 = 9;
+  optional int32      field10 = 10;
+  optional int32      nLevel = 11;
+  optional int32      nTimes = 12;
+  optional int32      nGetValue = 13;
+  optional int32      nFirstValue = 14;
   optional int32      field15 = 15;
   optional int32      field16 = 16;
   optional int32      field17 = 17;
@@ -5575,11 +5576,11 @@ message RseConsumeRank {
   optional int32      nRet = 3;
   optional int32      nNum = 4;
   optional int32      nRank = 5;
-  optional message    bGetRankReward = 6;
-  optional bool       nActivetype = 7;
-  optional int32      strName = 8;
-  optional string     strHead = 11;
-  optional string     field12 = 12;
+  optional message    lstRankUser = 6;
+  optional bool       bGetRankReward = 7;
+  optional int32      nActivetype = 8;
+  optional string     strName = 11;
+  optional string     strHead = 12;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-2aW   opcode 0x030c
@@ -5589,7 +5590,7 @@ message RseCostGiftGet {
   optional int32      nLastGetGift = 3;
   optional int32      nCreditNum = 4;
   optional string     strName = 5;
-  optional message    field6 = 6;
+  optional message    rankList = 6;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-2hU   opcode 0x02d1
@@ -5609,71 +5610,71 @@ message RseCountryBtlResult {
 // com.sincetimes.redwar.game.comnunicate.protocol:_-1dI   opcode 0x02d6
 message RseCountryChatMsg {
   optional int32      type = 1;
-  optional message    ret = 2;
-  optional message    field3 = 3;
-  optional int32      field4 = 4;
+  optional message    field2 = 2;
+  optional message    mask = 3;
+  optional int32      ret = 4;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:RseCountryOpen   opcode 0x0267
 message RseCountryOpen {
   optional int32      type = 1;
   optional message    countryData = 2;
-  optional message    cityTarget = 3;
-  optional message    getZhanGongRankFromWeb = 4;
-  optional bool       hasQingMingEffect = 5;
-  optional bool       field6 = 6;
+  optional message    field3 = 3;
+  optional message    cityTarget = 4;
+  optional bool       getZhanGongRankFromWeb = 5;
+  optional bool       hasQingMingEffect = 6;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-1wb   opcode 0x0268
 message RseCountryOpt {
   optional int32      ret = 1;
   optional int32      type = 2;
-  optional int32      pageInx = 3;
-  optional int32      userCnt = 4;
-  optional int32      admiral = 5;
-  optional message    ememyBack = 6;
-  optional message    cityData = 7;
-  optional message    countryData = 8;
-  optional message    boxPage = 9;
-  optional message    captureCity = 10;
-  optional message    cityTarget = 11;
-  optional message    bloodBtl = 12;
-  optional message    dailyGiftId = 13;
-  optional message    bloodRewardID = 14;
-  optional message    bloodWin = 15;
-  optional message    bombZhanGong = 16;
-  optional message    wpcRankUid = 17;
-  optional message    nstormbox = 18;
-  optional message    leagueMsg = 19;
-  optional message    getLeagueReward = 20;
-  optional int32      CityBuffs = 21;
-  optional int32      dayatktimes = 22;
-  optional bool       getsheetnum = 23;
-  optional int32      nSucCountryID = 24;
-  optional string     nBuffEndTime = 25;
-  optional int32      selfHBInfo = 26;
-  optional message    nCostThrew = 27;
-  optional bool       bGetCostThrewReward = 28;
-  optional message    bHasCostThrewReward = 29;
-  optional int32      nSuperBloodAtkGift = 30;
-  optional int32      field32 = 32;
-  optional int32      field33 = 33;
-  optional int32      field34 = 34;
-  optional message    field35 = 35;
-  optional int32      field36 = 36;
-  optional bool       field37 = 37;
-  optional bool       field38 = 38;
+  optional int32      field3 = 3;
+  optional int32      pageInx = 4;
+  optional int32      userCnt = 5;
+  optional message    admiral = 6;
+  optional message    ememyBack = 7;
+  optional message    cityData = 8;
+  optional message    countryData = 9;
+  optional message    boxPage = 10;
+  optional message    report = 11;
+  optional message    field12 = 12;
+  optional message    field13 = 13;
+  optional message    captureCity = 14;
+  optional message    field15 = 15;
+  optional message    field16 = 16;
+  optional message    cityTarget = 17;
+  optional message    bloodBtl = 18;
+  optional message    field19 = 19;
+  optional message    field20 = 20;
+  optional int32      dailyGiftId = 21;
+  optional int32      bloodRewardID = 22;
+  optional bool       bloodWin = 23;
+  optional int32      bombZhanGong = 24;
+  optional string     wpcRankUid = 25;
+  optional int32      nstormbox = 26;
+  optional message    leagueMsg = 27;
+  optional bool       getLeagueReward = 28;
+  optional message    CityBuffs = 29;
+  optional int32      dayatktimes = 30;
+  optional int32      getsheetnum = 32;
+  optional int32      nSucCountryID = 33;
+  optional int32      nBuffEndTime = 34;
+  optional message    selfHBInfo = 35;
+  optional int32      nCostThrew = 36;
+  optional bool       bGetCostThrewReward = 37;
+  optional bool       bHasCostThrewReward = 38;
   optional message    field39 = 39;
   optional int32      field40 = 40;
-  optional int32      field41 = 41;
+  optional int32      nSuperBloodAtkGift = 41;
   optional message    field42 = 42;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-3RK   opcode 0x0269
 message RseCountryUserLst {
   optional int32      nCityID = 1;
-  optional message    NoDataCnt = 2;
-  optional int32      field3 = 3;
+  optional message    user = 2;
+  optional int32      NoDataCnt = 3;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-5Bo   opcode 0x0222
@@ -5703,8 +5704,8 @@ message RseCredit {
 // com.sincetimes.redwar.game.comnunicate.protocol:_-372   opcode 0x02a9
 message RseCrossPromotion {
   optional int32      type = 1;
-  optional message    reqchanle = 2;
-  optional string     field3 = 3;
+  optional message    data = 2;
+  optional string     reqchanle = 3;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-5vk   opcode 0x02fb
@@ -5714,26 +5715,26 @@ message RseDailyRecommend {
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-zX   opcode 0x0275
 message RseDailySignIn {
-  optional bool       nType = 1;
-  optional int32      nDay = 2;
-  optional int32      nGiftID = 3;
-  optional int32      nResult = 4;
-  optional int32      bSignIn = 5;
-  optional bool       nReplenishDays = 6;
-  optional int32      nSignInDays = 7;
-  optional int32      nActivetype = 8;
-  optional bool       nTotalSignCnt = 9;
-  optional int32      field10 = 10;
-  optional int32      field11 = 11;
+  optional bool       field1 = 1;
+  optional int32      nType = 2;
+  optional int32      nDay = 3;
+  optional int32      nGiftID = 4;
+  optional int32      nResult = 5;
+  optional bool       bSignIn = 6;
+  optional int32      nReplenishDays = 7;
+  optional int32      nSignInDays = 8;
+  optional bool       field9 = 9;
+  optional int32      nActivetype = 10;
+  optional int32      nTotalSignCnt = 11;
   optional bool       field12 = 12;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-3hP   opcode 0x0241
 message RseDailyTask {
-  optional message    dailyTask = 1;
-  optional message    privilegeId = 2;
-  optional int32      hasPrivilegeComplete = 3;
-  optional bool       field4 = 4;
+  optional message    getGift = 1;
+  optional message    dailyTask = 2;
+  optional int32      privilegeId = 3;
+  optional bool       hasPrivilegeComplete = 4;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-05T   opcode 0x0328
@@ -5745,16 +5746,16 @@ message RseDailygiftbuy {
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-0Va   opcode 0x026e
 message RseDaliyCostMsg {
-  optional int32      alltoken = 1;
-  optional int32      dayhasget1 = 2;
-  optional bool       dayhasget2 = 3;
-  optional bool       dayhasget3 = 4;
-  optional bool       dayhasgetall1 = 5;
-  optional bool       dayhasgetall2 = 6;
-  optional bool       dayhasgetall3 = 7;
-  optional bool       dayhasgetall4 = 8;
-  optional bool       nType = 9;
-  optional int32      field10 = 10;
+  optional int32      field1 = 1;
+  optional int32      alltoken = 2;
+  optional bool       dayhasget1 = 3;
+  optional bool       dayhasget2 = 4;
+  optional bool       dayhasget3 = 5;
+  optional bool       dayhasgetall1 = 6;
+  optional bool       dayhasgetall2 = 7;
+  optional bool       dayhasgetall3 = 8;
+  optional bool       dayhasgetall4 = 9;
+  optional int32      nType = 10;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-3fn   opcode 0x026f
@@ -5778,14 +5779,14 @@ message RseDefenseActivity {
 message RseDoubleElevenOfficer {
   optional int32      optype = 1;
   optional int32      id = 2;
-  optional int32      canbuy = 3;
-  optional bool       success = 4;
-  optional bool       starttime = 5;
-  optional int32      activetype = 6;
-  optional int32      ngetdailyawd = 7;
-  optional int32      ncangetCnt = 8;
-  optional bool       field9 = 9;
-  optional int32      field10 = 10;
+  optional int32      day = 3;
+  optional bool       canbuy = 4;
+  optional bool       success = 5;
+  optional int32      starttime = 6;
+  optional int32      activetype = 7;
+  optional int32      field8 = 8;
+  optional bool       ngetdailyawd = 9;
+  optional int32      ncangetCnt = 10;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-7Ha   opcode 0x025e
@@ -5799,20 +5800,20 @@ message RseDuanWuVip {
   optional bool       bcanbuy = 2;
   optional int32      buycnt = 3;
   optional int32      optype = 4;
-  optional int32      bBaoMing = 5;
-  optional bool       nAwdID = 6;
-  optional int32      actType = 7;
-  optional bool       chiqingtuanTotal = 8;
-  optional int32      nTotalQpoint = 9;
-  optional int32      nbuySpecial = 10;
-  optional int32      field11 = 11;
+  optional int32      field5 = 5;
+  optional bool       bBaoMing = 6;
+  optional int32      nAwdID = 7;
+  optional bool       field8 = 8;
+  optional int32      field9 = 9;
+  optional int32      actType = 10;
+  optional int32      chiqingtuanTotal = 11;
   optional int32      field12 = 12;
   optional int32      field13 = 13;
-  optional int32      field14 = 14;
+  optional int32      nTotalQpoint = 14;
   optional bool       field15 = 15;
   optional message    field16 = 16;
   optional message    field17 = 17;
-  optional bool       field18 = 18;
+  optional bool       nbuySpecial = 18;
   optional bool       field19 = 19;
 }
 
@@ -5828,10 +5829,10 @@ message RseEquipOpt {
   optional int32      type = 2;
   optional int32      baseType = 3;
   optional message    quip = 4;
-  optional message    activeType = 5;
-  optional int32      equipphotocombineinfo = 6;
-  optional int32      field7 = 7;
-  optional message    field8 = 8;
+  optional message    field5 = 5;
+  optional int32      activeType = 6;
+  optional int32      itemnum = 7;
+  optional message    equipphotocombineinfo = 8;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-2W2   opcode 0x0211
@@ -5848,17 +5849,17 @@ message RseExploreSecretArsenal {
   optional int32      nRemainFreeNum = 4;
   optional int32      nRemainNum = 5;
   optional int32      nGetRes = 6;
-  optional int32      nExploreType = 7;
-  optional int32      nExplorePoint = 8;
-  optional int32      nExchangeID = 9;
-  optional int32      nChouJiangRank = 10;
-  optional int32      strName = 11;
-  optional int32      specRewardMsg = 12;
-  optional string     field13 = 13;
+  optional int32      field7 = 7;
+  optional int32      nExploreType = 8;
+  optional int32      nExplorePoint = 9;
+  optional int32      nExchangeID = 10;
+  optional int32      field11 = 11;
+  optional int32      nChouJiangRank = 12;
+  optional string     strName = 13;
   optional message    field14 = 14;
   optional message    field15 = 15;
   optional message    field16 = 16;
-  optional message    field17 = 17;
+  optional message    specRewardMsg = 17;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-70-   opcode 0x0307
@@ -5870,7 +5871,7 @@ message RseFierceFightingOpt {
   optional int32      nTaskFlag = 5;
   optional int32      nDestroyBaseCnt = 6;
   optional int32      nCountryAtkCnt = 7;
-  optional message    field8 = 8;
+  optional message    rewardList = 8;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-2h7   opcode 0x028a
@@ -5891,11 +5892,11 @@ message RseFightEquipReprot {
   optional int32      begintime = 1;
   optional string     attackID = 2;
   optional string     recoveryID = 3;
-  optional message    atkAdmiralExp = 4;
-  optional message    defAdmiralExp = 5;
-  optional int32      weapon = 6;
-  optional int32      field7 = 7;
-  optional message    field8 = 8;
+  optional message    field4 = 4;
+  optional message    field5 = 5;
+  optional int32      atkAdmiralExp = 6;
+  optional int32      defAdmiralExp = 7;
+  optional message    weapon = 8;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-44U   opcode 0x0212
@@ -5906,8 +5907,8 @@ message RseFightReprot {
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-0qi   opcode 0x027f
 message RseFightSimpInfo {
-  optional message    countryid = 1;
-  optional int32      field2 = 2;
+  optional message    field1 = 1;
+  optional int32      countryid = 2;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-2PB
@@ -5944,8 +5945,8 @@ message RseFriendGift {
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-0El   opcode 0x0213
 message RseFriendList {
-  optional message    type = 1;
-  optional int32      field2 = 2;
+  optional message    field1 = 1;
+  optional int32      type = 2;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-0Xx   opcode 0x02c2
@@ -5955,15 +5956,15 @@ message RseGVEBtlResult {
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-3l-   opcode 0x0214
 message RseGet {
-  optional message    currenttime = 1;
-  optional int32      type = 2;
-  optional int32      getid = 3;
-  optional string     error = 4;
-  optional string     errorDesc = 5;
-  optional string     h = 6;
-  optional string     hn = 7;
-  optional string     field8 = 8;
-  optional string     field9 = 9;
+  optional message    bases = 1;
+  optional int32      currenttime = 2;
+  optional int32      type = 3;
+  optional string     getid = 4;
+  optional string     error = 5;
+  optional string     errorDesc = 6;
+  optional string     field7 = 7;
+  optional string     h = 8;
+  optional string     hn = 9;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-3uE   opcode 0x0280
@@ -5993,13 +5994,13 @@ message RseGetInviteMsg {
 message RseGetRankGift {
   optional int32      type = 1;
   optional bool       success = 2;
-  optional int32      field3 = 3;
+  optional int32      hasGet = 3;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-6n-   opcode 0x0248
 message RseGetRecords {
-  optional message    logonday = 1;
-  optional int32      field2 = 2;
+  optional message    records = 1;
+  optional int32      logonday = 2;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-39P   opcode 0x022a
@@ -6008,16 +6009,16 @@ message RseGiftList {
   optional int32      dayAskCnt = 2;
   optional int32      getGiftCnt = 3;
   optional int32      askGiftCnt = 4;
-  optional string     bSendGiftGain = 5;
-  optional int32      baskGiftGain = 6;
+  optional string     field5 = 5;
+  optional int32      field6 = 6;
   optional int32      field7 = 7;
   optional string     field8 = 8;
-  optional int32      field9 = 9;
+  optional int32      getTime = 9;
   optional int32      field10 = 10;
-  optional int32      field11 = 11;
-  optional bool       field12 = 12;
-  optional bool       field13 = 13;
-  optional string     field14 = 14;
+  optional int32      hasDone = 11;
+  optional bool       bSendGiftGain = 12;
+  optional bool       baskGiftGain = 13;
+  optional string     playerName = 14;
   optional string     field15 = 15;
 }
 
@@ -6034,30 +6035,30 @@ message RseGiftOpt {
 // com.sincetimes.redwar.game.comnunicate.protocol:_-5IR   opcode 0x0331
 message RseGiftTenMonth {
   optional int32      type = 1;
-  optional int32      nTotalDonate = 2;
-  optional bool       nBuyCredit = 3;
-  optional int32      nBuyQpoint = 4;
-  optional int32      strName = 5;
-  optional bool       usephoto = 6;
-  optional bool       activetype = 7;
-  optional int32      nlevel = 8;
-  optional message    nwishitem = 9;
-  optional string     nGetwishitem = 10;
-  optional int32      headui = 11;
-  optional int32      nGetallbuyawdCnt = 12;
-  optional int32      field13 = 13;
+  optional int32      field2 = 2;
+  optional bool       field3 = 3;
+  optional int32      nTotalDonate = 4;
+  optional int32      field5 = 5;
+  optional bool       nBuyCredit = 6;
+  optional bool       nBuyQpoint = 7;
+  optional int32      field8 = 8;
+  optional message    field9 = 9;
+  optional string     strName = 10;
+  optional int32      usephoto = 11;
+  optional int32      field12 = 12;
+  optional int32      activetype = 13;
   optional bool       field14 = 14;
   optional bool       field15 = 15;
-  optional int32      field16 = 16;
-  optional int32      field17 = 17;
-  optional bool       field18 = 18;
+  optional int32      nlevel = 16;
+  optional int32      nwishitem = 17;
+  optional bool       nGetwishitem = 18;
   optional message    field19 = 19;
   optional message    field20 = 20;
   optional int32      field21 = 21;
-  optional message    field22 = 22;
-  optional string     field23 = 23;
+  optional message    cakeinfo = 22;
+  optional string     headui = 23;
   optional int32      field24 = 24;
-  optional int32      field25 = 25;
+  optional int32      nGetallbuyawdCnt = 25;
   optional int32      field26 = 26;
 }
 
@@ -6073,20 +6074,20 @@ message RseGoldenPig {
   optional int32      nopt = 2;
   optional int32      nrank = 3;
   optional int32      ntotalpig = 4;
-  optional int32      nselfmorale = 5;
-  optional int32      nselfhealth = 6;
-  optional int32      ntype = 7;
-  optional int32      ntotaladviser = 8;
-  optional string     isGetSnowBuff = 9;
-  optional int32      nSnowmanLevel = 10;
-  optional int32      nSnowmanGiftTime = 11;
-  optional int32      nSnowmangiftNum = 12;
+  optional int32      field5 = 5;
+  optional int32      nselfmorale = 6;
+  optional int32      nselfhealth = 7;
+  optional int32      field8 = 8;
+  optional string     field9 = 9;
+  optional int32      field10 = 10;
+  optional int32      ntype = 11;
+  optional int32      ntotaladviser = 12;
   optional string     field13 = 13;
   optional int32      field14 = 14;
-  optional bool       field15 = 15;
-  optional int32      field16 = 16;
-  optional int32      field17 = 17;
-  optional int32      field18 = 18;
+  optional bool       isGetSnowBuff = 15;
+  optional int32      nSnowmanLevel = 16;
+  optional int32      nSnowmanGiftTime = 17;
+  optional int32      nSnowmangiftNum = 18;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-0bh   opcode 0x0319
@@ -6117,14 +6118,14 @@ message RseGuildBuildOpt {
   optional int32      nDonateExp = 10;
   optional int32      nSkillLv = 11;
   optional string     strGuildName = 15;
-  optional message    nTaskProcess = 20;
-  optional message    nNormalPoint = 21;
-  optional message    nHighPoint = 22;
-  optional message    nGuildPoint = 23;
-  optional int32      field30 = 30;
-  optional int32      field31 = 31;
-  optional int32      field32 = 32;
-  optional int32      field33 = 33;
+  optional message    field20 = 20;
+  optional message    field21 = 21;
+  optional message    field22 = 22;
+  optional message    field23 = 23;
+  optional int32      nTaskProcess = 30;
+  optional int32      nNormalPoint = 31;
+  optional int32      nHighPoint = 32;
+  optional int32      nGuildPoint = 33;
   optional message    field34 = 34;
 }
 
@@ -6132,66 +6133,66 @@ message RseGuildBuildOpt {
 message RseGuildOpt {
   optional int32      type = 1;
   optional int32      ret = 2;
-  optional message    userGuild = 3;
-  optional message    page = 5;
-  optional int32      userCnt = 6;
-  optional int32      totalGuildCnt = 7;
-  optional int32      guildBuidlID = 8;
-  optional int32      stake = 10;
-  optional message    shop = 11;
-  optional message    tarUserID = 12;
-  optional message    tarUserPosition = 13;
-  optional string     bltRet = 14;
-  optional int32      pkGuild = 15;
-  optional string     retTotal = 16;
-  optional string     storage = 17;
-  optional string     dayHasPK = 18;
-  optional message    lastBtlRank = 22;
-  optional message    curSesionBtlOver = 23;
-  optional message    nowMsg = 24;
-  optional message    lastMsg = 25;
-  optional bool       HighestMsg = 26;
-  optional int32      nowPersonMsg = 27;
-  optional bool       lastPersonMsg = 28;
-  optional message    HighestPersonMsg = 30;
-  optional message    morale = 31;
-  optional message    thew = 32;
-  optional message    syptype = 33;
-  optional int32      finishskytm = 34;
-  optional message    thewtm = 35;
-  optional message    bRankGet = 36;
-  optional message    thewBuyTime = 37;
-  optional message    cityCnt = 40;
-  optional message    admiral = 41;
-  optional message    getZhangong = 42;
-  optional int32      cityZhangong = 43;
-  optional int32      allNpcCnt = 44;
-  optional int32      listCountryID = 45;
-  optional int32      lastMsgNew = 46;
-  optional int32      HighestMsgNew = 47;
-  optional bool       guildtaskid = 48;
-  optional int32      lastAllCountryRank = 49;
-  optional int32      bAllRankGet = 50;
-  optional message    atvQstMsg = 51;
-  optional message    bCanClickRush = 52;
-  optional int32      nAnonymous = 53;
-  optional int32      field54 = 54;
-  optional int32      field55 = 55;
+  optional message    field3 = 3;
+  optional message    userGuild = 5;
+  optional int32      page = 6;
+  optional int32      userCnt = 7;
+  optional int32      totalGuildCnt = 8;
+  optional int32      guildBuidlID = 10;
+  optional message    stake = 11;
+  optional message    log = 12;
+  optional message    shop = 13;
+  optional string     tarUserID = 14;
+  optional int32      tarUserPosition = 15;
+  optional string     userWay0 = 16;
+  optional string     userWay1 = 17;
+  optional string     userWay2 = 18;
+  optional message    bltRet = 22;
+  optional message    pkGuild = 23;
+  optional message    retTotal = 24;
+  optional message    storage = 25;
+  optional bool       dayHasPK = 26;
+  optional int32      lastBtlRank = 27;
+  optional bool       curSesionBtlOver = 28;
+  optional message    npcList = 30;
+  optional message    field31 = 31;
+  optional message    field32 = 32;
+  optional message    field33 = 33;
+  optional int32      field34 = 34;
+  optional message    nowMsg = 35;
+  optional message    lastMsg = 36;
+  optional message    HighestMsg = 37;
+  optional message    nowPersonMsg = 40;
+  optional message    lastPersonMsg = 41;
+  optional message    HighestPersonMsg = 42;
+  optional int32      morale = 43;
+  optional int32      thew = 44;
+  optional int32      syptype = 45;
+  optional int32      finishskytm = 46;
+  optional int32      thewtm = 47;
+  optional bool       bRankGet = 48;
+  optional int32      thewBuyTime = 49;
+  optional int32      cityCnt = 50;
+  optional message    field51 = 51;
+  optional message    admiral = 52;
+  optional int32      getZhangong = 53;
+  optional int32      cityZhangong = 54;
+  optional int32      allNpcCnt = 55;
   optional int32      field56 = 56;
   optional message    field57 = 57;
-  optional int32      field58 = 58;
-  optional message    field59 = 59;
-  optional message    field60 = 60;
-  optional int32      field62 = 62;
-  optional int32      field63 = 63;
-  optional bool       field64 = 64;
-  optional message    field65 = 65;
-  optional bool       field66 = 66;
+  optional int32      listCountryID = 58;
+  optional message    lastMsgNew = 59;
+  optional message    HighestMsgNew = 60;
+  optional int32      guildtaskid = 62;
+  optional int32      lastAllCountryRank = 63;
+  optional bool       bAllRankGet = 64;
+  optional message    atvQstMsg = 65;
+  optional bool       bCanClickRush = 66;
   optional string     field67 = 67;
   optional message    field68 = 68;
   optional message    field69 = 69;
   optional message    field70 = 70;
-  optional int32      field71 = 71;
+  optional int32      nAnonymous = 71;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-16O   opcode 0x02da
@@ -6205,16 +6206,16 @@ message RseGuildRedEnvelopeOpt {
   optional message    envelopeInfo = 7;
   optional int32      nSnappeNum = 8;
   optional int32      nRegionNum = 9;
-  optional message    nGuildID = 10;
-  optional message    nAdjType = 11;
+  optional message    field10 = 10;
+  optional message    field11 = 11;
   optional message    field12 = 12;
   optional message    field13 = 13;
   optional message    field14 = 14;
   optional message    field15 = 15;
   optional message    field16 = 16;
   optional message    field17 = 17;
-  optional int32      field18 = 18;
-  optional int32      field19 = 19;
+  optional int32      nGuildID = 18;
+  optional int32      nAdjType = 19;
   optional string     field20 = 20;
   optional int32      field21 = 21;
 }
@@ -6230,9 +6231,9 @@ message RseGuildUserLst {
 message RseGuoZhanDaRen {
   optional int32      nret = 1;
   optional int32      ntype = 2;
-  optional bool       ntimes = 3;
+  optional bool       field3 = 3;
   optional int32      field4 = 4;
-  optional int32      field5 = 5;
+  optional int32      ntimes = 5;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-6ym   opcode 0x02ce
@@ -6240,26 +6241,26 @@ message RseGvgOpt {
   optional int32      ret = 1;
   optional int32      type = 2;
   optional int32      cityID = 3;
-  optional message    controlCityID = 4;
-  optional message    cityPoint = 5;
-  optional message    guildData = 6;
-  optional message    addAtkPct = 7;
-  optional int32      addBloodPct = 8;
-  optional int32      winCount = 9;
-  optional int32      fightReoprt = 10;
-  optional message    HasGetReward = 11;
-  optional int32      admiral = 12;
-  optional int32      fightCD = 13;
-  optional int32      offLineCityID = 14;
-  optional message    canGetCityReward = 15;
-  optional message    field16 = 16;
-  optional bool       field17 = 17;
-  optional message    field18 = 18;
-  optional int32      field19 = 19;
+  optional message    field4 = 4;
+  optional message    field5 = 5;
+  optional message    field6 = 6;
+  optional message    field7 = 7;
+  optional int32      controlCityID = 8;
+  optional int32      field9 = 9;
+  optional int32      cityPoint = 10;
+  optional message    guildData = 11;
+  optional int32      addAtkPct = 12;
+  optional int32      addBloodPct = 13;
+  optional int32      winCount = 14;
+  optional message    field15 = 15;
+  optional message    fightReoprt = 16;
+  optional bool       HasGetReward = 17;
+  optional message    admiral = 18;
+  optional int32      fightCD = 19;
   optional int32      field20 = 20;
   optional int32      field21 = 21;
-  optional int32      field22 = 22;
-  optional bool       field23 = 23;
+  optional int32      offLineCityID = 22;
+  optional bool       canGetCityReward = 23;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-0Hf   opcode 0x030f
@@ -6269,33 +6270,33 @@ message RseHalloween {
   optional int32      leftExchangeTimes = 3;
   optional int32      hasCandyNow = 4;
   optional int32      nactivetype = 5;
-  optional int32      nusestorey = 6;
-  optional int32      nBuyQpoint = 7;
-  optional int32      ntotaldonate = 8;
-  optional int32      strName = 9;
-  optional bool       field10 = 10;
+  optional int32      field6 = 6;
+  optional int32      field7 = 7;
+  optional int32      nusestorey = 8;
+  optional int32      field9 = 9;
+  optional bool       nBuyQpoint = 10;
   optional int32      field11 = 11;
   optional message    field12 = 12;
   optional message    field13 = 13;
   optional message    field14 = 14;
-  optional int32      field15 = 15;
-  optional string     field16 = 16;
+  optional int32      ntotaldonate = 15;
+  optional string     strName = 16;
   optional bool       field17 = 17;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-Lj   opcode 0x027d
 message RseHappyBuy {
   optional int32      type = 1;
-  optional bool       awardflag = 2;
-  optional int32      ret = 3;
-  optional int32      field4 = 4;
+  optional bool       field2 = 2;
+  optional int32      awardflag = 3;
+  optional int32      ret = 4;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-459   opcode 0x02e0
 message RseHappyCard {
   optional int32      ret = 1;
-  optional int32      itemRewardid = 2;
-  optional int32      field3 = 3;
+  optional int32      rewardid = 2;
+  optional int32      itemRewardid = 3;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-0-4   opcode 0x027a
@@ -6310,17 +6311,17 @@ message RseHappyLib {
 // com.sincetimes.redwar.game.comnunicate.protocol:_-1YW   opcode 0x02c5
 message RseHeroArenaInfo {
   optional int32      type = 1;
-  optional message    rankSelf = 2;
-  optional message    rankSelfLast = 3;
-  optional int32      lastRankGet = 4;
-  optional int32      canFightTimes = 5;
-  optional bool       buyFightTimes = 6;
-  optional int32      lastfightRecord = 7;
-  optional int32      nowScore = 8;
-  optional message    rankSelfYesterday = 9;
-  optional int32      nIntegralScore = 10;
-  optional int32      field11 = 11;
-  optional int32      field12 = 12;
+  optional message    arenareportSelf = 2;
+  optional message    arenareportFight = 3;
+  optional int32      rankSelf = 4;
+  optional int32      rankSelfLast = 5;
+  optional bool       lastRankGet = 6;
+  optional int32      canFightTimes = 7;
+  optional int32      buyFightTimes = 8;
+  optional message    lastfightRecord = 9;
+  optional int32      nowScore = 10;
+  optional int32      rankSelfYesterday = 11;
+  optional int32      nIntegralScore = 12;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-1sv   opcode 0x02c6
@@ -6338,14 +6339,14 @@ message RseHeroArenaOpt {
 // com.sincetimes.redwar.game.comnunicate.protocol:_-1Tr   opcode 0x02c7
 message RseHeroArenaRankInfo {
   optional int32      type = 1;
-  optional message    arenaRanklist = 2;
-  optional message    arenalastToplist = 3;
-  optional message    arenaAttacklist = 4;
-  optional message    ranklast = 5;
-  optional message    lastRankGet = 6;
-  optional int32      lastshow = 7;
-  optional bool       field8 = 8;
-  optional bool       field9 = 9;
+  optional message    field2 = 2;
+  optional message    arenaRanklist = 3;
+  optional message    arenalastToplist = 4;
+  optional message    arenaAttacklist = 5;
+  optional message    field6 = 6;
+  optional int32      ranklast = 7;
+  optional bool       lastRankGet = 8;
+  optional bool       lastshow = 9;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-2RB   opcode 0x02c9
@@ -6361,59 +6362,59 @@ message RseHeroEquipOpt {
   optional int32      nRet = 2;
   optional int32      nHeroID = 3;
   optional int32      nEquipDBID = 4;
-  optional int32      equipInfo = 5;
-  optional int32      bEnd = 6;
-  optional message    heroInfo = 7;
-  optional message    lstHeroLetter = 8;
-  optional bool       ngetstrengthstone = 9;
-  optional message    field10 = 10;
-  optional message    field11 = 11;
-  optional int32      field12 = 12;
+  optional int32      field5 = 5;
+  optional int32      field6 = 6;
+  optional message    equipInfo = 7;
+  optional message    field8 = 8;
+  optional bool       bEnd = 9;
+  optional message    heroInfo = 10;
+  optional message    lstHeroLetter = 11;
+  optional int32      ngetstrengthstone = 12;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-7XJ   opcode 0x02b5
 message RseHeroLst {
-  optional message    type = 1;
-  optional int32      field2 = 2;
+  optional message    field1 = 1;
+  optional int32      type = 2;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-5d3   opcode 0x02b2
 message RseHeroOpen {
   optional int32      type = 1;
   optional int32      canUseCnt = 2;
-  optional message    letter = 3;
-  optional message    hasCreditVisit = 4;
-  optional int32      upgradeherolst = 5;
-  optional int32      fusionstep = 6;
-  optional int32      hasHalfPrice = 7;
-  optional bool       optimusPrimescore = 8;
-  optional int32      boozepartycnt = 9;
-  optional message    bRareResolve = 10;
-  optional message    newfusionstep = 11;
-  optional int32      nChrismasVisitTimes = 12;
-  optional bool       nMonthCardVisitTimes = 13;
-  optional int32      field14 = 14;
-  optional int32      field15 = 15;
-  optional bool       field16 = 16;
-  optional int32      field17 = 17;
-  optional int32      field18 = 18;
-  optional int32      field19 = 19;
+  optional message    hero = 3;
+  optional message    letter = 4;
+  optional int32      field5 = 5;
+  optional int32      freeVisitCnt = 6;
+  optional int32      finishVisitTime = 7;
+  optional bool       hasCreditVisit = 8;
+  optional int32      field9 = 9;
+  optional message    upgradeherolst = 10;
+  optional message    field11 = 11;
+  optional int32      fusionstep = 12;
+  optional bool       hasHalfPrice = 13;
+  optional int32      optimusPrimescore = 14;
+  optional int32      boozepartycnt = 15;
+  optional bool       bRareResolve = 16;
+  optional int32      newfusionstep = 17;
+  optional int32      nChrismasVisitTimes = 18;
+  optional int32      nMonthCardVisitTimes = 19;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-5JR   opcode 0x02b3
 message RseHeroOpt {
   optional int32      ret = 1;
   optional int32      optType = 2;
-  optional message    heroInuse = 3;
-  optional int32      itemID = 4;
-  optional message    itemCnt = 5;
-  optional int32      letter = 6;
-  optional int32      fusionid = 7;
-  optional message    fusionlv = 8;
-  optional int32      fusionstep = 9;
-  optional int32      Newfusionstep = 10;
-  optional int32      field11 = 11;
-  optional int32      field12 = 12;
+  optional message    hero = 3;
+  optional int32      field4 = 4;
+  optional message    heroInuse = 5;
+  optional int32      itemID = 6;
+  optional int32      itemCnt = 7;
+  optional message    letter = 8;
+  optional int32      fusionid = 9;
+  optional int32      fusionlv = 10;
+  optional int32      fusionstep = 11;
+  optional int32      Newfusionstep = 12;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-5T0   opcode 0x02b9
@@ -6423,10 +6424,10 @@ message RseHeroRank {
   optional string     id = 3;
   optional string     name = 4;
   optional string     icon = 5;
-  optional message    usetype = 6;
-  optional int32      nLvl = 7;
-  optional int32      nFightPow = 9;
-  optional uint32     field10 = 10;
+  optional message    hero = 6;
+  optional int32      usetype = 7;
+  optional int32      nLvl = 9;
+  optional uint32     nFightPow = 10;
   optional message    field11 = 11;
 }
 
@@ -6434,22 +6435,22 @@ message RseHeroRank {
 message RseHeroVisit {
   optional int32      ret = 1;
   optional int32      type = 2;
-  optional int32      hasCreditVisit = 3;
-  optional int32      getType = 4;
-  optional bool       hero = 5;
-  optional int32      letter = 6;
-  optional message    itemID = 7;
-  optional message    itemCnt = 8;
-  optional int32      heroLetterID = 9;
-  optional int32      heroLetterCnt = 10;
-  optional int32      optimusPrimescore = 11;
-  optional int32      nAddRes = 12;
-  optional int32      precisestrikepart = 13;
-  optional int32      boozePartyCnt = 14;
-  optional int32      nChrismasVisitTimes = 15;
-  optional int32      nMonthCardVisitTimes = 16;
-  optional int32      field17 = 17;
-  optional int32      field18 = 18;
+  optional int32      freeVisitCnt = 3;
+  optional int32      finishVisitTime = 4;
+  optional bool       hasCreditVisit = 5;
+  optional int32      getType = 6;
+  optional message    hero = 7;
+  optional message    letter = 8;
+  optional int32      itemID = 9;
+  optional int32      itemCnt = 10;
+  optional int32      heroLetterID = 11;
+  optional int32      heroLetterCnt = 12;
+  optional int32      optimusPrimescore = 13;
+  optional int32      nAddRes = 14;
+  optional int32      precisestrikepart = 15;
+  optional int32      boozePartyCnt = 16;
+  optional int32      nChrismasVisitTimes = 17;
+  optional int32      nMonthCardVisitTimes = 18;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-1qL   opcode 0x0216
@@ -6553,34 +6554,34 @@ message RseJunBeiOpt {
   optional int32      ret = 2;
   optional int32      overExp = 3;
   optional int32      nPoint = 4;
-  optional int32      dayatktimes = 5;
-  optional message    cdTime = 6;
-  optional message    bTurnOn = 7;
-  optional message    nJunBeiID = 8;
-  optional message    fightreoprt = 9;
-  optional message    nSkillPoint = 10;
-  optional message    nDayExpNum = 11;
-  optional int32      bend = 12;
-  optional int32      wishtreeExploreCnt = 13;
-  optional message    nCenterJunbeiPoint = 14;
-  optional bool       field16 = 16;
-  optional int32      field17 = 17;
-  optional message    field18 = 18;
-  optional int32      field19 = 19;
-  optional int32      field20 = 20;
+  optional int32      field5 = 5;
+  optional message    field6 = 6;
+  optional message    field7 = 7;
+  optional message    field8 = 8;
+  optional message    lstLetter = 9;
+  optional message    field10 = 10;
+  optional message    field11 = 11;
+  optional int32      dayatktimes = 12;
+  optional int32      cdTime = 13;
+  optional message    field14 = 14;
+  optional bool       bTurnOn = 16;
+  optional int32      nJunBeiID = 17;
+  optional message    fightreoprt = 18;
+  optional int32      nSkillPoint = 19;
+  optional int32      nDayExpNum = 20;
   optional int32      field21 = 21;
-  optional bool       field22 = 22;
-  optional int32      field23 = 23;
-  optional int32      field24 = 24;
+  optional bool       bend = 22;
+  optional int32      wishtreeExploreCnt = 23;
+  optional int32      nCenterJunbeiPoint = 24;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-35e   opcode 0x0240
 message RseLeaveMessage {
   optional int32      nType = 1;
-  optional message    nIndex = 2;
-  optional int32      nError = 3;
-  optional int32      bIsNew = 4;
-  optional bool       field5 = 5;
+  optional message    field2 = 2;
+  optional int32      nIndex = 3;
+  optional int32      nError = 4;
+  optional bool       bIsNew = 5;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-6av   opcode 0x0201
@@ -6610,99 +6611,99 @@ message RseLoad {
   optional int32      currentTime = 10;
   optional string     __protected = 11;
   optional string     baseid = 12;
-  optional message    quests = 13;
-  optional message    basevalue = 14;
-  optional string     basepoints = 15;
-  optional string     aiattacks = 16;
-  optional message    effects = 18;
-  optional string     mushrooms = 19;
-  optional message    stats = 20;
-  optional message    monsterbaiter = 21;
-  optional message    mineEx = 22;
-  optional message    fbCreditsBalance = 23;
-  optional message    flags = 24;
-  optional string     points = 25;
-  optional message    name = 27;
-  optional message    factionid = 28;
-  optional message    destroycnt = 29;
-  optional message    attackcnt = 30;
-  optional string     sciencelevel = 31;
-  optional string     honor = 32;
-  optional message    activitydata = 33;
-  optional int32      recoverArmy = 34;
-  optional string     totallogin24tm = 35;
-  optional message    totallogout24tm = 36;
-  optional int32      buffdata = 37;
-  optional int32      comInuse = 38;
-  optional int32      hasLogonToday = 39;
-  optional message    slaveRoom = 40;
-  optional int32      wallType = 41;
-  optional message    combatpowervalue = 42;
-  optional message    emblemInuse = 43;
-  optional uint32     feats = 44;
-  optional uint32     tmsnowiceMode = 45;
-  optional message    admiralInuse = 46;
-  optional message    popAD = 47;
-  optional bool       tutorialtype = 48;
-  optional message    bookInuse = 49;
-  optional int32      frdBaseExplore = 50;
-  optional uint32     countryData = 51;
-  optional message    nIntegralScore = 52;
-  optional int32      equipInuse = 53;
-  optional uint32     curBloodBtlCnt = 54;
-  optional message    lastuseweapontime = 55;
-  optional bool       userGuild = 56;
-  optional int32      officerPosition = 57;
-  optional message    vipData = 58;
-  optional message    destroynpccnt = 59;
-  optional message    attacknpccnt = 60;
-  optional int32      pvebattlecnt = 61;
-  optional message    heroInuse = 62;
-  optional int32      property = 63;
-  optional int32      heroScore = 64;
-  optional message    logindays = 65;
-  optional int32      cmdlv = 66;
-  optional message    logoutProTime = 67;
-  optional int32      TrapEx = 68;
-  optional int32      mhInuse = 69;
-  optional int32      nLeagueTitle = 70;
-  optional message    colonyState = 71;
-  optional message    bSelfVip = 72;
-  optional int32      nColonyNum = 73;
-  optional int32      tmspritemode = 74;
-  optional int32      nSpecailHead = 75;
-  optional message    nDayAddCredit = 76;
-  optional int32      nDayCostCredit = 77;
-  optional message    tmbattlepassmap = 78;
-  optional message    OtherSaveflag = 79;
-  optional message    lstUI = 80;
-  optional int32      BuildlstUI = 81;
-  optional message    usertitle = 82;
-  optional int32      mortarskin = 83;
-  optional message    Wishtreeskin = 84;
-  optional bool       eggskin = 85;
-  optional int32      cakeinfo = 86;
-  optional int32      basehomeskin = 87;
-  optional int32      field88 = 88;
-  optional int32      field89 = 89;
-  optional int32      field90 = 90;
+  optional message    buildingdata = 13;
+  optional message    quests = 14;
+  optional string     basevalue = 15;
+  optional string     basepoints = 16;
+  optional message    aiattacks = 18;
+  optional string     effects = 19;
+  optional message    mushrooms = 20;
+  optional message    stats = 21;
+  optional message    academy = 22;
+  optional message    monsterbaiter = 23;
+  optional message    mineEx = 24;
+  optional string     fbCreditsBalance = 25;
+  optional message    attacks = 27;
+  optional message    storedata = 28;
+  optional message    storeitems = 29;
+  optional message    flags = 30;
+  optional string     field31 = 31;
+  optional string     field32 = 32;
+  optional message    army = 33;
+  optional int32      points = 34;
+  optional string     name = 35;
+  optional message    wmstatus = 36;
+  optional int32      factionid = 37;
+  optional int32      destroycnt = 38;
+  optional int32      attackcnt = 39;
+  optional message    sciencelevel = 40;
+  optional int32      honor = 41;
+  optional message    activitydata = 42;
+  optional message    recoverArmy = 43;
+  optional uint32     totallogin24tm = 44;
+  optional uint32     totallogout24tm = 45;
+  optional message    buffdata = 46;
+  optional message    comInuse = 47;
+  optional bool       hasLogonToday = 48;
+  optional message    slaveRoom = 49;
+  optional int32      wallType = 50;
+  optional uint32     combatpowervalue = 51;
+  optional message    emblemInuse = 52;
+  optional int32      feats = 53;
+  optional uint32     tmsnowiceMode = 54;
+  optional message    admiralInuse = 55;
+  optional bool       popAD = 56;
+  optional int32      tutorialtype = 57;
+  optional message    bookInuse = 58;
+  optional message    frdBaseExplore = 59;
+  optional message    countryData = 60;
+  optional int32      nIntegralScore = 61;
+  optional message    equipInuse = 62;
+  optional int32      curBloodBtlCnt = 63;
+  optional int32      lastuseweapontime = 64;
+  optional message    userGuild = 65;
+  optional int32      officerPosition = 66;
+  optional message    vipData = 67;
+  optional int32      destroynpccnt = 68;
+  optional int32      attacknpccnt = 69;
+  optional int32      pvebattlecnt = 70;
+  optional message    heroInuse = 71;
+  optional message    property = 72;
+  optional int32      heroScore = 73;
+  optional int32      logindays = 74;
+  optional int32      cmdlv = 75;
+  optional message    field76 = 76;
+  optional int32      logoutProTime = 77;
+  optional message    field78 = 78;
+  optional message    TrapEx = 79;
+  optional message    mhInuse = 80;
+  optional int32      nLeagueTitle = 81;
+  optional message    field82 = 82;
+  optional int32      colonyState = 83;
+  optional message    field84 = 84;
+  optional bool       bSelfVip = 85;
+  optional int32      nColonyNum = 86;
+  optional int32      tmspritemode = 87;
+  optional int32      nSpecailHead = 88;
+  optional int32      nDayAddCredit = 89;
+  optional int32      nDayCostCredit = 90;
   optional message    field91 = 91;
-  optional int32      field92 = 92;
-  optional int32      field93 = 93;
-  optional message    field94 = 94;
-  optional message    field95 = 95;
-  optional message    field96 = 96;
-  optional message    field97 = 97;
-  optional message    field98 = 98;
-  optional message    field99 = 99;
-  optional message    field100 = 100;
-  optional message    field101 = 101;
+  optional int32      tmbattlepassmap = 92;
+  optional int32      OtherSaveflag = 93;
+  optional message    lstUI = 94;
+  optional message    BuildlstUI = 95;
+  optional message    usertitle = 96;
+  optional message    mortarskin = 97;
+  optional message    Wishtreeskin = 98;
+  optional message    eggskin = 99;
+  optional message    cakeinfo = 100;
+  optional message    basehomeskin = 101;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-2oe   opcode 0x0296
 message RseLoadArmy {
   optional bool       end = 1;
-  optional message    field2 = 2;
+  optional message    army = 2;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-1Id   opcode 0x0281
@@ -6724,23 +6725,23 @@ message RseLogGet {
 message RseLootBrother {
   optional int32      nType = 1;
   optional int32      nResult = 2;
-  optional bool       nTotalFinish = 3;
-  optional int32      nBuyType = 4;
-  optional message    nGetOnline = 5;
-  optional bool       nTotalOnline = 6;
-  optional int32      nOnlineTime = 7;
-  optional int32      nTaskCnt = 8;
-  optional bool       nPosition = 9;
-  optional bool       nactivetype = 10;
-  optional int32      nSnowmaninfo = 11;
-  optional int32      field12 = 12;
-  optional int32      field13 = 13;
+  optional bool       field3 = 3;
+  optional int32      field4 = 4;
+  optional message    field5 = 5;
+  optional bool       field6 = 6;
+  optional int32      nTotalFinish = 7;
+  optional int32      nBuyType = 8;
+  optional bool       nGetOnline = 9;
+  optional bool       nTotalOnline = 10;
+  optional int32      nOnlineTime = 11;
+  optional int32      nTaskCnt = 12;
+  optional int32      nPosition = 13;
   optional int32      field14 = 14;
   optional int32      field15 = 15;
-  optional int32      field16 = 16;
+  optional int32      nactivetype = 16;
   optional message    field17 = 17;
   optional message    field18 = 18;
-  optional message    field19 = 19;
+  optional message    nSnowmaninfo = 19;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-3rZ   opcode 0x0263
@@ -6760,27 +6761,27 @@ message RseLuckyWheel {
   optional int32      type = 1;
   optional int32      nRet = 2;
   optional int32      nTotalCredit = 3;
-  optional int32      Token = 4;
-  optional int32      ChosenTimes = 5;
-  optional int32      nFreeFreshNum = 6;
-  optional int32      nRoundNum = 7;
-  optional int32      nRoundReward = 8;
-  optional int32      id = 9;
-  optional int32      nReward = 10;
-  optional int32      field11 = 11;
-  optional int32      field12 = 12;
-  optional int32      field13 = 13;
+  optional int32      field4 = 4;
+  optional int32      field5 = 5;
+  optional int32      field6 = 6;
+  optional int32      Token = 7;
+  optional int32      ChosenTimes = 8;
+  optional int32      nFreeFreshNum = 9;
+  optional int32      nRoundNum = 10;
+  optional int32      nRoundReward = 11;
+  optional int32      id = 12;
+  optional int32      nReward = 13;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-4tx   opcode 0x026d
 message RseLuckyWheelMsg {
-  optional int32      Token = 1;
-  optional int32      ChosenTimes = 2;
-  optional int32      id = 3;
-  optional int32      type = 4;
-  optional int32      field5 = 5;
-  optional int32      field6 = 6;
-  optional int32      field7 = 7;
+  optional int32      field1 = 1;
+  optional int32      field2 = 2;
+  optional int32      Token = 3;
+  optional int32      ChosenTimes = 4;
+  optional int32      id = 5;
+  optional int32      type = 6;
+  optional int32      cost = 7;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-7IE   opcode 0x0334
@@ -6789,15 +6790,15 @@ message RseMaterialProtect {
   optional int32      ProtectTimes = 2;
   optional int32      PlunderTimes = 3;
   optional int32      RefreshTimes = 4;
-  optional message    nguildid = 5;
-  optional message    result = 6;
-  optional message    fightReoprt = 7;
-  optional int32      admiralInuse = 8;
-  optional int32      carIteminfo = 9;
-  optional message    field10 = 10;
-  optional message    field11 = 11;
+  optional message    field5 = 5;
+  optional message    field6 = 6;
+  optional message    field7 = 7;
+  optional int32      nguildid = 8;
+  optional int32      result = 9;
+  optional message    fightReoprt = 10;
+  optional message    admiralInuse = 11;
   optional int32      field12 = 12;
-  optional message    field13 = 13;
+  optional message    carIteminfo = 13;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-4Yp   opcode 0x02f2
@@ -6814,14 +6815,14 @@ message RseMedalHonorOpt {
   optional int32      nExpOver = 10;
   optional int32      nAcMedalHonorNum = 11;
   optional int32      nAcMedalHonorCountry = 12;
-  optional int32      nActDecoratTime = 13;
-  optional int32      nRebateTime = 14;
-  optional int32      nStrongTokenNum = 15;
-  optional message    nStrongCastNum = 16;
-  optional int32      field17 = 17;
-  optional int32      field18 = 18;
-  optional int32      field19 = 19;
-  optional int32      field20 = 20;
+  optional int32      field13 = 13;
+  optional int32      field14 = 14;
+  optional int32      field15 = 15;
+  optional message    admiralList = 16;
+  optional int32      nActDecoratTime = 17;
+  optional int32      nRebateTime = 18;
+  optional int32      nStrongTokenNum = 19;
+  optional int32      nStrongCastNum = 20;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-1MA   opcode 0x02ba
@@ -6841,9 +6842,9 @@ message RseMilitarySoulOpt {
   optional int32      type = 1;
   optional int32      nResult = 2;
   optional int32      nSoulNum = 3;
-  optional message    msUid = 4;
-  optional string     admiralList = 5;
-  optional message    field6 = 6;
+  optional message    soulList = 4;
+  optional string     msUid = 5;
+  optional message    admiralList = 6;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-br   opcode 0x0218
@@ -6852,12 +6853,12 @@ message RseMineModify {
   optional int32      error = 2;
   optional message    building = 3;
   optional message    mineEx = 4;
-  optional string     credit = 5;
-  optional string     level = 6;
-  optional string     basevalue = 7;
-  optional string     basepoints = 8;
-  optional string     recycleFlag = 9;
-  optional bool       field10 = 10;
+  optional string     resources = 5;
+  optional string     credit = 6;
+  optional string     level = 7;
+  optional string     basevalue = 8;
+  optional string     basepoints = 9;
+  optional bool       recycleFlag = 10;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-5pM   opcode 0x0235
@@ -6879,13 +6880,13 @@ message RseMoonOpen {
   optional int32      moonCnt = 8;
   optional int32      accMoonCnt = 9;
   optional int32      accStakeCnt = 10;
-  optional int32      activeFlag = 11;
-  optional int32      dayGetGiftCount = 12;
-  optional int32      totalGetGiftPrivilege = 13;
-  optional int32      dayCostGetTime = 14;
-  optional int32      hasGetRankGift = 15;
-  optional int32      field16 = 16;
-  optional bool       field17 = 17;
+  optional int32      field11 = 11;
+  optional int32      field12 = 12;
+  optional int32      activeFlag = 13;
+  optional int32      dayGetGiftCount = 14;
+  optional int32      totalGetGiftPrivilege = 15;
+  optional int32      dayCostGetTime = 16;
+  optional bool       hasGetRankGift = 17;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-YD   opcode 0x0237
@@ -6897,12 +6898,12 @@ message RseMoonStake {
   optional int32      goldLevel = 5;
   optional int32      silverLevel = 6;
   optional int32      moonCnt = 7;
-  optional message    activeFlag = 8;
-  optional int32      dayGetGiftCount = 9;
-  optional int32      totalGetGiftPrivilege = 10;
-  optional int32      dayCostGetTime = 11;
-  optional int32      hasGetRankGift = 12;
-  optional bool       field13 = 13;
+  optional message    stake = 8;
+  optional int32      activeFlag = 9;
+  optional int32      dayGetGiftCount = 10;
+  optional int32      totalGetGiftPrivilege = 11;
+  optional int32      dayCostGetTime = 12;
+  optional bool       hasGetRankGift = 13;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-RJ   opcode 0x0310
@@ -6943,8 +6944,8 @@ message RseMysticalBlueBox {
   optional int32      nDiscount = 6;
   optional int32      nNum = 7;
   optional message    admiralInfo = 8;
-  optional int32      nFlag = 9;
-  optional int32      field10 = 10;
+  optional int32      field9 = 9;
+  optional int32      nFlag = 10;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-5eh   opcode 0x0254
@@ -6952,9 +6953,9 @@ message RseNPCActive {
   optional int32      type = 1;
   optional int32      ret = 2;
   optional int32      leftAtkCnt = 3;
-  optional int32      crank = 4;
+  optional int32      field4 = 4;
   optional int32      field5 = 5;
-  optional message    field6 = 6;
+  optional message    crank = 6;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-rK   opcode 0x02fa
@@ -6995,11 +6996,11 @@ message RseNewYearGift {
 message RseOfficerOpen {
   optional int32      opType = 1;
   optional int32      type = 2;
-  optional message    rightUseFlag = 3;
-  optional message    specialUseFlag = 4;
-  optional int32      lastCountryRank = 5;
-  optional int32      field6 = 6;
-  optional int32      field7 = 7;
+  optional message    field3 = 3;
+  optional message    field4 = 4;
+  optional int32      rightUseFlag = 5;
+  optional int32      specialUseFlag = 6;
+  optional int32      lastCountryRank = 7;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-4VM   opcode 0x029c
@@ -7032,13 +7033,13 @@ message RseOneCreditSendPrizeTips {
 message RseOneYuanCredit {
   optional int32      ret = 1;
   optional int32      type = 2;
-  optional message    lastresult = 3;
-  optional message    buycnt = 4;
-  optional int32      buyflag = 5;
-  optional message    name = 6;
-  optional int32      record = 7;
-  optional string     field8 = 8;
-  optional message    field9 = 9;
+  optional message    field3 = 3;
+  optional message    lastresult = 4;
+  optional int32      buycnt = 5;
+  optional message    buyflag = 6;
+  optional int32      field7 = 7;
+  optional string     name = 8;
+  optional message    record = 9;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-3Bb   opcode 0x02f4
@@ -7048,8 +7049,8 @@ message RseOneYuanPurchase {
   optional int32      rewardkey = 3;
   optional string     num1 = 4;
   optional string     num2 = 5;
-  optional message    name = 6;
-  optional string     field7 = 7;
+  optional message    field6 = 6;
+  optional string     name = 7;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:in   opcode 0x02ec
@@ -7080,11 +7081,11 @@ message RsePVEFightOpt {
   optional int32      result = 3;
   optional uint32     cdtime = 4;
   optional bool       bTreatSuc = 5;
-  optional message    nKillBossID = 6;
-  optional int32      tRewardTime = 8;
-  optional int32      nIdleRewardID = 9;
-  optional int32      nIdleRewardNum = 10;
-  optional int32      field11 = 11;
+  optional message    field6 = 6;
+  optional int32      nKillBossID = 8;
+  optional int32      tRewardTime = 9;
+  optional int32      nIdleRewardID = 10;
+  optional int32      nIdleRewardNum = 11;
   optional message    field12 = 12;
 }
 
@@ -7103,11 +7104,11 @@ message RsePickNewPlayerGift {
   optional int32      type = 1;
   optional bool       ret = 2;
   optional int32      activetype = 3;
-  optional bool       ngetfreeAwd = 4;
-  optional bool       nstardtime = 5;
+  optional bool       field4 = 4;
+  optional bool       ngetfreeAwd = 5;
   optional int32      field6 = 6;
   optional int32      field7 = 7;
-  optional int32      field8 = 8;
+  optional int32      nstardtime = 8;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-0qf   opcode 0x02b0
@@ -7122,23 +7123,23 @@ message RsePickUniteRegionGift {
 message RsePingTu {
   optional int32      ret = 1;
   optional int32      type = 2;
-  optional int32      nCanBuQian = 3;
-  optional bool       nRandRwd = 4;
-  optional int32      field5 = 5;
+  optional int32      field3 = 3;
+  optional bool       field4 = 4;
+  optional int32      nCanBuQian = 5;
   optional int32      field6 = 6;
-  optional int32      field7 = 7;
+  optional int32      nRandRwd = 7;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-qW   opcode 0x0238
 message RsePlatInviteFriend {
   optional int32      ntype = 1;
-  optional message    invitegaincredit = 2;
-  optional int32      lvlgaincredit = 3;
-  optional int32      topupgaincredit = 4;
-  optional int32      gaincreditall = 5;
-  optional int32      nerror = 6;
-  optional int32      ncredit = 7;
-  optional int32      field8 = 8;
+  optional message    invitefriends = 2;
+  optional int32      invitegaincredit = 3;
+  optional int32      lvlgaincredit = 4;
+  optional int32      topupgaincredit = 5;
+  optional int32      gaincreditall = 6;
+  optional int32      nerror = 7;
+  optional int32      ncredit = 8;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-57g   opcode 0x02ad
@@ -7146,18 +7147,18 @@ message RsePokerOpt {
   optional int32      nType = 1;
   optional int32      nerror = 2;
   optional int32      nShowResult = 3;
-  optional message    userPokerType = 4;
-  optional message    NPCPokerType = 5;
-  optional int32      nPokerNum = 6;
-  optional int32      nChangeCordNum = 7;
-  optional int32      getItemID = 8;
-  optional int32      nPoints = 9;
-  optional int32      nGetPoints = 10;
-  optional int32      nPos = 11;
-  optional int32      relacePoker = 12;
-  optional int32      field13 = 13;
-  optional int32      field14 = 14;
-  optional message    field15 = 15;
+  optional message    field4 = 4;
+  optional message    field5 = 5;
+  optional int32      userPokerType = 6;
+  optional int32      NPCPokerType = 7;
+  optional int32      nPokerNum = 8;
+  optional int32      nChangeCordNum = 9;
+  optional int32      itemList = 10;
+  optional int32      getItemID = 11;
+  optional int32      nPoints = 12;
+  optional int32      nGetPoints = 13;
+  optional int32      nPos = 14;
+  optional message    relacePoker = 15;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-4iI   opcode 0x025f
@@ -7183,7 +7184,7 @@ message RsePreciseStrikeOpt {
 // com.sincetimes.redwar.game.comnunicate.protocol:_-10g   opcode 0x0208
 message RsePrompt {
   optional int32      type = 1;
-  optional message    field2 = 2;
+  optional message    promptdata = 2;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-2dQ   opcode 0x02c1
@@ -7198,20 +7199,20 @@ message RsePropertyOpt {
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-2nZ   opcode 0x0219
 message RsePurchase {
-  optional string     credit = 1;
-  optional string     type = 2;
-  optional string     error = 3;
-  optional int32      count = 4;
-  optional int32      shopID = 5;
-  optional int32      itemID = 6;
-  optional int32      feats = 7;
-  optional string     nIntegralScore = 8;
-  optional int32      heroScore = 9;
-  optional int32      buycount = 12;
-  optional int32      openBoxScore = 13;
+  optional string     resources = 1;
+  optional string     credit = 2;
+  optional string     type = 3;
+  optional int32      error = 4;
+  optional int32      count = 5;
+  optional int32      shopID = 6;
+  optional int32      itemID = 7;
+  optional string     feats = 8;
+  optional int32      nIntegralScore = 9;
+  optional int32      heroScore = 12;
+  optional int32      field13 = 13;
   optional int32      field14 = 14;
-  optional int32      field15 = 15;
-  optional int32      field16 = 16;
+  optional int32      buycount = 15;
+  optional int32      openBoxScore = 16;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-2lZ   opcode 0x02a4
@@ -7220,11 +7221,11 @@ message RsePveBattleOpt {
   optional int32      battleid = 2;
   optional int32      passid = 3;
   optional int32      result = 4;
-  optional message    lastPassID = 5;
-  optional int32      firstDown = 6;
-  optional bool       fightRecord = 7;
-  optional message    buyCnt = 8;
-  optional int32      field9 = 9;
+  optional message    battlevalues = 5;
+  optional int32      lastPassID = 6;
+  optional bool       firstDown = 7;
+  optional message    fightRecord = 8;
+  optional int32      buyCnt = 9;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-5GM   opcode 0x02a5
@@ -7246,12 +7247,12 @@ message RseQPointResult {
 message RseQQBirthdayGift {
   optional int32      nType = 1;
   optional int32      nActiveType = 2;
-  optional int32      ngetsecond = 3;
-  optional bool       ngetthrird = 4;
-  optional bool       nLoginday = 5;
-  optional int32      nAllcredit = 6;
-  optional int32      ngetcredit = 7;
-  optional int32      field8 = 8;
+  optional int32      field3 = 3;
+  optional bool       ngetsecond = 4;
+  optional bool       ngetthrird = 5;
+  optional int32      nLoginday = 6;
+  optional int32      nAllcredit = 7;
+  optional int32      ngetcredit = 8;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-1WZ   opcode 0x02ea
@@ -7259,9 +7260,9 @@ message RseQQHallGift {
   optional int32      type = 1;
   optional bool       bCanFetchDayGift = 2;
   optional bool       bCanFetchPlayerGift = 3;
-  optional int32      bCanFetchHallGift = 4;
-  optional bool       ret = 5;
-  optional int32      field6 = 6;
+  optional int32      field4 = 4;
+  optional bool       bCanFetchHallGift = 5;
+  optional int32      ret = 6;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-2FI   opcode 0x02be
@@ -7281,23 +7282,23 @@ message RseQQgiftBuildGuild {
   optional int32      guildBindNum = 8;
   optional bool       bbinded = 9;
   optional bool       nBuyQpoint = 10;
-  optional int32      ndonatenum = 11;
+  optional int32      field11 = 11;
   optional int32      field12 = 12;
-  optional int32      field13 = 13;
-  optional message    field14 = 14;
+  optional int32      ndonatenum = 13;
+  optional message    log = 14;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-5xp   opcode 0x0324
 message RseQixiActive {
   optional int32      nType = 1;
   optional int32      nAllScore = 2;
-  optional bool       nGetFinishAwd = 3;
-  optional bool       nGetBuyAwd = 4;
-  optional bool       nFinishCnt = 5;
-  optional bool       nGetAllBuycnt = 6;
-  optional int32      field7 = 7;
+  optional bool       field3 = 3;
+  optional bool       nGetFinishAwd = 4;
+  optional bool       nGetBuyAwd = 5;
+  optional bool       field6 = 6;
+  optional int32      nFinishCnt = 7;
   optional int32      field8 = 8;
-  optional int32      field9 = 9;
+  optional int32      nGetAllBuycnt = 9;
   optional int32      field10 = 10;
 }
 
@@ -7325,7 +7326,7 @@ message RseRebate {
   optional int32      ret = 2;
   optional int32      id = 3;
   optional int32      credit = 4;
-  optional bool       field5 = 5;
+  optional bool       buyed = 5;
   optional bool       field6 = 6;
 }
 
@@ -7346,11 +7347,11 @@ message RseRecoverArmy {
 message RseRedpacketOpt {
   optional int32      type = 1;
   optional int32      ret = 2;
-  optional string     leftpacket = 3;
-  optional int32      canbuy = 4;
-  optional bool       name = 5;
-  optional string     buytype = 6;
-  optional int32      field7 = 7;
+  optional string     field3 = 3;
+  optional int32      leftpacket = 4;
+  optional bool       canbuy = 5;
+  optional string     name = 6;
+  optional int32      buytype = 7;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-4fO   opcode 0x02bc
@@ -7364,8 +7365,8 @@ message RseRedwarMonthCard {
   optional int32      endtime = 7;
   optional int32      activetype = 8;
   optional bool       hasGetDayfree = 9;
-  optional int32      isGetAll = 10;
-  optional bool       field11 = 11;
+  optional int32      field10 = 10;
+  optional bool       isGetAll = 11;
   optional int32      field12 = 12;
   optional bool       field13 = 13;
 }
@@ -7373,19 +7374,19 @@ message RseRedwarMonthCard {
 // com.sincetimes.redwar.game.comnunicate.protocol:_-1gl   opcode 0x02a6
 message RseRegionArenaInfo {
   optional int32      type = 1;
-  optional message    rankSelf = 2;
-  optional message    rankSelfLast = 3;
-  optional int32      lastRankGet = 4;
-  optional int32      canFightTimes = 5;
-  optional bool       buyFightTimes = 6;
-  optional int32      lastfightRecord = 7;
-  optional int32      nowScore = 8;
-  optional message    rankSelfYesterday = 9;
-  optional int32      bApply = 10;
-  optional int32      nPanelType = 11;
-  optional bool       field12 = 12;
+  optional message    arenareportSelf = 2;
+  optional message    arenareportFight = 3;
+  optional int32      rankSelf = 4;
+  optional int32      rankSelfLast = 5;
+  optional bool       lastRankGet = 6;
+  optional int32      canFightTimes = 7;
+  optional int32      buyFightTimes = 8;
+  optional message    lastfightRecord = 9;
+  optional int32      nowScore = 10;
+  optional int32      rankSelfYesterday = 11;
+  optional bool       bApply = 12;
   optional message    field13 = 13;
-  optional int32      field14 = 14;
+  optional int32      nPanelType = 14;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-4nt   opcode 0x02a7
@@ -7405,14 +7406,14 @@ message RseRegionArenaOpt {
 // com.sincetimes.redwar.game.comnunicate.protocol:_-165   opcode 0x02a8
 message RseRegionArenaRank {
   optional int32      type = 1;
-  optional message    arenaRanklist = 2;
-  optional message    arenalastToplist = 3;
-  optional message    arenaAttacklist = 4;
-  optional message    ranklast = 5;
-  optional message    lastRankGet = 6;
-  optional int32      lastshow = 7;
-  optional bool       field8 = 8;
-  optional bool       field9 = 9;
+  optional message    field2 = 2;
+  optional message    arenaRanklist = 3;
+  optional message    arenalastToplist = 4;
+  optional message    arenaAttacklist = 5;
+  optional message    field6 = 6;
+  optional int32      ranklast = 7;
+  optional bool       lastRankGet = 8;
+  optional bool       lastshow = 9;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-6Vi   opcode 0x02b6
@@ -7427,31 +7428,31 @@ message RseRegionCountryOpt {
   optional message    countryData = 3;
   optional message    cityData = 4;
   optional message    boxPage = 5;
-  optional message    pageInx = 6;
-  optional message    userCnt = 7;
-  optional message    captureCity = 8;
-  optional int32      admiral = 9;
-  optional int32      ememyBack = 10;
-  optional message    cityTarget = 11;
-  optional message    bApply = 13;
-  optional message    winCountryID = 14;
-  optional message    zhangong = 15;
-  optional bool       rank = 16;
-  optional int32      idex = 17;
-  optional message    winType = 18;
-  optional int32      field19 = 19;
-  optional int32      field20 = 20;
-  optional int32      field21 = 21;
-  optional int32      field22 = 22;
-  optional int32      field25 = 25;
+  optional message    field6 = 6;
+  optional message    report = 7;
+  optional message    field8 = 8;
+  optional int32      pageInx = 9;
+  optional int32      userCnt = 10;
+  optional message    captureCity = 11;
+  optional message    admiral = 13;
+  optional message    ememyBack = 14;
+  optional message    cityTarget = 15;
+  optional bool       bApply = 16;
+  optional int32      winCountryID = 17;
+  optional message    rankList = 18;
+  optional int32      zhangong = 19;
+  optional int32      rank = 20;
+  optional int32      idex = 21;
+  optional int32      winType = 22;
+  optional int32      chest = 25;
   optional int32      field26 = 26;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-42e   opcode 0x02b8
 message RseRegionCountryUserLst {
   optional int32      nCityID = 1;
-  optional message    NoDataCnt = 2;
-  optional int32      field3 = 3;
+  optional message    user = 2;
+  optional int32      NoDataCnt = 3;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-4cj   opcode 0x021a
@@ -7468,20 +7469,20 @@ message RseResourceOpt {
   optional int32      ret = 2;
   optional int32      resourceID = 3;
   optional int32      searchType = 4;
-  optional message    resourceEndTime = 5;
-  optional int32      searchTimes = 6;
-  optional int32      getTimes = 7;
-  optional int32      fightReoprt = 8;
-  optional message    admiral = 9;
-  optional message    addmetal = 10;
-  optional message    addoil = 11;
-  optional int32      captureTime = 12;
-  optional int32      dayFightTime = 13;
-  optional int32      searchTimesMid = 14;
-  optional int32      atkUserID = 15;
-  optional int32      addsoul = 16;
-  optional string     field17 = 17;
-  optional int32      field18 = 18;
+  optional message    field5 = 5;
+  optional int32      resourceEndTime = 6;
+  optional int32      searchTimes = 7;
+  optional int32      getTimes = 8;
+  optional message    fightReoprt = 9;
+  optional message    admiral = 10;
+  optional message    field11 = 11;
+  optional int32      addmetal = 12;
+  optional int32      addoil = 13;
+  optional int32      captureTime = 14;
+  optional int32      dayFightTime = 15;
+  optional int32      searchTimesMid = 16;
+  optional string     atkUserID = 17;
+  optional int32      addsoul = 18;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-6TW   opcode 0x0223
@@ -7494,13 +7495,13 @@ message RseRetCoutinueLandGift {
 message RseRobBase {
   optional int32      type = 1;
   optional int32      ret = 2;
-  optional message    selfrank = 3;
-  optional int32      selfscore = 4;
-  optional int32      bcanfetch = 5;
-  optional bool       challengetimes = 6;
-  optional int32      buycnt = 7;
-  optional int32      totalPage = 8;
-  optional int32      field9 = 9;
+  optional message    field3 = 3;
+  optional int32      selfrank = 4;
+  optional int32      selfscore = 5;
+  optional bool       bcanfetch = 6;
+  optional int32      challengetimes = 7;
+  optional int32      buycnt = 8;
+  optional int32      totalPage = 9;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-5WF   opcode 0x02fd
@@ -7519,14 +7520,14 @@ message RseSave {
   optional string     bookmarked = 7;
   optional string     fan = 8;
   optional string     emailshared = 9;
-  optional string     saving = 10;
-  optional string     error = 11;
-  optional string     errorDesc = 12;
-  optional string     h = 13;
-  optional string     hn = 14;
-  optional string     type = 16;
-  optional string     field17 = 17;
-  optional int32      field18 = 18;
+  optional string     updates = 10;
+  optional string     saving = 11;
+  optional string     error = 12;
+  optional string     errorDesc = 13;
+  optional string     field14 = 14;
+  optional string     h = 16;
+  optional string     hn = 17;
+  optional int32      type = 18;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-1-G   opcode 0x0224
@@ -7544,13 +7545,13 @@ message RseSeaTreasure {
   optional bool       passunlocked = 3;
   optional int32      totalopen = 4;
   optional int32      freerefreshleft = 5;
-  optional message    myrank = 6;
-  optional message    field7 = 7;
-  optional message    field8 = 8;
+  optional message    field6 = 6;
+  optional message    tasks = 7;
+  optional message    progress = 8;
   optional message    field9 = 9;
   optional message    field10 = 10;
   optional message    field11 = 11;
-  optional int32      field12 = 12;
+  optional int32      myrank = 12;
   optional message    field13 = 13;
   optional message    field14 = 14;
 }
@@ -7558,9 +7559,9 @@ message RseSeaTreasure {
 // com.sincetimes.redwar.game.comnunicate.protocol:_-5Ea   opcode 0x0277
 message RseSecArmsDealer {
   optional int32      type = 1;
-  optional bool       credit = 2;
-  optional int32      result = 3;
-  optional int32      field4 = 4;
+  optional bool       field2 = 2;
+  optional int32      credit = 3;
+  optional int32      result = 4;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-4H9
@@ -7575,16 +7576,16 @@ message RseSetPlayerComeBack {
 message RseSevenDays {
   optional int32      type = 1;
   optional int32      logonDays = 2;
-  optional bool       success = 3;
-  optional int32      hasbuyOne = 4;
-  optional int32      hasbuyTwo = 5;
-  optional bool       nQpointID = 6;
-  optional bool       getallbuycnt = 7;
+  optional bool       field3 = 3;
+  optional int32      success = 4;
+  optional int32      field5 = 5;
+  optional bool       hasbuyOne = 6;
+  optional bool       hasbuyTwo = 7;
   optional bool       field8 = 8;
   optional bool       field9 = 9;
-  optional int32      field10 = 10;
+  optional int32      nQpointID = 10;
   optional message    field11 = 11;
-  optional int32      field12 = 12;
+  optional int32      getallbuycnt = 12;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-0eC   opcode 0x0205
@@ -7593,13 +7594,13 @@ message RseSevenDaysTarget {
   optional int32      id = 2;
   optional bool       success = 3;
   optional int32      day = 4;
-  optional int32      activetype = 5;
-  optional int32      ntotalScore = 6;
-  optional int32      nstardtime = 7;
-  optional int32      field8 = 8;
-  optional int32      field9 = 9;
+  optional int32      field5 = 5;
+  optional int32      field6 = 6;
+  optional int32      field7 = 7;
+  optional int32      activetype = 8;
+  optional int32      ntotalScore = 9;
   optional bool       field10 = 10;
-  optional int32      field11 = 11;
+  optional int32      nstardtime = 11;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-6c3   opcode 0x031c
@@ -7623,10 +7624,10 @@ message RseShopForGift {
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-X4   opcode 0x0257
 message RseShopForGiftMsg {
-  optional int32      sendCountAll = 1;
+  optional int32      giftID = 1;
   optional int32      field2 = 2;
   optional int32      field3 = 3;
-  optional int32      field4 = 4;
+  optional int32      sendCountAll = 4;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-6Af   opcode 0x02c8
@@ -7657,32 +7658,32 @@ message RseSixYearBuildGuild {
   optional string     bindGuildName = 4;
   optional int32      playerDonateCnt = 5;
   optional int32      guidDonateCnt = 6;
-  optional bool       guildBindState = 7;
-  optional int32      bbinded = 8;
-  optional bool       tokencnt = 9;
-  optional int32      nGetRedAward = 10;
-  optional int32      nAwardId = 11;
-  optional int32      nAwardNum = 12;
-  optional int32      activeType = 13;
-  optional int32      nItemID = 14;
-  optional message    nhasFreeSet = 15;
-  optional int32      isfirstfinish = 16;
-  optional bool       nlevel = 17;
-  optional int32      nyestadaylev = 18;
-  optional int64      nGuildAllExp = 19;
+  optional bool       field7 = 7;
+  optional int32      guildBindState = 8;
+  optional bool       bbinded = 9;
+  optional int32      tokencnt = 10;
+  optional int32      nGetRedAward = 11;
+  optional int32      field12 = 12;
+  optional int32      nAwardId = 13;
+  optional int32      nAwardNum = 14;
+  optional message    log = 15;
+  optional int32      activeType = 16;
+  optional bool       field17 = 17;
+  optional int32      field18 = 18;
+  optional int64      field19 = 19;
   optional int32      field20 = 20;
   optional int32      field21 = 21;
-  optional int32      field22 = 22;
-  optional int32      field23 = 23;
+  optional int32      nItemID = 22;
+  optional int32      nhasFreeSet = 23;
   optional string     field24 = 24;
-  optional bool       field25 = 25;
-  optional int32      field26 = 26;
-  optional int32      field27 = 27;
-  optional int32      field28 = 28;
+  optional bool       isfirstfinish = 25;
+  optional int32      nlevel = 26;
+  optional int32      nyestadaylev = 27;
+  optional int32      nGuildAllExp = 28;
   optional int32      field29 = 29;
   optional int32      field30 = 30;
   optional int32      field31 = 31;
-  optional message    field32 = 32;
+  optional message    buildskinlst = 32;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-4jd   opcode 0x023f
@@ -7702,18 +7703,18 @@ message RseSoulPersent {
 message RseSpecialStore {
   optional int32      type = 1;
   optional int32      ret = 2;
-  optional message    refreshCnt = 3;
-  optional int32      hastehuiItem = 4;
-  optional bool       freefreshcnt = 5;
-  optional int32      field6 = 6;
+  optional message    field3 = 3;
+  optional int32      refreshCnt = 4;
+  optional bool       hastehuiItem = 5;
+  optional int32      freefreshcnt = 6;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-75w   opcode 0x0304
 message RseSpriteLucklyBagOpt {
   optional int32      type = 1;
   optional int32      ret = 2;
-  optional message    totalexchange = 3;
-  optional int32      field4 = 4;
+  optional message    field3 = 3;
+  optional int32      totalexchange = 4;
   optional bool       field5 = 5;
 }
 
@@ -7723,46 +7724,46 @@ message RseSpriteZhuanZhuanZhuan {
   optional int32      ret = 2;
   optional int32      discountcnt = 3;
   optional int32      totaldrawcnt = 4;
-  optional message    drawtype = 5;
-  optional int32      nGetRedPackageNum = 6;
-  optional int32      nWholeRedPackageNum = 7;
-  optional int32      field8 = 8;
-  optional int32      field9 = 9;
+  optional message    box = 5;
+  optional int32      field6 = 6;
+  optional int32      drawtype = 7;
+  optional int32      nGetRedPackageNum = 8;
+  optional int32      nWholeRedPackageNum = 9;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-5c4   opcode 0x0261
 message RseStrategicArmyInfo {
   optional int32      type = 1;
   optional int32      optype = 2;
-  optional message    generalindex = 3;
-  optional message    heroInuse = 4;
-  optional message    curPlan = 5;
-  optional int32      nret = 6;
+  optional message    field3 = 3;
+  optional message    field4 = 4;
+  optional message    field5 = 5;
+  optional int32      generalindex = 6;
   optional message    field7 = 7;
-  optional message    field8 = 8;
-  optional int32      field9 = 9;
-  optional int32      field10 = 10;
+  optional message    heroInuse = 8;
+  optional int32      curPlan = 9;
+  optional int32      nret = 10;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-0bK   opcode 0x0262
 message RseStrategicArmyOpt {
   optional int32      optype = 1;
-  optional int32      optarmytype = 2;
-  optional int32      optarmycnt = 3;
-  optional int32      optrel = 4;
-  optional int32      generalindex = 5;
-  optional int32      tmpspc = 6;
-  optional int32      tmpspcend = 7;
-  optional int32      field8 = 8;
+  optional int32      field2 = 2;
+  optional int32      optarmytype = 3;
+  optional int32      optarmycnt = 4;
+  optional int32      optrel = 5;
+  optional int32      generalindex = 6;
+  optional int32      tmpspc = 7;
+  optional int32      tmpspcend = 8;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-2TS   opcode 0x02bd
 message RseSummerDiscount {
   optional int32      type = 1;
-  optional int32      qitemid = 2;
-  optional int32      bHasGetTankBoxAllBuyReward = 3;
-  optional bool       bisGetsecondAwd = 4;
-  optional bool       field5 = 5;
+  optional int32      hasGet = 2;
+  optional int32      qitemid = 3;
+  optional bool       bHasGetTankBoxAllBuyReward = 4;
+  optional bool       bisGetsecondAwd = 5;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-2oc   opcode 0x027c
@@ -7779,7 +7780,7 @@ message RseSuperStormOpt {
 message RseSuperZhaoMu {
   optional int32      ret = 1;
   optional int32      admiralID = 2;
-  optional bool       field3 = 3;
+  optional bool       canbuy = 3;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-5iw
@@ -7797,28 +7798,28 @@ message RseTaskOpt {
   optional int32      ret = 1;
   optional int32      kind = 2;
   optional int32      nMsgIndex = 3;
-  optional int32      nFlag = 4;
-  optional int32      nModuleType = 5;
-  optional int32      nModulePoint = 6;
-  optional int32      strName = 7;
-  optional message    cGuildDuelInfo = 8;
-  optional message    nDay = 9;
-  optional string     cBaseInfo = 10;
-  optional message    nGuildID = 11;
-  optional message    nCurDayPoint = 12;
-  optional int32      field13 = 13;
+  optional int32      field4 = 4;
+  optional int32      nFlag = 5;
+  optional int32      nModuleType = 6;
+  optional int32      nModulePoint = 7;
+  optional message    field8 = 8;
+  optional message    field9 = 9;
+  optional string     strName = 10;
+  optional message    cGuildDuelInfo = 11;
+  optional message    lstRankUser = 12;
+  optional int32      nDay = 13;
   optional message    field14 = 14;
   optional message    field30 = 30;
   optional message    field31 = 31;
-  optional message    field32 = 32;
-  optional int32      field33 = 33;
-  optional int64      field34 = 34;
+  optional message    cBaseInfo = 32;
+  optional int32      nGuildID = 33;
+  optional int64      nCurDayPoint = 34;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-3NX   opcode 0x0303
 message RseTips {
   optional int32      type = 1;
-  optional string     field2 = 2;
+  optional string     args = 2;
   optional int32      field3 = 3;
 }
 
@@ -7828,13 +7829,13 @@ message RseTrapModify {
   optional int32      error = 2;
   optional message    building = 3;
   optional message    TrapEx = 4;
-  optional string     credit = 5;
-  optional string     level = 6;
-  optional string     basevalue = 7;
-  optional string     basepoints = 8;
-  optional string     recycleFlag = 9;
-  optional bool       trapType = 10;
-  optional int32      field11 = 11;
+  optional string     resources = 5;
+  optional string     credit = 6;
+  optional string     level = 7;
+  optional string     basevalue = 8;
+  optional string     basepoints = 9;
+  optional bool       recycleFlag = 10;
+  optional int32      trapType = 11;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-09W   opcode 0x030e
@@ -7845,20 +7846,20 @@ message RseTrenchMortarOpt {
   optional int32      gunnerID = 4;
   optional int32      nRet = 5;
   optional int32      nItemID = 6;
-  optional int32      curMortar = 7;
-  optional int32      curGunner = 8;
-  optional message    bNeedGuide = 9;
-  optional message    thanksgivingCnt = 10;
-  optional message    suipianEndTime = 11;
-  optional message    WishTreeVisitCnt = 12;
-  optional message    drawFreeEndTime = 13;
+  optional int32      freeVisitCnt = 7;
+  optional int32      finishVisitTime = 8;
+  optional message    curMortar = 9;
+  optional message    curGunner = 10;
+  optional message    field11 = 11;
+  optional message    field12 = 12;
+  optional message    field13 = 13;
   optional message    field14 = 14;
   optional message    field15 = 15;
-  optional bool       field16 = 16;
-  optional int32      field17 = 17;
-  optional int32      field18 = 18;
-  optional int32      field19 = 19;
-  optional int32      field20 = 20;
+  optional bool       bNeedGuide = 16;
+  optional int32      thanksgivingCnt = 17;
+  optional int32      suipianEndTime = 18;
+  optional int32      WishTreeVisitCnt = 19;
+  optional int32      drawFreeEndTime = 20;
   optional int32      field21 = 21;
 }
 
@@ -7873,18 +7874,18 @@ message RseTurtleShellGame {
   optional int32      nret = 1;
   optional int32      nopt = 2;
   optional int32      npos = 3;
-  optional int32      nround = 4;
-  optional int32      nrandawd = 5;
-  optional int32      nDayround = 6;
-  optional int32      broudAwdGet = 8;
-  optional bool       nstate = 9;
-  optional int32      bFirstCreditDraw = 10;
-  optional int32      nActivtype = 11;
-  optional bool       field12 = 12;
+  optional int32      field4 = 4;
+  optional int32      nround = 5;
+  optional int32      nrandawd = 6;
+  optional int32      nDayround = 8;
+  optional bool       broudAwdGet = 9;
+  optional int32      nstate = 10;
+  optional int32      field11 = 11;
+  optional bool       bFirstCreditDraw = 12;
   optional int32      field13 = 13;
   optional int32      field14 = 14;
   optional bool       field15 = 15;
-  optional int32      field16 = 16;
+  optional int32      nActivtype = 16;
   optional bool       field17 = 17;
   optional message    field18 = 18;
   optional bool       field19 = 19;
@@ -7929,18 +7930,18 @@ message RseUpdateSave {
   optional string     fan = 4;
   optional string     emailshared = 5;
   optional string     installsgenerated = 6;
-  optional string     unreadmessages = 7;
-  optional string     giftsentcount = 8;
-  optional string     flags = 9;
-  optional message    error = 10;
-  optional string     errorDesc = 12;
-  optional string     currenttime = 13;
-  optional string     h = 14;
-  optional int32      hn = 15;
-  optional string     field16 = 16;
-  optional string     field17 = 17;
-  optional string     field51 = 51;
-  optional string     field52 = 52;
+  optional string     updates = 7;
+  optional string     unreadmessages = 8;
+  optional string     giftsentcount = 9;
+  optional message    flags = 10;
+  optional string     field12 = 12;
+  optional string     field13 = 13;
+  optional string     error = 14;
+  optional int32      errorDesc = 15;
+  optional string     h = 16;
+  optional string     currenttime = 17;
+  optional string     h = 51;
+  optional string     hn = 52;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-0Sv   opcode 0x021e
@@ -7955,9 +7956,9 @@ message RseUserData {
   optional int32      alarmclock = 8;
   optional int32      numaddcredit = 9;
   optional uint32     yellowDmdtime = 10;
-  optional message    combatpowervalue = 11;
-  optional uint32     bluecharge = 12;
-  optional bool       field13 = 13;
+  optional message    field11 = 11;
+  optional uint32     combatpowervalue = 12;
+  optional bool       bluecharge = 13;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-Ji   opcode 0x0225
@@ -8002,11 +8003,11 @@ message RseVipFuLiPkg {
   optional int32      nret = 1;
   optional int32      type = 2;
   optional bool       bgetdaypkg = 3;
-  optional message    nbuyitem = 4;
-  optional int32      bgetfreereward = 5;
-  optional int32      bgetmonthfreeCnt = 6;
-  optional bool       field7 = 7;
-  optional int32      field8 = 8;
+  optional message    field4 = 4;
+  optional int32      nbuyitem = 5;
+  optional int32      field6 = 6;
+  optional bool       bgetfreereward = 7;
+  optional int32      bgetmonthfreeCnt = 8;
   optional message    field9 = 9;
 }
 
@@ -8023,13 +8024,13 @@ message RseVipMonthCard {
   optional int32      nCnt = 3;
   optional bool       hasPermit = 4;
   optional bool       hasGetDayGift = 5;
-  optional int32      bCanBuy = 6;
-  optional bool       hasgetwish = 7;
-  optional bool       activetype = 8;
-  optional int32      endtime = 9;
-  optional int32      isGetAll = 10;
+  optional int32      field6 = 6;
+  optional bool       bCanBuy = 7;
+  optional bool       hasgetwish = 8;
+  optional int32      activetype = 9;
+  optional int32      endtime = 10;
   optional int32      field11 = 11;
-  optional bool       field12 = 12;
+  optional bool       isGetAll = 12;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-1m7   opcode 0x0202
@@ -8047,8 +8048,8 @@ message RseVipOpt {
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-44f   opcode 0x0287
 message RseVirtualItemList {
-  optional message    type = 1;
-  optional int32      field2 = 2;
+  optional message    field1 = 1;
+  optional int32      type = 2;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-1Lr   opcode 0x02d4
@@ -8066,21 +8067,21 @@ message RseWPCBagJammer {
 // com.sincetimes.redwar.game.comnunicate.protocol:_-6HV   opcode 0x023a
 message RseWPCBaseOpen {
   optional int32      type = 1;
-  optional int32      champion = 2;
-  optional int32      searchTime = 3;
-  optional int32      wishtreeSearchCnt = 4;
-  optional message    wpcallcnt = 5;
-  optional message    field6 = 6;
+  optional int32      field2 = 2;
+  optional int32      leftFreeCnt = 3;
+  optional int32      leftTime = 4;
+  optional message    champion = 5;
+  optional message    list = 6;
   optional message    field7 = 7;
-  optional int32      field8 = 8;
-  optional int32      field9 = 9;
-  optional int32      field10 = 10;
+  optional int32      searchTime = 8;
+  optional int32      wishtreeSearchCnt = 9;
+  optional int32      wpcallcnt = 10;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-4BN   opcode 0x02d5
 message RseWPCBook {
   optional bool       end = 1;
-  optional message    field2 = 2;
+  optional message    book = 2;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-0qy   opcode 0x025c
@@ -8104,7 +8105,7 @@ message RseWPCBookOpt {
   optional int32      nExploreNum = 11;
   optional int32      nDestroyNum = 12;
   optional int32      nJunBeiNum = 13;
-  optional message    field14 = 14;
+  optional message    booklockMOre = 14;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-6Ox   opcode 0x02d2
@@ -8171,21 +8172,21 @@ message RseWPCEmblemOpt {
 message RseWPCExplore {
   optional int32      sceneID = 1;
   optional int32      exploreCnt = 2;
-  optional int32      leftFreeCnt = 3;
-  optional int32      leftTime = 5;
-  optional int32      ret = 6;
-  optional int32      discountType = 7;
-  optional int32      jungong = 8;
-  optional int32      searchTimes = 9;
-  optional int32      bJinKa = 10;
-  optional int32      halloweenGetCandy = 11;
-  optional int32      precisestrikepart = 12;
-  optional int32      wishtreeSearchCnt = 13;
-  optional bool       wpcallcnt = 14;
-  optional int32      field15 = 15;
-  optional int32      field16 = 16;
-  optional int32      field17 = 17;
-  optional int32      field18 = 18;
+  optional int32      itemID = 3;
+  optional int32      leftFreeCnt = 5;
+  optional int32      leftTime = 6;
+  optional int32      ret = 7;
+  optional int32      field8 = 8;
+  optional int32      bookID = 9;
+  optional int32      discountType = 10;
+  optional int32      jungong = 11;
+  optional int32      searchTimes = 12;
+  optional int32      jammerID = 13;
+  optional bool       bJinKa = 14;
+  optional int32      halloweenGetCandy = 15;
+  optional int32      precisestrikepart = 16;
+  optional int32      wishtreeSearchCnt = 17;
+  optional int32      wpcallcnt = 18;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-2pS   opcode 0x0242
@@ -8200,22 +8201,22 @@ message RseWarCollegeOpt {
   optional int32      type = 2;
   optional int32      bldlv = 3;
   optional int32      cmdlv = 4;
-  optional message    strategyexp = 5;
-  optional int32      skillunlocktype = 6;
-  optional int32      skilltraintimes = 7;
-  optional int32      resetskilltraintimes = 8;
-  optional message    strategytype = 9;
-  optional int32      trainskilltype = 10;
-  optional int32      upskilltype = 11;
-  optional int32      atkadd = 12;
-  optional int32      crtadd = 13;
-  optional int32      defadd = 14;
-  optional int32      hpadd = 15;
-  optional int32      buyskilltraintimes = 16;
-  optional int32      wargameTokesNum = 17;
-  optional int32      wargameReportNum = 18;
-  optional int32      field19 = 19;
-  optional int32      field20 = 20;
+  optional message    strategy = 5;
+  optional int32      strategyexp = 6;
+  optional int32      skillunlocktype = 7;
+  optional int32      skilltraintimes = 8;
+  optional message    skill = 9;
+  optional int32      resetskilltraintimes = 10;
+  optional int32      strategytype = 11;
+  optional int32      trainskilltype = 12;
+  optional int32      upskilltype = 13;
+  optional int32      atkadd = 14;
+  optional int32      crtadd = 15;
+  optional int32      defadd = 16;
+  optional int32      hpadd = 17;
+  optional int32      buyskilltraintimes = 18;
+  optional int32      wargameTokesNum = 19;
+  optional int32      wargameReportNum = 20;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-4-W   opcode 0x0278
@@ -8232,19 +8233,19 @@ message RseWarGameOpt {
   optional int32      siteEndTime = 10;
   optional int32      delayTime = 11;
   optional message    fightReoprt = 12;
-  optional message    atkName = 13;
-  optional message    startTime = 14;
-  optional string     nAddReport = 15;
-  optional int32      admiralInuse = 16;
-  optional int32      atkUid = 17;
-  optional message    bMinGet = 18;
-  optional string     nMinGetNum = 19;
-  optional bool       bLastMsg = 20;
-  optional int32      TruceStartTime = 21;
-  optional bool       TruceEndTime = 22;
-  optional int32      deftUid = 23;
-  optional int32      field24 = 24;
-  optional string     field25 = 25;
+  optional message    field13 = 13;
+  optional message    field14 = 14;
+  optional string     atkName = 15;
+  optional int32      startTime = 16;
+  optional int32      nAddReport = 17;
+  optional message    admiralInuse = 18;
+  optional string     atkUid = 19;
+  optional bool       bMinGet = 20;
+  optional int32      nMinGetNum = 21;
+  optional bool       bLastMsg = 22;
+  optional int32      TruceStartTime = 23;
+  optional int32      TruceEndTime = 24;
+  optional string     deftUid = 25;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-5rc   opcode 0x0279
@@ -8259,7 +8260,7 @@ message RseWarGameShop {
 message RseWarTankResearchOpt {
   optional int32      type = 1;
   optional int32      ret = 2;
-  optional message    field3 = 3;
+  optional message    tanks = 3;
   optional message    field4 = 4;
 }
 
@@ -8285,8 +8286,8 @@ message RseWeaponCompRent {
 message RseWeaponSearch {
   optional int32      type = 1;
   optional int32      searchCnt = 2;
-  optional int32      ret = 3;
-  optional int32      field4 = 4;
+  optional int32      field3 = 3;
+  optional int32      ret = 4;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-02   opcode 0x0229
@@ -8299,11 +8300,11 @@ message RseWeekQuestOpt {
   optional int32      nret = 1;
   optional int32      ntype = 2;
   optional int32      nstate = 3;
-  optional int32      nquestid = 4;
-  optional int32      nquestfinish = 5;
-  optional int32      tfinish = 6;
+  optional int32      field4 = 4;
+  optional int32      nquestid = 5;
+  optional int32      nquestfinish = 6;
   optional int32      field7 = 7;
-  optional int32      field8 = 8;
+  optional int32      tfinish = 8;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-5Ss   opcode 0x0326
@@ -8311,29 +8312,29 @@ message RseWishPool {
   optional int32      nType = 1;
   optional int32      nResult = 2;
   optional int32      nWishtype = 3;
-  optional bool       nGetCredit = 4;
-  optional int32      nGetwish = 5;
-  optional bool       nGetTime = 6;
-  optional bool       activetype = 7;
-  optional int32      nExchangeNum = 8;
-  optional int32      field9 = 9;
-  optional int32      field10 = 10;
+  optional bool       field4 = 4;
+  optional int32      field5 = 5;
+  optional bool       nGetCredit = 6;
+  optional bool       nGetwish = 7;
+  optional int32      nGetTime = 8;
+  optional int32      activetype = 9;
+  optional int32      nExchangeNum = 10;
   optional int32      field11 = 11;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-37k   opcode 0x028c
 message RseWorldArenaInfo {
   optional int32      type = 1;
-  optional message    rankSelf = 2;
-  optional message    rankSelfLast = 3;
-  optional int32      lastRankGet = 4;
-  optional int32      canFightTimes = 5;
-  optional bool       buyFightTimes = 6;
-  optional int32      lastfightRecord = 7;
-  optional int32      nowScore = 8;
-  optional message    rankSelfYesterday = 9;
-  optional int32      field10 = 10;
-  optional int32      field11 = 11;
+  optional message    arenareportSelf = 2;
+  optional message    arenareportFight = 3;
+  optional int32      rankSelf = 4;
+  optional int32      rankSelfLast = 5;
+  optional bool       lastRankGet = 6;
+  optional int32      canFightTimes = 7;
+  optional int32      buyFightTimes = 8;
+  optional message    lastfightRecord = 9;
+  optional int32      nowScore = 10;
+  optional int32      rankSelfYesterday = 11;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-2P2   opcode 0x028d
@@ -8351,14 +8352,14 @@ message RseWorldArenaOpt {
 // com.sincetimes.redwar.game.comnunicate.protocol:_-7Oq   opcode 0x028e
 message RseWorldArenaRankInfo {
   optional int32      type = 1;
-  optional message    arenaRanklist = 2;
-  optional message    arenalastToplist = 3;
-  optional message    arenaAttacklist = 4;
-  optional message    ranklast = 5;
-  optional message    lastRankGet = 6;
-  optional int32      lastshow = 7;
-  optional bool       field8 = 8;
-  optional bool       field9 = 9;
+  optional message    field2 = 2;
+  optional message    arenaRanklist = 3;
+  optional message    arenalastToplist = 4;
+  optional message    arenaAttacklist = 5;
+  optional message    field6 = 6;
+  optional int32      ranklast = 7;
+  optional bool       lastRankGet = 8;
+  optional bool       lastshow = 9;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-0zT   opcode 0x0295
@@ -8374,7 +8375,7 @@ message RseYearLast {
   optional int32      nGiftID = 2;
   optional int32      nResult = 3;
   optional int32      nCostCredit = 4;
-  optional bool       field5 = 5;
+  optional bool       hasGet = 5;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-2Rx   opcode 0x0299
@@ -8383,10 +8384,10 @@ message RseYellowActive {
   optional int32      id = 2;
   optional int32      value = 3;
   optional int32      yellowTimes = 4;
-  optional int32      errorType = 5;
+  optional int32      field5 = 5;
   optional int32      field6 = 6;
-  optional int32      field7 = 7;
-  optional int32      field8 = 8;
+  optional int32      costs = 7;
+  optional int32      errorType = 8;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-6y   opcode 0x021f
@@ -8410,7 +8411,7 @@ message RseZhanGongRank {
   optional int32      type = 1;
   optional int32      countryID = 2;
   optional int32      selfRank = 3;
-  optional message    field4 = 4;
+  optional message    user = 4;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-0Bc   opcode 0x02f3
@@ -8429,19 +8430,19 @@ message RseZhaoCaiJinBao {
 message RseZhaoMu {
   optional int32      type = 1;
   optional int32      result = 2;
-  optional bool       hasBind = 3;
-  optional bool       field4 = 4;
+  optional bool       hasGet = 3;
+  optional bool       hasBind = 4;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-1Fl   opcode 0x0330
 message RseZhongQiuActive {
   optional int32      type = 1;
-  optional int32      nTotalDonate = 2;
-  optional bool       ngetallbuyawd = 3;
-  optional int32      field4 = 4;
+  optional int32      field2 = 2;
+  optional bool       field3 = 3;
+  optional int32      nTotalDonate = 4;
   optional int32      field5 = 5;
   optional message    field6 = 6;
-  optional int32      field7 = 7;
+  optional int32      ngetallbuyawd = 7;
   optional int32      field8 = 8;
 }
 
@@ -8453,14 +8454,14 @@ message RwardItem {
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-Hy
 message SaveAttack {
-  optional message    destroyed = 1;
-  optional bool       over = 2;
-  optional string     attackreport = 3;
-  optional bool       lootreport = 4;
-  optional message    attackid = 5;
-  optional message    damage = 6;
-  optional string     field7 = 7;
-  optional int32      field8 = 8;
+  optional message    attackcreatures = 1;
+  optional bool       destroyed = 2;
+  optional string     attackloot = 3;
+  optional bool       over = 4;
+  optional message    attackreport = 5;
+  optional message    lootreport = 6;
+  optional string     attackid = 7;
+  optional int32      damage = 8;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-1r3
@@ -8476,25 +8477,25 @@ message SaveBases {
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-6KF
 message SaveNPC {
-  optional message    spent = 1;
-  optional string     earned = 2;
-  optional string     points = 3;
-  optional string     basevalue = 4;
-  optional string     stats = 5;
-  optional string     aiattacks = 6;
-  optional string     monsterbaiter = 7;
-  optional string     mushrooms = 8;
-  optional message    effects = 9;
-  optional message    __protected = 10;
-  optional message    field11 = 11;
-  optional message    field12 = 12;
-  optional message    field13 = 13;
-  optional message    field14 = 14;
-  optional string     field15 = 15;
-  optional string     field16 = 16;
-  optional message    field17 = 17;
-  optional message    field18 = 18;
-  optional string     field19 = 19;
+  optional message    loot = 1;
+  optional string     field2 = 2;
+  optional string     field3 = 3;
+  optional string     spent = 4;
+  optional string     earned = 5;
+  optional string     inventory = 6;
+  optional string     points = 7;
+  optional string     basevalue = 8;
+  optional message    stats = 9;
+  optional message    academy = 10;
+  optional message    lockerdata = 11;
+  optional message    aiattacks = 12;
+  optional message    monsterbaiter = 13;
+  optional message    mushrooms = 14;
+  optional string     researchdata = 15;
+  optional string     effects = 16;
+  optional message    army = 17;
+  optional message    buildingdata = 18;
+  optional string     __protected = 19;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-5TZ
@@ -8554,12 +8555,12 @@ message SlaveRoom {
   optional int32      dayRescueCnt = 1;
   optional int32      dayCapturedCnt = 2;
   optional message    capturedInfo = 3;
-  optional message    prcMedal = 4;
-  optional int32      prcOil = 5;
-  optional int32      prcHonor = 6;
-  optional int32      prcFeats = 7;
-  optional int32      bNeedFlag = 8;
-  optional bool       field9 = 9;
+  optional message    captureBase = 4;
+  optional int32      prcMedal = 5;
+  optional int32      prcOil = 6;
+  optional int32      prcHonor = 7;
+  optional int32      prcFeats = 8;
+  optional bool       bNeedFlag = 9;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-W
@@ -8596,7 +8597,7 @@ message Stats {
   optional int32      usemortarskin = 24;
   optional int32      usewishtreeskin = 25;
   optional int32      useeggskin = 26;
-  optional message    field27 = 27;
+  optional message    buildskinlst = 27;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-0bM
@@ -8613,16 +8614,16 @@ message StoreItem {
   optional string     t = 2;
   optional string     d = 3;
   optional int32      du = 4;
-  optional int32      i = 5;
-  optional int32      a = 6;
-  optional int32      shopID = 7;
-  optional int32      itemID = 8;
-  optional int32      count = 10;
-  optional int32      credit = 11;
-  optional int32      startTime = 12;
-  optional int32      endTime = 13;
-  optional int32      field14 = 14;
-  optional int32      field15 = 15;
+  optional int32      c = 5;
+  optional int32      i = 6;
+  optional int32      a = 7;
+  optional int32      field8 = 8;
+  optional int32      shopID = 10;
+  optional int32      itemID = 11;
+  optional int32      count = 12;
+  optional int32      credit = 13;
+  optional int32      startTime = 14;
+  optional int32      endTime = 15;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-6PY
@@ -8641,8 +8642,8 @@ message Strategic_ArmyID {
 message Strategic_General {
   optional int32      generalID = 1;
   optional int32      fightIndex = 2;
-  optional int32      generalIndex = 3;
-  optional int32      field4 = 4;
+  optional int32      field3 = 3;
+  optional int32      generalIndex = 4;
   optional int32      field5 = 5;
 }
 
@@ -8712,8 +8713,8 @@ message TrenchMortarInfo {
   optional string     strExp = 4;
   optional int32      gradeLV = 5;
   optional int32      campstate = 6;
-  optional int32      skillId = 7;
-  optional int32      field8 = 8;
+  optional int32      field7 = 7;
+  optional int32      skillId = 8;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-2zk
@@ -8750,21 +8751,21 @@ message UserGuildData {
   optional int32      position = 2;
   optional int32      selGuildTM = 3;
   optional int32      quitGuildTM = 4;
-  optional int32      guild = 5;
-  optional message    totalContribute = 6;
-  optional int32      contribute = 7;
-  optional int32      hasPickWelfare = 8;
-  optional int32      logEnter = 9;
-  optional int32      logPos = 10;
-  optional message    logKick = 11;
-  optional int32      guildSetFlag = 12;
-  optional message    btlData = 13;
-  optional message    gtask = 14;
-  optional message    finishedAtvQstNum = 15;
-  optional int32      field16 = 16;
-  optional message    field17 = 17;
-  optional message    field18 = 18;
-  optional int32      field19 = 19;
+  optional int32      field5 = 5;
+  optional message    guild = 6;
+  optional int32      totalContribute = 7;
+  optional int32      contribute = 8;
+  optional int32      field9 = 9;
+  optional int32      field10 = 10;
+  optional message    field11 = 11;
+  optional int32      hasPickWelfare = 12;
+  optional message    logEnter = 13;
+  optional message    logPos = 14;
+  optional message    logKick = 15;
+  optional int32      guildSetFlag = 16;
+  optional message    btlData = 17;
+  optional message    gtask = 18;
+  optional int32      finishedAtvQstNum = 19;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-09s
@@ -8803,7 +8804,7 @@ message VirtualItem {
 // com.sincetimes.redwar.game.comnunicate.protocol:_-1aX
 message WCTankData {
   optional int32      tanktype = 1;
-  optional message    field2 = 2;
+  optional message    data = 2;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-7B9
@@ -8838,16 +8839,16 @@ message WarGameSiteInfo {
   optional string     name = 7;
   optional int32      country = 8;
   optional int32      power = 9;
-  optional message    nStartTime = 10;
-  optional int32      TruceFlag = 11;
-  optional bool       nTruceEndtTime = 12;
-  optional int32      field13 = 13;
+  optional message    admiralList = 10;
+  optional int32      nStartTime = 11;
+  optional bool       TruceFlag = 12;
+  optional int32      nTruceEndtTime = 13;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-35X
 message WarGameSiteList {
   optional int32      nLv = 1;
-  optional message    field2 = 2;
+  optional message    siteList = 2;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-1K9
@@ -8902,8 +8903,8 @@ message Winner {
   optional string     userid = 1;
   optional int32      region = 2;
   optional string     name = 3;
-  optional string     buycnt = 4;
-  optional int32      field5 = 5;
+  optional string     key = 4;
+  optional int32      buycnt = 5;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-1UK
@@ -8963,8 +8964,8 @@ message WorldCupBetInfo {
   optional int32      nType = 1;
   optional int32      nJettonNum = 2;
   optional int32      nOdds = 3;
-  optional int32      field4 = 4;
-  optional int32      field5 = 5;
+  optional int32      teamID = 4;
+  optional int32      num = 5;
 }
 
 // com.sincetimes.redwar.game.comnunicate.protocol:_-48N
