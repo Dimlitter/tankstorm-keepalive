@@ -175,17 +175,156 @@ class FromServer:
         return f"<{self.rse_msg}.{self.field}>"
 
 
+def _aslist(v):
+    """protobuf 的 repeated 字段只出现一次时解码成标量，多次才是 list。"""
+    if v is None:
+        return []
+    return v if isinstance(v, list) else [v]
+
+
+class FromResponse:
+    """字段值占位符：从**前置请求的响应**里算出来。
+
+    和 FromServer 的区别是时机：FromServer 取的是登录时就固定的信息（玩家名），
+    FromResponse 要等前置请求发出去、服务器把列表推回来才有 —— 比如
+    "哪个演习场没人占"、"七天乐今天是第几天"。所以它在前置之后才解析。
+
+    pick(响应字典) 返回值，或返回 None 表示"没有可用的"，此时整条任务跳过。
+    """
+
+    def __init__(self, rse_msg, pick, desc=""):
+        self.rse_msg = rse_msg
+        self.pick = pick
+        self.desc = desc or f"{rse_msg} 里挑一个"
+
+    def resolve(self, rec):
+        if rec is None:
+            return None
+        got = rec.latest.get(self.rse_msg)
+        if not got or not isinstance(got[1], dict):
+            return None
+        try:
+            return self.pick(got[1])
+        except Exception as exc:                       # 结构和预期不符就当没有
+            log.debug("FromResponse(%s) 解析失败: %s", self.rse_msg, exc)
+            return None
+
+    def __repr__(self):
+        return f"<{self.rse_msg}: {self.desc}>"
+
+
+class Followup:
+    """动作成功之后，按响应内容继续发的后续请求。
+
+    有两类任务光发一包不够：
+      · 矿区争夺 —— 先探索，服务器回一串矿，再从里面挑无人的占下来
+      · 每日任务 —— 活跃度够几档就领几档，一档一包
+
+    build(上一条响应) 返回下一包的 fields，返回 None 就结束。
+    会反复调用（最多 max_rounds 轮），所以"领三档奖励"这种一次跑完。
+    """
+
+    def __init__(self, opcode, build, max_rounds=5, desc=""):
+        self.opcode = opcode
+        self.build = build
+        self.max_rounds = max_rounds
+        self.desc = desc
+
+
 def _resolve_fields(task, rec):
-    """把 FromServer 占位符换成真实值。返回 (fields, 缺失的说明)。"""
+    """把占位符换成真实值。返回 (fields, 缺失的说明)。"""
     out = {}
     for fno, (ftype, val) in task.fields.items():
-        if isinstance(val, FromServer):
+        if hasattr(val, "resolve"):
             got = val.resolve(rec)
             if got is None:
-                return None, f"取不到 {val.rse_msg}.{val.field}，跳过（不猜值）"
+                return None, f"{val!r} 取不到值，跳过（不猜）"
             val = got
         out[fno] = (ftype, val)
     return out, ""
+
+
+# ---------------------------------------------------------------- 挑选器
+#
+# 全部按 2026-08-10 抓包的真实响应结构写，字段号见各处注释。
+
+def _pick_free_wargame_site(data):
+    """军事演习：从查询响应里挑一个没人占的演习场。
+
+    响应结构（RseWarGameOpt type=1，分页推送，bLastMsg 标记最后一页）：
+        field14.field2 = [ {field1: 场地号, field2..field5: 属性,
+                            field6: 占领者uid, field7: 占领者名} , ... ]
+    没人占的条目就是**没有 field6**。实测最后一页 241 个场地里 121 个是空的。
+    """
+    sites = []
+    for blk in _aslist(data.get("field14")):
+        if isinstance(blk, dict):
+            sites += [e for e in _aslist(blk.get("field2")) if isinstance(e, dict)]
+    for e in sites:
+        if not e.get("field6") and isinstance(e.get("field1"), int):
+            return e["field1"]
+    return None
+
+
+def _pick_sevendays_day(data):
+    """七天乐：只领**当天**那份，已领过就返回 None。
+
+    响应 RseSevenDays{type:0}：logonDays=登录到第几天，
+    field3 = 7 个 bool，field3[day-1] 表示第 day 天是否已领。
+    实测 logonDays=3、field3=[F,T,F,...]，客户端领的正是 day=3。
+    只领当天是为了贴合实测行为，不去猜历史几天还能不能补领。
+    """
+    day = data.get("logonDays")
+    got = data.get("field3")
+    if not isinstance(day, int) or not isinstance(got, list):
+        return None
+    if day < 1 or day > len(got):
+        return None
+    return None if got[day - 1] else day
+
+
+def _next_mine_to_occupy(data):
+    """矿区争夺：探索响应里挑一个无人占领的矿，返回占矿请求的字段。
+
+    响应 RseResourceOpt{type:2} 的 field5 是探到的矿列表：
+        {field1: 矿ID}                      ← 无人占领
+        {field1: 矿ID, field2: 占领者名, field6: 占领者uid, ...}  ← 有人
+    实测探到 120007(空) / 120058 / 120053，客户端占的正是 120007。
+    """
+    for e in _aslist(data.get("field5")):
+        if isinstance(e, dict) and isinstance(e.get("field1"), int) \
+                and not e.get("field6"):
+            return {1: ("int32", 3), 2: ("int32", e["field1"])}
+    return None
+
+
+def _eligible_gift_tier(data):
+    """每日任务：返回一个"活跃度已达标且还没领"的档位，没有就 None。
+
+    响应 RseDailyTask：
+        dailyTask.field2 = 当前活跃度
+        getGift = [{field1: 档位(10/30/50/80/100), field2: 0未领/1已领}, ...]
+    实测活跃度 64，领了 10/30/50 三档，80/100 因为没达标领不了。
+    """
+    task = data.get("dailyTask")
+    if isinstance(task, list):
+        task = task[-1] if task else None
+    act = task.get("field2") if isinstance(task, dict) else None
+    if not isinstance(act, int):
+        return None
+    for e in _aslist(data.get("getGift")):
+        if not isinstance(e, dict):
+            continue
+        tier, taken = e.get("field1"), e.get("field2")
+        if isinstance(tier, int) and tier <= act and not taken:
+            return tier
+    return None
+
+
+def _next_daily_gift(data):
+    """每日任务的后续领取：还有达标未领的档位就继续领。"""
+    tier = _eligible_gift_tier(data)
+    return None if tier is None else {5: ("int32", tier)}
 
 
 class Gate:
@@ -253,9 +392,10 @@ class Task:
 
     def __init__(self, key, name, opcode, msg, fields, confidence,
                  note="", max_per_day=1, gate=None, cooldown_sec=0,
-                 prelude=()):
+                 prelude=(), followup=None):
         self.prelude = list(prelude)
         self.gate = gate                # 读 prelude 的响应，免费次数 >0 才发
+        self.followup = followup        # 动作成功后按响应继续发（占矿、领多档奖励）
         # 很多任务并非"一天一次"：军事演习占领后有时长，结束才能再占（每天 3 次）；
         # 英雄训练 8 小时可重复。cooldown_sec>0 表示两次执行之间要等这么久，
         # 配合 max_per_day 一起限制。守护进程会周期性地重跑任务轮次。
@@ -297,8 +437,14 @@ TASKS = [
                "nDay 和 nGiftID 根本不发（服务端自己算当前是第几天）"),
 
     _t("七天乐", "七天乐领奖", "047a", "RceSevenDays",
-       {1: ("int32", 0), 2: ("int32", 0), 3: ("int32", 0)},
-       "待确认", "type/day/gifttype 需实测"),
+       {1: ("int32", 1),
+        2: ("int32", FromResponse("RseSevenDays", _pick_sevendays_day,
+                                  "取当天且未领的那天")),
+        3: ("int32", 1)},
+       "实测", "8/10 抓包：{type:0} 查询 → {type:1,day:3,gifttype:1} 领取。"
+               "响应 logonDays=登录到第几天，field3[day-1]=该天是否已领。"
+               "只领当天那份，不去猜历史几天能否补领",
+       prelude=[("047a", {1: ("int32", 0)})]),
 
     _t("每日资源", "每日免费资源", "0444", "RceGetDailyRes",
        {}, "待确认", "无字段或字段未知，需实测"),
@@ -395,24 +541,43 @@ TASKS = [
        max_per_day=7,
        prelude=[("04a5", {1: ("int32", 1)})]),
 
-    _t("军事演习", "战争学院·军事演习（查场地）", "04a7", "RceWarGameOpt",
-       {1: ("int32", 1)},
-       "实测", "实测 {type:1} 查询场地 → {type:2,siteID:N} 占领。"
-               "siteID 必须从查询响应里挑空场，占领步骤待补状态机",
-       max_per_day=3, cooldown_sec=3600),
+    # 占领是真正拿收益的那一步，此前只发了查询，等于什么也没做。
+    # tokenNum 是当天剩余占领次数（实测 3，占一次变 2），正好当闸门。
+    _t("军事演习", "战争学院·军事演习（占场地）", "04a7", "RceWarGameOpt",
+       {1: ("int32", 2),
+        2: ("int32", FromResponse("RseWarGameOpt", _pick_free_wargame_site,
+                                  "挑一个无人占领的演习场"))},
+       "实测", "8/10 抓包：{type:1} 查询（分页推 300 个场地/页）→ "
+               "{type:2,siteID:409} 占领。空场地 = 列表条目里没有 field6(占领者)。"
+               "占领响应 bOccupySite=true、siteEndTime 给出结束时刻",
+       max_per_day=3, cooldown_sec=3600,
+       prelude=[("04a7", {1: ("int32", 1)})],
+       gate=Gate("RseWarGameOpt", "tokenNum")),
 
-    _t("矿区争夺", "矿区争夺·探索", "049a", "RceResourceOpt",
+    # 探索只是找矿，占下来才有产出。占矿的 resourceID 来自探索响应。
+    _t("矿区争夺", "矿区争夺·探索并占矿", "049a", "RceResourceOpt",
        {1: ("int32", 2), 3: ("int32", 1)},
-       "实测", "实测 {type:1} 查询 → {type:2,searchType:1} 探索 → "
-               "{type:3,resourceID:N} 占矿。占矿的 resourceID 来自探索响应",
+       "实测", "8/10 抓包：{type:1} 查询 → {type:2,searchType:1} 探索 → "
+               "{type:3,resourceID:120007} 占矿。探索响应 field5 是探到的矿，"
+               "只有 field1 没有 field6 的就是无人占领的那个。"
+               "查询响应 searchTimes 是当天剩余搜索次数（实测 5）",
        max_per_day=5, cooldown_sec=600,
-       prelude=[("049a", {1: ("int32", 1)})]),
+       prelude=[("049a", {1: ("int32", 1)})],
+       gate=Gate("RseResourceOpt", "searchTimes"),
+       followup=Followup("049a", _next_mine_to_occupy, max_rounds=1,
+                         desc="占下探到的无主矿")),
 
-    _t("征战世界", "征战世界·自动征战", "045b", "RcePVEFightOpt",
-       {2: ("int32", 6), 1: ("bool", True)},
-       "实测", "实测 {type:2} 查询 → {type:6,bAutoTreat:true} 自动战斗",
+    # 用户说明：type:2 是"重新开始征战"，不会真的打、也拿不到战斗奖励，
+    # 但能推进每日活跃度，是快速完成日常的做法。原先写的 {type:6,bAutoTreat:true}
+    # 在 8/10 抓包里根本没出现过，撤掉。
+    _t("征战世界", "征战世界·重开征战（推进活跃度）", "045b", "RcePVEFightOpt",
+       {2: ("int32", 2)},
+       "实测", "8/10 抓包：045c{type:1} → 045b{type:5,bAutoTreat:false} → "
+               "045b{type:2} ×2，响应 result=0。注意这只推进活跃度，"
+               "不是真的去打、也没有战斗奖励",
        max_per_day=2, cooldown_sec=300,
-       prelude=[("045b", {2: ("int32", 2)})]),
+       prelude=[("045c", {1: ("int32", 1)}),
+                ("045b", {1: ("bool", False), 2: ("int32", 5)})]),
 
     _t("国家宝箱", "国家·宝箱领取", "0463", "RceCountryOpt",
        {4: ("int32", 15)},
@@ -438,9 +603,17 @@ TASKS = [
     _t("周任务", "周任务领奖", "04de", "RceWeekQuestOpt",
        {1: ("int32", 0), 2: ("int32", 0)}, "待确认", "需实测"),
 
-    _t("每日任务", "每日任务领奖", "043d", "RceDailyTask",
-       {2: ("bool", True), 6: ("int32", 0)},
-       "待确认", "必须最后执行：前面的操作会推进它的进度"),
+    # 必须最后执行：前面每做一项，活跃度就涨一截，先领就少领。
+    # 实测活跃度 64 时能领 10/30/50 三档，80/100 没达标领不了。
+    _t("每日任务", "每日任务·按活跃度领奖", "043d", "RceDailyTask",
+       {5: ("int32", FromResponse("RseDailyTask", _eligible_gift_tier,
+                                  "取一个达标且未领的档位"))},
+       "实测", "8/10 抓包：客户端发 {giftID:10} / {giftID:30} / {giftID:50}，"
+               "giftID 是 5 号字段（此前写的 getGift/taskId 是错的）。"
+               "服务器持续推 RseDailyTask，dailyTask.field2 是当前活跃度，"
+               "getGift=[{档位, 是否已领}]。一轮把所有达标档位领完",
+       followup=Followup("043d", _next_daily_gift, max_rounds=5,
+                         desc="继续领剩下达标的档位")),
 ]
 
 # 白名单：动作 opcode 和前置 opcode 都要在内 —— 前置请求同样是真实发出的包，
@@ -495,19 +668,22 @@ def _check_gate(gate, data):
     if raw is None:
         return False, f"{gate.rse_msg} 里没有 {gate.field} 字段，这一轮不做", False
     whole = raw
+    tier = ""
     # 分档数组：只看本任务要做的那一档。取 max 是错的 —— [0,1,0] 会被
     # 当成"还有次数"，然后照样对着已经归零的第 0 档发请求。
+    # 有些模块（军事演习 tokenNum、矿区 searchTimes）直接给标量，不分档。
     if isinstance(raw, (list, tuple)):
         if gate.index >= len(raw):
             return False, (f"{gate.field}={raw} 没有第 {gate.index} 档，"
                            "这一轮不做"), False
         raw = raw[gate.index]
+        tier = f"第 {gate.index} 档"
     if isinstance(raw, bool) or not isinstance(raw, int):
-        return False, f"{gate.field}[{gate.index}]={raw!r} 不是次数，这一轮不做", False
+        return False, f"{gate.field}{tier}={raw!r} 不是次数，这一轮不做", False
     if raw <= 0:
-        return False, (f"第 {gate.index} 档免费次数已用完 "
+        return False, (f"{tier or ''}免费次数已用完 "
                        f"{gate.field}={whole}（再发就会扣券/勋章）"), True
-    return True, f"第 {gate.index} 档剩余免费 {raw} 次（{gate.field}={whole}）", False
+    return True, f"{tier or '剩余'}免费 {raw} 次（{gate.field}={whole}）", False
 
 
 def _check_safety(task, field_names, fields=None):
@@ -573,23 +749,6 @@ def run(rec, sock, config: dict, schema=None) -> dict:
         if schema is not None:
             field_names = schema.field_names(task.msg) if hasattr(schema, "field_names") else {}
 
-        # 先把 FromServer 占位符换成真值，安全检查才看得到真正要发的内容
-        fields, why = _resolve_fields(task, rec)
-        if fields is None:
-            results[task.key] = why
-            log.warning("[%s] %s", task.key, why)
-            continue
-
-        ok, why = _check_safety(task, field_names, fields)
-        if not ok:
-            results[task.key] = f"安全检查拦截：{why}"
-            log.error("[%s] %s", task.key, results[task.key])
-            continue
-
-        body = encode_message(fields)
-        desc = ", ".join(f"{field_names.get(k, k)}={v[1]!r}"
-                         for k, v in sorted(fields.items()))
-
         # 前置请求：真实客户端每个动作前都会先开面板/查询，服务端据此建上下文。
         # 少了这步，动作发出去参数再对也不生效 —— 这是 2026-08-09 定位到的根因。
         gate_before = ((rec.latest.get(task.gate.rse_msg) or (0,))[0]
@@ -621,6 +780,26 @@ def run(rec, sock, config: dict, schema=None) -> dict:
                 continue
             log.info("[%s] 闸门放行：%s", task.key, why)
 
+        # 占位符现在才解析：像"挑一个空演习场""七天乐第几天"这类值，
+        # 必须等前置请求的响应回来才算得出。解析在安全检查之前，
+        # 所以检查看到的就是真正要发出去的内容。
+        fields, why = _resolve_fields(task, rec)
+        if fields is None:
+            results[task.key] = why
+            log.info("[%s] %s", task.key, why)
+            time.sleep(gap)
+            continue
+
+        ok, why = _check_safety(task, field_names, fields)
+        if not ok:
+            results[task.key] = f"安全检查拦截：{why}"
+            log.error("[%s] %s", task.key, results[task.key])
+            continue
+
+        body = encode_message(fields)
+        desc = ", ".join(f"{field_names.get(k, k)}={v[1]!r}"
+                         for k, v in sorted(fields.items()))
+
         rse = _rse_name(task.msg)
         # 记下发送前该响应的时间戳，避免把上一次的旧响应误当成本次结果
         before = (rec.latest.get(rse) or (0,))[0] if rec else 0
@@ -648,6 +827,10 @@ def run(rec, sock, config: dict, schema=None) -> dict:
             _save_state(st)
             log.info("[%s] ✅ %s（今日 %d/%d）", task.key, why,
                      done + 1, task.max_per_day)
+            extra = _run_followup(task, sock, rec, data, field_names,
+                                  resp_timeout, gap)
+            if extra:
+                results[task.key] = why + "；" + "；".join(extra)
         else:
             log.warning("[%s] ❌ %s", task.key, why)
             if stop:
@@ -663,6 +846,48 @@ def run(rec, sock, config: dict, schema=None) -> dict:
     for k, v in results.items():
         log.info("  %-12s %s", k, v)
     return results, details
+
+
+def _run_followup(task, sock, rec, data, field_names, resp_timeout, gap):
+    """动作成功后按响应继续发（占矿、把达标的奖励档位领完）。
+
+    返回每一轮的说明列表。任何一轮失败或没东西可发就停 —— 后续步骤本来就是
+    "有就做，没有就算"，不该把整条任务判成失败。
+    """
+    fu = task.followup
+    if fu is None or data is None:
+        return []
+    out, last = [], data
+    for _ in range(fu.max_rounds):
+        try:
+            nxt = fu.build(last)
+        except Exception as exc:
+            log.debug("[%s] 后续步骤构造失败: %s", task.key, exc)
+            break
+        if not nxt:
+            break
+        ok, why = _check_safety(task, field_names, nxt)
+        if not ok:
+            log.error("[%s] 后续步骤被安全检查拦截：%s", task.key, why)
+            break
+        rse = _rse_name(task.msg)
+        before = (rec.latest.get(rse) or (0,))[0] if rec else 0
+        desc = ", ".join(f"{field_names.get(k, k)}={v[1]!r}"
+                         for k, v in sorted(nxt.items()))
+        try:
+            sender.send_frame(sock, fu.opcode, encode_message(nxt), rec.rc4_c2s)
+            log.info("[%s] 后续 %s(%s) {%s}", task.key, fu.desc, fu.opcode, desc)
+        except Exception as exc:
+            log.warning("[%s] 后续步骤发送失败: %s", task.key, exc)
+            break
+        time.sleep(gap)
+        last = _await_response(sock, rec, rse, before, resp_timeout)
+        ok, why, _stop = judge(rse, last)
+        log.info("[%s] 后续结果：%s %s", task.key, "✅" if ok else "❌", why)
+        out.append(f"{fu.desc}: {why}")
+        if not ok or last is None:
+            break
+    return out
 
 
 def _await_response(sock, rec, rse_msg, since_ts, timeout):
