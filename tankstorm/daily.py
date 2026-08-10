@@ -148,6 +148,46 @@ def judge(rse_msg: str, data):
     return True, msg, False
 
 
+class FromServer:
+    """字段值占位符：发送时从服务器某条消息里现取。
+
+    公会捐献要带自己的游戏名（抓包实测 tarUserName='<玩家名>'），这种值不能
+    写死在仓库里 —— 换个号就错，而且属于个人信息。登录时服务器下发的
+    RseInit 里就有（字段 username），运行时取即可。
+
+    取不到就**不发这条任务**，不猜、不留空。
+    """
+
+    def __init__(self, rse_msg, field):
+        self.rse_msg = rse_msg
+        self.field = field
+
+    def resolve(self, rec):
+        if rec is None:
+            return None
+        got = rec.latest.get(self.rse_msg)
+        if not got or not isinstance(got[1], dict):
+            return None
+        v = got[1].get(self.field)
+        return v if isinstance(v, str) and v else None
+
+    def __repr__(self):
+        return f"<{self.rse_msg}.{self.field}>"
+
+
+def _resolve_fields(task, rec):
+    """把 FromServer 占位符换成真实值。返回 (fields, 缺失的说明)。"""
+    out = {}
+    for fno, (ftype, val) in task.fields.items():
+        if isinstance(val, FromServer):
+            got = val.resolve(rec)
+            if got is None:
+                return None, f"取不到 {val.rse_msg}.{val.field}，跳过（不猜值）"
+            val = got
+        out[fno] = (ftype, val)
+    return out, ""
+
+
 class Gate:
     """动作前的免费次数闸门：读**前置请求的响应**，还有免费次数才发动作。
 
@@ -170,13 +210,23 @@ class Gate:
     读不到状态就**不发**：宁可这一轮不做，也不能在免费次数已尽时把请求发出去，
     那正是客户端会转而扣券/扣勋章的位置。
 
+    **必须按档位取，不能取数组最大值**（2026-08-10 抓包纠正）
+    ------------------------------------------------------
+    freeVisitCnt 是 [低级, 中级, 高级] 各自的剩余免费次数，实测低级 3 次、
+    中级 1 次、高级 0 次（高级从来就没有免费次数）。三个档位互相独立。
+    用完低级之后数组是 `[0, 1, 0]` —— 取最大值会得到 1，闸门放行，
+    然后照样发 type=0，服务端照样拒。所以 index 必须对上任务实际发的档位。
+
     rse_msg  等哪条响应（如 RseHeroOpen），它是 prelude 的回包
-    field    读哪个字段（如 freeVisitCnt），数组则任一档 >0 即放行
+    field    读哪个字段（如 freeVisitCnt）
+    index    该字段是分档数组时取第几档，要和任务发的 type/subType/sceneID 对上；
+             响应给的是标量时忽略此项
     """
 
-    def __init__(self, rse_msg, field, timeout=6.0):
+    def __init__(self, rse_msg, field, index=0, timeout=6.0):
         self.rse_msg = rse_msg
         self.field = field
+        self.index = index
         self.timeout = timeout
 
 
@@ -275,11 +325,12 @@ TASKS = [
     _t("英雄开采", "英雄中心·开采石油", "0402", "RceHeroVisit",
        {3: ("int32", 1), 4: ("int32", 0)},
        "实测", "实测顺序：RceHeroOpen{type:0} 开面板 → RceHeroVisit{free:1,type:0}。"
-               "开面板响应 RseHeroOpen.freeVisitCnt=[三档剩余免费次数]，"
-               "实测 [2,1,1]→[1,1,1]→[0,1,1]（客户端就是读这个决定走免费档还是付费档）",
+               "8/10 抓包：RseHeroOpen.freeVisitCnt=[低级,中级,高级]=[3,1,0]，"
+               "三次免费后依次 [2,1,0]→[1,1,0]→[0,1,0]。"
+               "第四次客户端改发 {free:0,credit:20} 走付费档 —— 我们只做第 0 档免费",
        max_per_day=3,
        prelude=[("0400", {3: ("int32", 0)})],
-       gate=Gate("RseHeroOpen", "freeVisitCnt")),
+       gate=Gate("RseHeroOpen", "freeVisitCnt", index=0)),
 
     _t("将领冶炼", "将领·金属冶炼", "0450", "RceAdmiralVisit",
        {3: ("int32", 1), 4: ("int32", 0)},
@@ -288,11 +339,18 @@ TASKS = [
        prelude=[("044e", {3: ("int32", 0)})],
        gate=Gate("RseAdmiralOpen", "freeVisitCnt")),
 
-    _t("技能书收集", "将领/参谋·免费技能书", "048a", "RceBookCollection",
+    # 将领和参谋是两份独立的技能书，各领各的。原先是一个任务 max_per_day=2，
+    # 但 fields 写死 ActiveType=0，跑第二次只是把将领那份又领一遍。
+    # 8/10 抓包实测客户端确实发了两组：{0,0}→{1,0} 和 {0,1}→{1,1}。
+    _t("技能书将领", "将领·免费技能书", "048a", "RceBookCollection",
        {1: ("int32", 1), 2: ("int32", 0)},
-       "实测", "实测 {OptType:0} 查询 → {OptType:1} 领取；ActiveType 0=将领 1=参谋",
-       max_per_day=2,
+       "实测", "实测 {OptType:0,ActiveType:0} 查询 → {OptType:1,ActiveType:0} 领取",
        prelude=[("048a", {1: ("int32", 0), 2: ("int32", 0)})]),
+
+    _t("技能书参谋", "参谋·免费技能书", "048a", "RceBookCollection",
+       {1: ("int32", 1), 2: ("int32", 1)},
+       "实测", "实测 {OptType:0,ActiveType:1} 查询 → {OptType:1,ActiveType:1} 领取",
+       prelude=[("048a", {1: ("int32", 0), 2: ("int32", 1)})]),
 
     _t("参谋操作", "参谋·免费派遣", "04da", "RceAdviserOpt",
        {1: ("int32", 11)},
@@ -307,8 +365,12 @@ TASKS = [
        prelude=[("04d6", {1: ("int32", 0)})],
        gate=Gate("RseTrenchMortarOpt", "freeVisitCnt")),
 
+    # 8/10 抓包：客户端把 7 个字段全都显式写了（除 sceneID 外一律 0），
+    # 不是只发 sceneID。protobuf 里"显式写 0"和"不写"在服务端是
+    # hasX=true 和 false 的区别，既然不要钱就照抄客户端。
     _t("配件探索", "配件中心·基地探索", "043a", "RceWPCExplore",
-       {1: ("int32", 10001)},
+       {1: ("int32", 10001), 2: ("int32", 0), 3: ("int32", 0),
+        4: ("int32", 0), 5: ("int32", 0), 6: ("int32", 0), 7: ("int32", 0)},
        "实测", "实测 RceWPCBaseOpen{type:1} 开面板 → RceWPCExplore{sceneID:10001}。"
                "useItemID/useItemCnt 是库存上报不是消耗，此处一律不发。"
                "开面板响应 RseWPCBaseOpen.leftFreeCnt 才是剩余免费次数，"
@@ -318,10 +380,14 @@ TASKS = [
        gate=Gate("RseWPCBaseOpen", "leftFreeCnt")),
 
     _t("军备制造", "军备研究·制造", "04e1", "RceJunBeiOpt",
-       {1: ("int32", 22), 2: ("int32", 1)},
-       "实测", "实测 type:21 查询 → type:0 → type:21 → type:22 制造",
+       {1: ("int32", 22), 5: ("int32", 1)},
+       "实测", "8/10 抓包：type:21 → type:0 → type:21 三步前置，再 {type:22, nExlType:1} ×3。"
+               "nExlType 是 5 号字段 —— 此前误写成 2 号(nJunBeiID)，"
+               "等于把档位号填进了军备 ID，服务端当然不认",
        max_per_day=3,
-       prelude=[("04e1", {1: ("int32", 21)}), ("04e1", {1: ("int32", 0)})]),
+       prelude=[("04e1", {1: ("int32", 21)}),
+                ("04e1", {1: ("int32", 0)}),
+                ("04e1", {1: ("int32", 21)})]),
 
     _t("战略训练", "战争学院·战略技能训练", "04a5", "RceWarCollegeOpt",
        {1: ("int32", 4), 3: ("int32", 1)},
@@ -353,15 +419,20 @@ TASKS = [
        "实测", "实测 RceCountryOpen{} 开面板 → RceCountryOpt{type:15}",
        prelude=[("0462", {})]),
 
-    _t("公会捐献", "公会·捐献", "0479", "RceGuildOpt",
-       {2: ("int32", 16), 12: ("int32", 1)},
-       "实测", "实测 type:0 → type:2 → type:14 → type:16 捐献",
-       prelude=[("0479", {2: ("int32", 0)}), ("0479", {2: ("int32", 2)})]),
-
+    # 顺序按抓包来：type:0 → type:2 → type:14 → type:16。
+    # 原先把捐献排在公会战前面，等于跳过了 type:14 那一步。
     _t("公会战", "公会战·领奖/报名", "0479", "RceGuildOpt",
        {2: ("int32", 14)},
-       "实测", "实测 type:0 查询 → type:2 → type:14",
-       prelude=[("0479", {2: ("int32", 0)})]),
+       "实测", "8/10 抓包：type:0 → type:2 → type:14",
+       prelude=[("0479", {2: ("int32", 0)}), ("0479", {2: ("int32", 2)})]),
+
+    _t("公会捐献", "公会·捐献", "0479", "RceGuildOpt",
+       {2: ("int32", 16), 6: ("string", FromServer("RseInit", "username")),
+        12: ("int32", 1)},
+       "实测", "8/10 抓包：…→ type:14 → {type:16, tarUserName:'自己的游戏名', "
+               "contributeID:1}。名字不写死，登录时从 RseInit.username 取",
+       prelude=[("0479", {2: ("int32", 0)}), ("0479", {2: ("int32", 2)}),
+                ("0479", {2: ("int32", 14)})]),
 
     # ---- 必须最后执行 ----
     _t("周任务", "周任务领奖", "04de", "RceWeekQuestOpt",
@@ -420,27 +491,33 @@ def _check_gate(gate, data):
     if data is None:
         return False, f"{gate.timeout:.0f}s 内没收到 {gate.rse_msg}，" \
                       "这一轮不做（宁可少做也不误扣券/勋章）", False
-    left = data.get(gate.field)
-    if left is None:
+    raw = data.get(gate.field)
+    if raw is None:
         return False, f"{gate.rse_msg} 里没有 {gate.field} 字段，这一轮不做", False
-    # freeVisitCnt 是 [各档剩余次数] 的数组，任一档 >0 即可继续
-    if isinstance(left, (list, tuple)):
-        nums = [x for x in left if isinstance(x, int) and not isinstance(x, bool)]
-        if not nums or max(nums) <= 0:
-            return False, f"各档免费次数均已用完 {gate.field}={left}", True
-        return True, f"剩余免费 {gate.field}={left}", False
-    if isinstance(left, bool) or not isinstance(left, int):
-        return False, f"{gate.field}={left!r} 不是次数，这一轮不做", False
-    if left <= 0:
-        return False, f"免费次数已用完 {gate.field}={left}（再发就会扣券/勋章）", True
-    return True, f"剩余免费 {gate.field}={left}", False
+    whole = raw
+    # 分档数组：只看本任务要做的那一档。取 max 是错的 —— [0,1,0] 会被
+    # 当成"还有次数"，然后照样对着已经归零的第 0 档发请求。
+    if isinstance(raw, (list, tuple)):
+        if gate.index >= len(raw):
+            return False, (f"{gate.field}={raw} 没有第 {gate.index} 档，"
+                           "这一轮不做"), False
+        raw = raw[gate.index]
+    if isinstance(raw, bool) or not isinstance(raw, int):
+        return False, f"{gate.field}[{gate.index}]={raw!r} 不是次数，这一轮不做", False
+    if raw <= 0:
+        return False, (f"第 {gate.index} 档免费次数已用完 "
+                       f"{gate.field}={whole}（再发就会扣券/勋章）"), True
+    return True, f"第 {gate.index} 档剩余免费 {raw} 次（{gate.field}={whole}）", False
 
 
-def _check_safety(task, field_names):
-    """发送前的安全检查。返回 (是否放行, 原因)。"""
+def _check_safety(task, field_names, fields=None):
+    """发送前的安全检查。返回 (是否放行, 原因)。
+
+    fields 传的是**已经把占位符解析成真值**的字段表；不传就用任务表原始定义。
+    """
     if task.opcode not in ALLOWED_OPCODES:
         return False, f"opcode {task.opcode} 不在白名单"
-    for fno, (ftype, val) in task.fields.items():
+    for fno, (ftype, val) in (fields or task.fields).items():
         fname = field_names.get(fno, f"field{fno}")
         if DANGER_FIELD.search(fname) and val not in (0, False, "", None):
             return False, f"危险字段 {fname}={val!r} 非零，拒发（防止消耗资产）"
@@ -496,15 +573,22 @@ def run(rec, sock, config: dict, schema=None) -> dict:
         if schema is not None:
             field_names = schema.field_names(task.msg) if hasattr(schema, "field_names") else {}
 
-        ok, why = _check_safety(task, field_names)
+        # 先把 FromServer 占位符换成真值，安全检查才看得到真正要发的内容
+        fields, why = _resolve_fields(task, rec)
+        if fields is None:
+            results[task.key] = why
+            log.warning("[%s] %s", task.key, why)
+            continue
+
+        ok, why = _check_safety(task, field_names, fields)
         if not ok:
             results[task.key] = f"安全检查拦截：{why}"
             log.error("[%s] %s", task.key, results[task.key])
             continue
 
-        body = encode_message(task.fields)
+        body = encode_message(fields)
         desc = ", ".join(f"{field_names.get(k, k)}={v[1]!r}"
-                         for k, v in sorted(task.fields.items()))
+                         for k, v in sorted(fields.items()))
 
         # 前置请求：真实客户端每个动作前都会先开面板/查询，服务端据此建上下文。
         # 少了这步，动作发出去参数再对也不生效 —— 这是 2026-08-09 定位到的根因。
