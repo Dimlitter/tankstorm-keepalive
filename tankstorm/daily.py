@@ -180,7 +180,11 @@ def judge(rse_msg: str, data, ignore_left=False):
         return False, "未收到响应（这一轮不算数，稍后再试）", False
     if not isinstance(data, dict):
         return True, str(data)[:80], False
-    ret = data.get("ret")
+    # 多数响应用 ret，少数用别的名字：RseBuildingModify（英雄培养）用 error，
+    # 有的用 nret。取第一个存在的整数字段当状态码。
+    ret = next((data[k] for k in ("ret", "error", "nret")
+                if isinstance(data.get(k), int) and not isinstance(data.get(k), bool)),
+               None)
     if isinstance(ret, int) and ret != 0:
         why = ("需要花钱才能做（客户端此时会弹商店），已跳过"
                if ret == 1 else f"服务器返回 ret={ret}（错误码 heroRecruitError{ret}）")
@@ -614,6 +618,20 @@ TASKS = [
     # 将领和参谋是两份独立的技能书，各领各的。原先是一个任务 max_per_day=2，
     # 但 fields 写死 ActiveType=0，跑第二次只是把将领那份又领一遍。
     # 8/10 抓包实测客户端确实发了两组：{0,0}→{1,0} 和 {0,1}→{1,1}。
+    # 8/12 抓包：英雄培养走的是通用的建筑操作 opcode，不是英雄那套。
+    #   RceBuildingModify {id:10049(英雄中心), type:75(培养),
+    #                      heroType:1122, heroupgradeIndex:0}
+    # 响应 RseBuildingModify 用的是 error 字段而不是 ret，error=0 为成功。
+    # ⚠️ heroType 是**这个号自己的英雄编号**，换号要重新抓。
+    # 该消息里 10=credit、13=usehonorcredit、17/18=itemID/itemCount 都是花钱字段，
+    # 我们一个都不发，安全检查也会拦。
+    _t("英雄培养", "英雄中心·培养", "0414", "RceBuildingModify",
+       {2: ("int32", 10049), 3: ("int32", 75),
+        15: ("int32", 1122), 16: ("int32", 0)},
+       "实测", "8/12 抓包实测一次，credit 未变。heroType=1122 是本账号的英雄编号，"
+               "换号必须重抓；没有剩余次数字段，一天只做一次",
+       max_per_day=1),
+
     _t("技能书将领", "将领·免费技能书", "048a", "RceBookCollection",
        {1: ("int32", 1), 2: ("int32", 0)},
        "实测", "实测 {OptType:0,ActiveType:0} 查询 → {OptType:1,ActiveType:0} 领取",
@@ -632,6 +650,16 @@ TASKS = [
        {1: ("int32", 11)},
        "实测", "实测 noptType:1 查询 → 11。响应里读不到剩余免费次数，"
                "所以一轮只做一次，绝不靠撞墙试探",
+       prelude=[("04da", {1: ("int32", 1)})]),
+
+    # 8/12 抓包：高级招募是 noptType:12，每天一次免费。
+    # 用券那次是 {noptType:12, nitemID:10107} —— **多一个 nitemID 字段**。
+    # 也就是说免费和用券是两个不同的请求，只要我们永远不发 nitemID，
+    # 就不可能把券花掉。响应里没有剩余次数字段，所以一天只做一次。
+    _t("参谋高级", "参谋·高级招募（免费那次）", "04da", "RceAdviserOpt",
+       {1: ("int32", 12)},
+       "实测", "8/12 抓包：{noptType:1} 查询 → {noptType:12} 免费高级招募。"
+               "用券版是再带 nitemID，我们不发；实测 credit 全程未变",
        prelude=[("04da", {1: ("int32", 1)})]),
 
     _t("特工派遣", "远程火炮·特工派遣", "04d6", "RceTrenchMortarOpt",
@@ -660,12 +688,22 @@ TASKS = [
 
     _t("军备制造", "军备研究·制造", "04e1", "RceJunBeiOpt",
        {1: ("int32", 22), 5: ("int32", 1)},
-       "实测", "8/10 抓包：type:21 → type:0 → type:21 三步前置，再 {type:22, nExlType:1} ×3，"
-               "另有 {type:22, nExlType:4}（自动化制造厂/高级）×1。"
+       "实测", "8/10 抓包：type:21 → type:0 → type:21 三步前置，再 {type:22, nExlType:1}。"
                "nExlType 是 5 号字段 —— 此前误写成 2 号(nJunBeiID)。"
                "⚠️ RseJunBeiOpt 里找不到可信的剩余免费次数字段，"
-               "所以一轮只做一次；要把 3 次低级 + 1 次高级都吃满，"
-               "得先抓一次'做到没次数为止'的包，看哪个字段在递减",
+               "所以一轮只做一次，不靠撞墙试探",
+       max_per_day=1,
+       prelude=[("04e1", {1: ("int32", 21)}),
+                ("04e1", {1: ("int32", 0)}),
+                ("04e1", {1: ("int32", 21)})]),
+
+    # 8/12 抓包：自动化制造厂（高级）是 nExlType:4，每天一次免费。
+    # 用券那次是 {type:22, nExlType:4, nItemID:10116} —— 多一个 nItemID 字段。
+    # 和参谋高级同理：免费与用券是两个不同的请求，不发 nItemID 就花不掉券。
+    _t("军备高级", "军备研究·自动化制造厂（免费那次）", "04e1", "RceJunBeiOpt",
+       {1: ("int32", 22), 5: ("int32", 4)},
+       "实测", "8/12 抓包：同样三步前置 → {type:22, nExlType:4}。"
+               "用券版再带 nItemID，我们不发；实测全程 credit 未变",
        max_per_day=1,
        prelude=[("04e1", {1: ("int32", 21)}),
                 ("04e1", {1: ("int32", 0)}),

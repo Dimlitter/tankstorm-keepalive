@@ -39,6 +39,7 @@ python main.py --keepalive    # 保活：常驻，防掉线
 ## 目录
 
 - [这是什么](#这是什么)
+  - [超级强攻的自动拒绝](#超级强攻的自动拒绝)
 - [开始之前](#开始之前)
 - [两个独立的东西](#两个独立的东西)
 - [安装](#安装)
@@ -62,27 +63,43 @@ python main.py --keepalive    # 保活：常驻，防掉线
 | **保活** | 连游戏 socket 定时发心跳，防止长时间无操作被踢下线导致基地被打 |
 | **每日任务** | 自动做签到、英雄开采、将领冶炼、技能书、特工派遣、配件探索、军备制造、战略训练、军事演习、矿区争夺、国家宝箱、公会捐献等 |
 | **事件告警** | 被超级强攻时 PushPlus 推到微信，带进攻方名字 |
+| **自动拒绝超级强攻** | 收到强攻通知后自动发出拒绝包，无需人工守在电脑前 |
 
 不做的事：**不参与游戏内人机验证（超级强攻验证码）的识别、填写或自动应答。**
-脚本只负责观察、解码、及时通知你本人。
+脚本只负责观察、解码，并及时通知用户本人。
+
+### 超级强攻的自动拒绝
+
+被超级强攻时，防守方只有约 5 分钟窗口做出反应，错过基地就会被打。
+保活进程收到强攻通知 `RseSuperStormOpt(027c)` 后会：
+
+1. 从通知里取出进攻方的 `atkUid` / `atkName`
+2. 构造 `RceSuperStormOpt(04ab) type=2` 拒绝包并发回服务端
+3. 通过 PushPlus 把结果推到微信，带上进攻方名字
+
+配置项是 `录制.自动拒绝超级强攻`，默认开启。依赖实时解密——
+密钥自检没通过时拒绝包发不出去，日志会明确说明原因。
+
+> **两点须知**：其一，若服务端要求先通过验证码才接受拒绝，此包可能被忽略，
+> 因此告警推送照发，用户仍应尽快打开游戏确认。
+> 其二，这段代码由仓库作者编写，本项目不对游戏内人机验证做任何识别或应答。
 
 ---
 
 ## 开始之前
 
-这个工具操作的是**你自己的游戏账号**，所以有几个前提。第一次用请先对一遍：
+本工具操作的是用户自己的游戏账号，因此有几项前提。首次使用请先逐条核对：
 
-| 你需要 | 说明 |
+| 前提 | 说明 |
 |---|---|
-| **一个在玩「坦克风暴」的 QQ 号** | 号得能正常进游戏。工具不会替你注册、也不碰密码，登录一律走手机 QQ 扫码 |
+| **一个在玩「坦克风暴」的 QQ 号** | 该号需能正常进入游戏。工具不会注册账号、也不接触密码，登录一律走手机 QQ 扫码 |
 | **两块屏幕** | 扫码时二维码显示在电脑上、用手机扫。腾讯不允许"同一台设备存图再扫"，见[登录](#登录) |
 | **Python 3.10 或更高** | 低于 3.10 起不来，报 `TypeError: unsupported operand type(s) for \|` |
 | **能联网访问 QQ 空间和游戏服务器** | 游戏 socket 在 `tankstorm-proxy.sincetimes.com:8001` |
 
 可选：
 
-- **PushPlus**（微信推送）。配了之后，被超级强攻会推到微信、每日任务结果会推给你、
-  登录态失效需要扫码时也会把二维码推过来。放服务器上跑建议配，[配置](#配置)里说了怎么填。
+- **PushPlus**（微信推送）。配置后，超级强攻告警、每日任务成果、以及登录态失效时的二维码都会推送到微信。部署到服务器时建议配置，填法见[配置](#配置)。
 
 不需要：抓包工具、Flash 播放器、浏览器、模拟器。协议已经还原好了，
 `protocol.json` 和字段定义都在仓库里，开箱即用。
@@ -116,7 +133,7 @@ python main.py --keepalive --daily
 
 ## 安装
 
-**第一步，先看清楚你的 Python 是哪个版本**：
+**第一步，先确认当前 Python 的版本**：
 
 ```bash
 python --version
@@ -163,7 +180,7 @@ where.exe python
 py -0p                    # 列出所有已安装版本及路径
 ```
 
-然后例如：`C:\Users\你\miniconda3\python.exe main.py --check`
+然后例如：`C:\Users\<用户名>\miniconda3\python.exe main.py --check`
 </details>
 
 ### 装依赖
@@ -195,8 +212,8 @@ python main.py --check
 ```
 
 ```
-cookie 有效，uid=5788xxxxx
-已解析 FlashVars：server=tankstorm-proxy.sincetimes.com port=8001 uid=17645xxxx sid=2002xxxx region=18
+cookie 有效，uin=xxxxxxxxx
+已解析 FlashVars：server=tankstorm-proxy.sincetimes.com port=8001 uid=xxxxxxxxxxxxxxxx sid=xxxxxxxx region=xx
 socket 登录参数就绪: openid, openkey, uid, secret, server, port
 ```
 
@@ -312,7 +329,7 @@ python main.py --reset      # 清空今日计数
 只有一件事要注意：**首次登录得扫码**。三种办法任选：
 
 1. 在本地电脑上先 `--login`，把生成的 `cookies.json` 拷到服务器（最省事）
-2. 配好 PushPlus，服务器需要登录时会把二维码推到你微信
+2. 配置 PushPlus，服务器需要登录时会把二维码推送到微信
 3. 把服务器上的 `qrcode.png` 下载下来看（`scp` 或任何方式）
 
 登录态之后会自动续期，正常几周不用再管。
@@ -365,6 +382,23 @@ WantedBy=multi-user.target
 }
 ```
 
+几个值得单独说的开关：
+
+| 配置项 | 默认 | 说明 |
+|---|---|---|
+| `录制.启用` | `true` | **别关**。整条解码链路挂在它下面，关掉之后每日任务读不到任何响应 |
+| `录制.实时解密` | `true` | 关掉则只录不解，告警里就没有进攻方名字，自动拒绝也无法工作 |
+| `录制.自动拒绝超级强攻` | `true` | 见[上文](#超级强攻的自动拒绝) |
+| `录制.原始流.启用` | `true` | 原始字节落盘，是事后离线解密的前提，建议保持开启 |
+| `每日任务.允许未实测参数` | `false` | 打开会把标着「待确认」的任务也发出去，不建议 |
+| `每日任务.响应等待秒` | `6` | 网络慢可调大 |
+
+PushPlus 的 token 填在 `config.local.json`：
+
+```json
+{ "通知": { "PushPlus": { "token": "自己的token" } } }
+```
+
 > `录制.启用` 别关。整条解码链路都挂在它下面，关掉之后每日任务读不到任何响应。
 
 ---
@@ -386,7 +420,7 @@ WantedBy=multi-user.target
 
 > 游戏里"消耗勋章"会弹确认框，但那是**纯客户端 UI** —— 协议里不存在二次确认消息。
 > 脚本直接发包不经过任何对话框，服务器收到就扣。所以确认框对脚本的保护是 0，
-> 必须在我们这一侧把危险字段拦死。
+> 必须在脚本这一侧把危险字段拦死。
 
 ---
 
@@ -432,20 +466,63 @@ WantedBy=multi-user.target
 
 ## 开发
 
+### 目录结构
+
 ```
-main.py              命令行入口
+main.py                      命令行入口，参数分组：登录 / 保活 / 每日任务
+config.json                  配置模板（密钥请放 config.local.json）
+protocol.json                保活协议规格：握手步骤、心跳帧、间隔
+protocol.example.json        上面那份的带注释示例
+endpoints.json               旧的 HTTP 接口任务定义（已废弃，仅 --task 用得到）
+requirements.txt             依赖，只有 requests
+run_keepalive.sh / .bat      保活启动脚本
+run_daily.sh   / .bat        每日任务启动脚本
+
 tankstorm/
-  qq_login.py        QQ 扫码登录（ptlogin2）
-  qzone.py           取游戏页 FlashVars（uid/sid/level/firstLogin）
-  socket_keepalive.py 保活主循环 + 单轮任务入口
-  daily.py           每日任务表与执行引擎
-  crypto.py          RC4（双向，密钥从 FlashVars 推）
-  recorder.py        收发录制、实时解密、事件告警
-  schema.py          协议 schema，protobuf 解码
-  proto_encode.py    protobuf 编码
-tools/               抓包分析与协议还原工具链
-docs/                协议文档
+  __init__.py                包定义，游戏 URL 常量
+  qq_login.py                QQ 扫码登录（ptlogin2）、cookie 持久化与静默续期
+  qzone.py                   打开空间游戏页，解析 FlashVars
+  protocol.py                读 protocol.json，构造握手与心跳帧
+  socket_keepalive.py        保活主循环、断线重连、单轮任务入口
+  daily.py                   每日任务表 + 执行引擎（前置/闸门/档位/后续）
+  sender.py                  组帧与发送，含超级强攻拒绝包的构造
+  crypto.py                  RC4 双向实现，密钥由 FlashVars 推导
+  recorder.py                收发录制、实时解密、事件告警、自动拒绝回调
+  stream_recorder.py         原始字节流旁路落盘（解密的前提）
+  schema.py                  协议 schema 载入 + protobuf 解码
+  schema.json                563 个 opcode 的字段表，由 extract_proto.py 生成
+  proto_encode.py            protobuf 编码
+  notify.py                  PushPlus 推送（文本 / HTML / 二维码图）
+  engine.py                  旧的 HTTP 任务执行器（配合 endpoints.json）
+  log.py                     日志
+
+tools/
+  pcap_split.py              从 pcapng 拆出 TCP 流，报告有没有空洞
+  redwar_rc4.py              离线解密收发流，自带密钥自检
+  brute_sid.py               忘记记录 sid 时的已知明文爆破
+  capture_daily.py           从解密后的上行帧提取每日任务参数
+  analyze_frames.py          分析运行时录制的帧日志
+  pcap_analyze.py            不解密也能定位登录握手与心跳
+  mitm_capture.py            中间人抓包辅助
+  extract_proto.py           从 SWF 还原 opcode 表 / .proto / schema.json
+  dump_class.py              按类名反汇编 SWF
+  xref.py                    全库交叉引用（找谁引用了某名字或某字符串）
+  disasm.py                  AVM2 字节码反汇编器
+  abcparse.py                ABC 结构解析
+  swfparse.py                SWF 容器解析
+  har2endpoints.py           从 HAR 生成旧版 endpoints.json
+
+docs/
+  banner.svg                 README 头图
+  redwar.proto               从 SWF 还原的完整协议定义
+  opcodes.json               opcode ↔ 消息名对照
+  protocol-reverse-engineering.md   二进制协议逆向方法论
+  加密与协议还原.md          RC4 与协议还原的完整过程
+  原理与逆向.md              早期原理记录（内容已迁至 Wiki）
 ```
+
+运行时生成、不进版本库的：`cookies.json`（登录凭据）、`qrcode.png`、
+`config.local.json`（密钥）、`logs/`（日志与原始流）、`wiki/`（Wiki 本地副本）。
 
 ### 抓包分析链路
 
