@@ -1,13 +1,37 @@
-# tankstorm-keepalive
+<p align="center">
+  <img src="docs/banner.svg" alt="tankstorm-keepalive" width="100%">
+</p>
 
-QQ 空间 Flash 页游「坦克风暴」（appid `100616028`）的**保活守护**与**每日任务**工具。
+<p align="center">
+  <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white">
+  <img alt="License" src="https://img.shields.io/badge/License-MIT-22C55E?style=flat-square">
+  <img alt="Protocol" src="https://img.shields.io/badge/opcode-563-8B5CF6?style=flat-square">
+  <img alt="Messages" src="https://img.shields.io/badge/消息-873-06B6D4?style=flat-square">
+  <img alt="Crypto" src="https://img.shields.io/badge/RC4-已破解-F59E0B?style=flat-square">
+  <img alt="Deps" src="https://img.shields.io/badge/依赖-仅%20requests-64748B?style=flat-square">
+  <img alt="Platform" src="https://img.shields.io/badge/无界面服务器-可跑-0EA5E9?style=flat-square">
+</p>
 
-纯 Python 请求实现 —— 不开浏览器、不跑 Flash、不截图识图，可以扔到无界面的
-Linux 服务器上常驻。
+<p align="center">
+  <b>QQ 空间 Flash 页游「坦克风暴」的保活守护与每日任务工具</b><br>
+  不开浏览器 · 不跑 Flash · 不截图识图 —— 纯 Python 复刻整条 TCP 链路
+</p>
+
+<p align="center">
+  <a href="#安装">安装</a> ·
+  <a href="#第一次运行">第一次运行</a> ·
+  <a href="#保活">保活</a> ·
+  <a href="#每日任务">每日任务</a> ·
+  <a href="#部署到服务器">部署</a> ·
+  <a href="https://github.com/Dimlitter/tankstorm-keepalive/wiki">原理 Wiki</a>
+</p>
+
+---
 
 ```bash
-python main.py --keepalive    # 保活：常驻，防掉线
+python main.py --login        # 第一次：扫码登录
 python main.py --daily        # 每日任务：跑一轮，退出
+python main.py --keepalive    # 保活：常驻，防掉线
 ```
 
 ---
@@ -15,12 +39,14 @@ python main.py --daily        # 每日任务：跑一轮，退出
 ## 目录
 
 - [这是什么](#这是什么)
+- [开始之前](#开始之前)
 - [两个独立的东西](#两个独立的东西)
 - [安装](#安装)
+- [第一次运行](#第一次运行)
 - [登录](#登录)
 - [保活](#保活)
 - [每日任务](#每日任务)
-- [部署](#部署)
+- [部署到服务器](#部署到服务器)
 - [配置](#配置)
 - [安全机制](#安全机制)
 - [命令一览](#命令一览)
@@ -39,6 +65,30 @@ python main.py --daily        # 每日任务：跑一轮，退出
 
 不做的事：**不参与游戏内人机验证（超级强攻验证码）的识别、填写或自动应答。**
 脚本只负责观察、解码、及时通知你本人。
+
+---
+
+## 开始之前
+
+这个工具操作的是**你自己的游戏账号**，所以有几个前提。第一次用请先对一遍：
+
+| 你需要 | 说明 |
+|---|---|
+| **一个在玩「坦克风暴」的 QQ 号** | 号得能正常进游戏。工具不会替你注册、也不碰密码，登录一律走手机 QQ 扫码 |
+| **两块屏幕** | 扫码时二维码显示在电脑上、用手机扫。腾讯不允许"同一台设备存图再扫"，见[登录](#登录) |
+| **Python 3.10 或更高** | 低于 3.10 起不来，报 `TypeError: unsupported operand type(s) for \|` |
+| **能联网访问 QQ 空间和游戏服务器** | 游戏 socket 在 `tankstorm-proxy.sincetimes.com:8001` |
+
+可选：
+
+- **PushPlus**（微信推送）。配了之后，被超级强攻会推到微信、每日任务结果会推给你、
+  登录态失效需要扫码时也会把二维码推过来。放服务器上跑建议配，[配置](#配置)里说了怎么填。
+
+不需要：抓包工具、Flash 播放器、浏览器、模拟器。协议已经还原好了，
+`protocol.json` 和字段定义都在仓库里，开箱即用。
+
+> 只有游戏更新导致 opcode 变化时，才需要重新从 SWF 还原协议——那属于开发工作，
+> 见 [Wiki](https://github.com/Dimlitter/tankstorm-keepalive/wiki)。
 
 ---
 
@@ -66,15 +116,111 @@ python main.py --keepalive --daily
 
 ## 安装
 
-需要 **Python 3.10+**（代码里用了 `str | None` 这类新语法）。
+**第一步，先看清楚你的 Python 是哪个版本**：
 
 ```bash
-conda create -n tank python=3.12 -y && conda activate tank
+python --version
+```
+
+必须是 **3.10 或更高**。很多机器上 `python` 指向的是系统自带的老版本，
+装了新版也没用 —— 因为 `python` 这个名字还是指向旧的那个。
+
+### 拿到一个 3.10+ 的环境
+
+<details>
+<summary><b>用 conda</b>（推荐，互不干扰）</summary>
+
+```bash
+conda create -n tank python=3.12 -y
+conda activate tank
+python --version          # 确认变成 3.12.x
+```
+</details>
+
+<details>
+<summary><b>用 venv</b>（系统 Python 已经是 3.10+ 时）</summary>
+
+```bash
+python -m venv .venv
+# Linux / macOS
+source .venv/bin/activate
+# Windows PowerShell
+.venv\Scripts\Activate.ps1
+```
+</details>
+
+<details>
+<summary><b>系统里有多个 Python，懒得建环境</b></summary>
+
+直接用那个新版解释器的**完整路径**跑，把下文所有 `python` 换成它。
+先找到它：
+
+```bash
+# Linux / macOS
+which -a python3 python3.12
+# Windows PowerShell
+where.exe python
+py -0p                    # 列出所有已安装版本及路径
+```
+
+然后例如：`C:\Users\你\miniconda3\python.exe main.py --check`
+</details>
+
+### 装依赖
+
+```bash
+git clone https://github.com/Dimlitter/tankstorm-keepalive.git
+cd tankstorm-keepalive
 pip install -r requirements.txt
 ```
 
-> Windows 本机注意：如果 `python` 指向的是旧版（`python --version` 看一下），
-> 直接用完整路径，例如 `D:\miniconda\python.exe main.py --check`。
+依赖只有 `requests`（二维码字符画会用到 `Pillow`，没装也能跑，只是终端不显示图）。
+
+---
+
+## 第一次运行
+
+按顺序走一遍，每步都能看到结果，出问题也好定位：
+
+**1️⃣ 登录** —— 手机 QQ 扫码，只有第一次要做
+
+```bash
+python main.py --login
+```
+
+**2️⃣ 确认登录态可用** —— 能打印出 `uid` / `sid` / `level` 就说明通了
+
+```bash
+python main.py --check
+```
+
+```
+cookie 有效，uid=5788xxxxx
+已解析 FlashVars：server=tankstorm-proxy.sincetimes.com port=8001 uid=17645xxxx sid=2002xxxx region=18
+socket 登录参数就绪: openid, openkey, uid, secret, server, port
+```
+
+**3️⃣ 看看有哪些任务、今天做了几次**
+
+```bash
+python main.py --list
+```
+
+**4️⃣ 真跑一轮**（会真实发包，做当天还没做的免费次数）
+
+```bash
+python main.py --daily
+```
+
+跑完会打一份成果表，配了 PushPlus 的话同时推到微信。
+
+**5️⃣ 想常驻防掉线，再开保活**
+
+```bash
+python main.py --keepalive
+```
+
+到这里就跑起来了。要放到服务器上长期跑，看[部署到服务器](#部署到服务器)。
 
 ---
 
@@ -159,9 +305,19 @@ python main.py --reset      # 清空今日计数
 
 ---
 
-## 部署
+## 部署到服务器
 
-保活和每日任务分开跑。
+无界面的 Linux 机器完全能跑 —— 整个项目不需要浏览器和图形界面。
+
+只有一件事要注意：**首次登录得扫码**。三种办法任选：
+
+1. 在本地电脑上先 `--login`，把生成的 `cookies.json` 拷到服务器（最省事）
+2. 配好 PushPlus，服务器需要登录时会把二维码推到你微信
+3. 把服务器上的 `qrcode.png` 下载下来看（`scp` 或任何方式）
+
+登录态之后会自动续期，正常几周不用再管。
+
+保活和每日任务**分开跑**，别塞进一个进程。
 
 **systemd（保活常驻）**
 
@@ -254,7 +410,10 @@ WantedBy=multi-user.target
 
 | 现象 | 原因 / 处理 |
 |---|---|
-| `TypeError: unsupported operand type(s) for \|` | Python 版本低于 3.10，换 3.12 |
+| `TypeError: unsupported operand type(s) for \|` | Python 低于 3.10。`python --version` 确认，见[安装](#安装) |
+| `ModuleNotFoundError: requests` | 依赖没装，或装到了别的 Python 环境里 |
+| 扫码提示「限制本地扫码登录」 | 二维码和扫码的手机是同一台设备，换另一块屏幕显示 |
+| `--check` 说登录态失效 | 重新 `python main.py --login` |
 | 所有任务都「未收到响应」 | 先看 `录制.启用` 是不是被关了 |
 | 「闸门拦截：没收到 RseXxxOpen」 | 前置请求没回包，多半是登录态/连接问题，`--check` 看一眼 |
 | 「需要花钱才能做」 | 正常，免费次数用完了，脚本主动停手 |
