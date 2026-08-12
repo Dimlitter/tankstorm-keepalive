@@ -24,10 +24,25 @@
     ec=315 页面过期      —— 有 dev_mid_sig 但已失效，得重新 pt_fetch_dev_uin
     ec=0                —— 推送已发出，手机上点确认即可
 
-而 dev_mid_sig 由 pt_fetch_dev_uin 签发，那个接口认的是 **pt_guid_sig**，
-后者在**登录成功时由 ptqrlogin 下发**，有效期约一个月。所以整条链是自洽的：
-扫码成功一次 → 拿到 pt_guid_sig → 此后每次登录都能换到 dev_mid_sig → 免扫码。
-首次仍然必须扫一次码。
+设备记录挂在哪：不是 pt_guid_sig（2026-08-13 实测）
+--------------------------------------------------
+对着 pt_fetch_dev_uin 试出来的：
+
+    什么设备 cookie 都不带                          -> errcode 22027，不补发
+    只带 pt_guid_sig（哪怕浏览器里正在用的那个）    -> errcode 22027，不补发
+    带 dev_mid_sig（+pt_guid_sig+pt_recent_uins）   -> errcode 22028，但 data:[] 且**不补发**
+    浏览器自己发的同一个接口                        -> errcode 22028，data:[<uin>]，**补发**
+
+也就是说 pt_guid_sig 不是设备身份，dev_mid_sig 才是；而这个接口对我们
+只认不发。浏览器比我们多带 pt-ev-token / dlock / it_c / eas_sid 等设备安全
+cookie，差别很可能在那里，但**尚未证实**。
+
+第一个 dev_mid_sig 从哪来仍然未知 —— 两份登录页抓包都只拍到"把早就存在的那份
+续下去"，没拍到它被创建。所以现在只能从浏览器搬一次（`--import-device`）。
+注意搬来的签名有时效：拿一小时前抓包里的那份去推送，服务端回 ec=315。
+
+pt_guid_sig 与它配对，由 xlogin 或登录成功时的 ptqrlogin 下发。注意
+**xlogin 会无条件重新签发一个**，所以做 pt_fetch_dev_uin 之前要把原来那个存住。
 
 另外两条路确实走不通：
 
@@ -65,6 +80,17 @@ DEVICE_COOKIES = {"ptcz", "RK", "superkey", "supertoken", "superuin",
                   "dev_mid_sig", "pt_guid_sig", "uikey", "pt-ev-token",
                   "dlock", "it_c", "eas_sid", "pt_local_token",
                   "_qpsvr_localtk"}
+
+# 从浏览器搬设备记录时**只搬这几个**：都是跟着设备走的，不含任何登录凭据。
+# 特意**不搬** skey/p_skey/uin（登录态，会和本脚本自己的登录态打架），
+# 也不搬 ptcz/RK/superkey/supertoken（长效登录凭据，同理）。
+#
+# 前三个是设备签名本体，后四个是浏览器请求 pt_fetch_dev_uin 时比我们多带的
+# 设备安全类 cookie —— 只带前三个时服务端回 data:[] 且不补发签名，
+# 浏览器带全了才回 data:[<uin>] 并补发，所以一并搬过来试。
+DEVICE_BOOTSTRAP = ("dev_mid_sig", "pt_guid_sig", "pt_recent_uins",
+                    "pt-ev-token", "dlock", "it_c", "eas_sid")
+PTLOGIN_DOMAIN = ".ptlogin2.qq.com"
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 COOKIE_FILE = os.path.join(BASE_DIR, "cookies.json")
@@ -327,6 +353,68 @@ class QQSession:
         vals = [c.value for c in self.session.cookies if c.name == name]
         return vals[-1] if vals else None
 
+    def _set_cookie(self, name, value, domain=PTLOGIN_DOMAIN):
+        """把某个 cookie 设成指定值，先清掉所有同名的。
+
+        不先清就可能留下两个同名 cookie（不同域），之后 _cookie() 取到哪个
+        全看顺序。
+        """
+        for c in [c for c in self.session.cookies if c.name == name]:
+            try:
+                self.session.cookies.clear(c.domain, c.path, c.name)
+            except KeyError:
+                pass
+        self.session.cookies.set(name, value, domain=domain, path="/")
+
+    def import_device_cookies(self, text: str) -> list:
+        """从浏览器搬一份设备记录过来 —— 推送登录的一次性引导。
+
+        `pt_fetch_dev_uin` 只能给已有的 dev_mid_sig 续期，签发不出第一个，
+        所以这一份得从一个登录过 QQ 网页的浏览器里取。取法：在
+        ptlogin2.qq.com 的页面上打开开发者工具，把 Cookie 复制出来。
+
+        三种写法都认：
+          - 开发者工具里复制的 Cookie 头：``name=value; name=value``
+          - ``{"name": "value", ...}`` 的 JSON
+          - ``[{"name": ..., "value": ...}, ...]`` 的 JSON（各类导出插件的格式）
+
+        只取 DEVICE_BOOTSTRAP 里那几个，其余一律忽略。返回搬进来的名字列表。
+        """
+        text = (text or "").strip()
+        pairs = {}
+        if text.startswith(("{", "[")):
+            data = json.loads(text)
+            if isinstance(data, dict):
+                pairs = {k: v for k, v in data.items() if isinstance(v, str)}
+            else:
+                pairs = {c["name"]: c["value"] for c in data
+                         if isinstance(c, dict) and "name" in c}
+        else:
+            text = re.sub(r"^\s*Cookie\s*:\s*", "", text, flags=re.I)
+            for kv in text.split(";"):
+                k, sep, v = kv.strip().partition("=")
+                if sep and k:
+                    pairs[k.strip()] = v.strip()
+
+        got = []
+        for name in DEVICE_BOOTSTRAP:
+            if pairs.get(name):
+                self._set_cookie(name, pairs[name])
+                got.append(name)
+        if got:
+            self._save_cookies()
+        return got
+
+    def device_status(self) -> str:
+        """一句话说明设备记录当前处于什么状态，给 --check 和报错文案用。"""
+        if self._cookie("dev_mid_sig"):
+            return ("有设备签名 dev_mid_sig，可以试推送。"
+                    "（签名有时效，过期时推送回 ec=315，得重搬一份新的）")
+        if self._cookie("pt_guid_sig"):
+            return ("没有设备记录：只有 pt_guid_sig，而 pt_fetch_dev_uin 只能给"
+                    "已有的 dev_mid_sig 续期，签发不出第一个")
+        return "没有任何设备凭据"
+
     def _push_login(self, push_uin):
         """把**已建立的二维码会话**推送到手机 QQ。返回 (是否成功, 说明)。
 
@@ -340,15 +428,15 @@ class QQSession:
         if not self._cookie("qrsig"):
             return False, "还没有二维码会话（qrsig），推送无从挂载"
 
-        # 先换一张新鲜的设备签名。抓包实测 dev_mid_sig 就是这个接口签发的，
-        # 而它认的是 pt_guid_sig（登录成功时由 ptqrlogin 下发，有效期约一个月）。
-        # 没有 dev_mid_sig 时推送回 ec=313；有但过期则回 ec=315。
+        # 给设备签名续期。注意这个接口**只能续期，不能签发第一个**：
+        # 实测只带 pt_guid_sig（哪怕是浏览器里正在用的那个）一律 errcode 22027；
+        # 带上 dev_mid_sig 才回 22028 并下发新的。所以没有 dev_mid_sig 时
+        # 这一步是白跑，直接跳过，把话说清楚让用户去引导一次。
         guid_sig = self._cookie("pt_guid_sig")
-        if guid_sig:
+        if guid_sig and self._cookie("dev_mid_sig"):
             try:
                 # pt_guid_token = hash33(pt_guid_sig)，和 ptqrtoken = hash33(qrsig)
-                # 是同一个套路（拿抓包里的一对验证过）。早先这里传随机数，
-                # 服务端自然认不出，回 errcode 22027「没有已记住的设备」。
+                # 是同一个套路（拿抓包里的一对逐位验证过）。
                 r = self.session.get(
                     "https://ssl.ptlogin2.qq.com/pt_fetch_dev_uin",
                     params={"r": str(random.random()),
@@ -359,9 +447,10 @@ class QQSession:
             except requests.RequestException as exc:
                 log.debug("pt_fetch_dev_uin 失败(忽略): %s", exc)
         if not self._cookie("dev_mid_sig"):
-            return False, ("没有设备签名 dev_mid_sig。它由 pt_fetch_dev_uin 签发，"
-                           "而那个接口认 pt_guid_sig —— 后者要在一次成功登录后"
-                           "才由服务端下发。所以首次仍需扫码，之后才能推送")
+            return False, ("没有设备记录 dev_mid_sig，服务端认不出这台设备。"
+                           "pt_fetch_dev_uin 只能给已有的续期、签发不出第一个，"
+                           "所以要先从一个登录过 QQ 网页的浏览器搬一次："
+                           "main.py --import-device <文件>（详见 README）")
         try:
             r = self.session.get(
                 "https://ssl.ptlogin2.qq.com/ptqrshow",
@@ -440,7 +529,11 @@ class QQSession:
         # 清会话票据但**保住设备凭据** —— 推送靠 dev_mid_sig 之类识别"推给哪台设备"，
         # 全清了就只能回 ec=313。
         self._clear_session_cookies(keep=DEVICE_COOKIES)
-        # 浏览器进登录页第一件事就是 xlogin，它建立 pt_login_sig 上下文
+        # 浏览器进登录页第一件事就是 xlogin，它建立 pt_login_sig 上下文。
+        # 但它同时会**无条件重新签发 pt_guid_sig**（实测：本来就有一个也照换），
+        # 而 pt_guid_sig 是和 dev_mid_sig 配对的，被换掉就对不上了。
+        # 所以先存后还。
+        guid_before = self._cookie("pt_guid_sig")
         try:
             s.get("https://xui.ptlogin2.qq.com/cgi-bin/xlogin",
                   params={"daid": DAID, "appid": PTLOGIN_APPID,
@@ -451,6 +544,9 @@ class QQSession:
                   timeout=15)
         except requests.RequestException as exc:
             log.debug("xlogin 预热失败(忽略): %s", exc)
+        if guid_before and self._cookie("pt_guid_sig") != guid_before:
+            self._set_cookie("pt_guid_sig", guid_before)
+            log.debug("xlogin 换掉了 pt_guid_sig，已还原成与设备记录配对的那个")
 
         # 先拿二维码：不管走不走推送都要这一步 —— 推送是挂在这个会话上的
         r, why = self._ptqrshow()

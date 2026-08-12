@@ -72,6 +72,9 @@ def main() -> int:
     g1 = parser.add_argument_group("登录")
     g1.add_argument("--login", action="store_true", help="强制重新扫码登录")
     g1.add_argument("--check", action="store_true", help="验证登录态并打印上下文")
+    g1.add_argument("--import-device", metavar="文件",
+                    help="从浏览器搬一次设备记录以启用推送登录（一次性，"
+                         "文件里放浏览器的 Cookie；给 - 表示从标准输入读）")
 
     g2 = parser.add_argument_group("保活（常驻）")
     g2.add_argument("--keepalive", action="store_true",
@@ -92,7 +95,7 @@ def main() -> int:
     # 什么都不给就打印用法。以前默认会去跑 endpoints.json 里那套早已废弃的
     # HTTP 任务，全部失败还把退出码带成 1，看着像登录坏了。
     if not any((args.login, args.check, args.keepalive, args.daily,
-                args.list, args.reset, args.task)):
+                args.list, args.reset, args.task, args.import_device)):
         parser.print_help()
         return 0
 
@@ -141,6 +144,28 @@ def main() -> int:
 
     qq = QQSession()
 
+    # 一次性引导：把浏览器的设备记录搬进来，之后推送登录才有 dev_mid_sig 可用。
+    # pt_fetch_dev_uin 只能给已有的续期，签发不出第一个，所以只能这么来。
+    if args.import_device:
+        if args.import_device == "-":
+            text = sys.stdin.read()
+        else:
+            with open(args.import_device, encoding="utf-8") as f:
+                text = f.read()
+        try:
+            got = qq.import_device_cookies(text)
+        except (ValueError, KeyError, TypeError) as exc:
+            log.error("设备记录解析失败：%s", exc)
+            return 1
+        if not got:
+            log.error("没找到可用的设备记录。至少要有 dev_mid_sig —— "
+                      "在浏览器里打开 ptlogin2.qq.com 的页面，从开发者工具里"
+                      "把 Cookie 复制出来")
+            return 1
+        log.info("已导入 %s", "、".join(got))
+        log.info("设备状态：%s", qq.device_status())
+        return 0
+
     # 保活：常驻。--keepalive --daily 时才顺带跑一轮任务
     if args.keepalive:
         return socket_keepalive.run(qq, config, with_daily=args.daily)
@@ -174,6 +199,7 @@ def main() -> int:
         printable = {k: (v[:12] + "…" if isinstance(v, str) and len(v) > 16 else v)
                      for k, v in ctx.items() if k not in ("skey",)}
         log.info("提取到的上下文: %s", json.dumps(printable, ensure_ascii=False))
+        log.info("设备状态：%s", qq.device_status())
         return 0
 
     if args.login:      # --login 到这里就算完了，别再去跑那套废弃的 HTTP 任务

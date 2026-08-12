@@ -3,6 +3,8 @@ cookies.json
 qrcode.png
 state.json
 config.local.json
+# 从浏览器搬设备记录时的中转文件（--import-device 的输入，含真 cookie）
+dev-cookie*.txt
 
 # ===== 抓包文件（含真实 openid/openkey/uid/cookie）=====
 *.har
