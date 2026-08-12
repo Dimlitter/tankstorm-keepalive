@@ -7,6 +7,35 @@
   4. cookie 序列化到 cookies.json，下次运行直接复用；失效后需要重新扫码。
 
 不涉及账号密码 —— 只用扫码，服务器上把 qrcode.png 取下来扫或直接看终端字符画。
+
+推送登录（页面上点头像 → 手机收到确认）—— 2026-08-13 抓浏览器逆出来的
+--------------------------------------------------------------------
+它不是"另一种取二维码"，而是**挂在已有二维码会话上的一个动作**。顺序必须是：
+
+    xlogin                      建立 pt_login_sig
+    ptqrshow（普通）            拿到 PNG 和 qrsig
+    pt_fetch_dev_uin            换取 dev_mid_sig（设备签名）
+    ptqrshow?qr_push=1&type=1   把这个会话推给指定 QQ（不带 e/l/s/d/v 图片参数）
+    ptqrlogin 轮询              和扫码共用一条轮询，带 has_onekey=1
+
+三个错误码的含义（试出来的）：
+
+    ec=313 提交参数错误  —— 没有 dev_mid_sig，服务端认不出这台设备
+    ec=315 页面过期      —— 有 dev_mid_sig 但已失效，得重新 pt_fetch_dev_uin
+    ec=0                —— 推送已发出，手机上点确认即可
+
+而 dev_mid_sig 由 pt_fetch_dev_uin 签发，那个接口认的是 **pt_guid_sig**，
+后者在**登录成功时由 ptqrlogin 下发**，有效期约一个月。所以整条链是自洽的：
+扫码成功一次 → 拿到 pt_guid_sig → 此后每次登录都能换到 dev_mid_sig → 免扫码。
+首次仍然必须扫一次码。
+
+另外两条路确实走不通：
+
+- **静默续期**（pt_login）：该端点现在返回一张腾讯网首页 HTML，已下线。
+- **网页「快捷登录」里的本地通道**：反复 CONNECT
+  `localhost.ptlogin2.qq.com:430X`，是在跟本机 QQ 桌面客户端要票据，
+  且有证书绑定。但实测**推送并不依赖它** —— 把那几个本地令牌全删掉，
+  推送照常工作。
 """
 
 import json
@@ -26,9 +55,16 @@ PTLOGIN_APPID = "549000912"  # QQ空间的 ptlogin aid（游戏页 302 时携带
 DAID = "5"
 
 # 设备/长效凭据：推送登录靠它们识别"推给哪台设备"，重新登录时不能清掉。
-# 清空后 ptqrshow?qr_push=1 会直接失败（返回错误文本而非二维码）。
+#
+# 2026-08-13 抓包定位：真正让推送成立的是 **dev_mid_sig**（设备中间签名）。
+# 早先这份名单里没有它，于是每次登录前的清理都会把它删掉，
+# ptqrshow?qr_push=1 就只能回 ec=313「提交参数错误」。
+# 一并保住同批的几个设备态 cookie，它们都是浏览器里跟着设备走的。
 DEVICE_COOKIES = {"ptcz", "RK", "superkey", "supertoken", "superuin",
-                  "pt2gguin", "pt_recent_uins", "ETK"}
+                  "pt2gguin", "pt_recent_uins", "ETK",
+                  "dev_mid_sig", "pt_guid_sig", "uikey", "pt-ev-token",
+                  "dlock", "it_c", "eas_sid", "pt_local_token",
+                  "_qpsvr_localtk"}
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 COOKIE_FILE = os.path.join(BASE_DIR, "cookies.json")
@@ -199,7 +235,7 @@ class QQSession:
                         "link_target": "blank", "appid": PTLOGIN_APPID,
                         "style": "22", "target": "self", "s_url": GAME_URL},
                 timeout=15)
-            login_sig = self.session.cookies.get("pt_login_sig") or ""
+            login_sig = self._cookie("pt_login_sig") or ""
             if not login_sig:
                 log.info("静默续期：未取得 pt_login_sig，放弃")
                 return False
@@ -218,6 +254,17 @@ class QQSession:
                 self.session.get(m.group(2), allow_redirects=True, timeout=20)
             elif m:
                 log.info("静默续期被拒(code=%s): %s", m.group(1), m.group(3)[:60])
+                return False
+            else:
+                # 2026-08-13 实测：这个端点已经不返回 ptuiCB 了，直接给一张
+                # 腾讯网首页 HTML。也就是说 pt_login 这条快速登录通道没了。
+                # 以前这里没有 else 分支，匹配不上就悄悄掉到最后一句
+                # "静默续期未生效"，看不出到底是被拒还是接口变了。
+                head = (r.text or "")[:120].replace("\n", " ")
+                is_html = "<html" in r.text[:300].lower()
+                log.info("静默续期：pt_login 没有返回 ptuiCB（%s）—— "
+                         "腾讯这个接口已变更，不是凭据问题。返回开头：%s",
+                         "是一张 HTML 页面" if is_html else "格式不认识", head)
                 return False
         except requests.RequestException as exc:
             log.info("静默续期请求异常: %s", exc)
@@ -270,8 +317,76 @@ class QQSession:
             except KeyError:
                 pass
 
+    def _cookie(self, name):
+        """安全地取 cookie 值。
+
+        同名 cookie 可能同时存在于 .qq.com 和 ptlogin2.qq.com 两个域上，
+        requests 的 cookies.get() 遇到重名会直接抛 CookieConflictError。
+        这里取最后一个（域更具体的通常是服务端刚下发的那个）。
+        """
+        vals = [c.value for c in self.session.cookies if c.name == name]
+        return vals[-1] if vals else None
+
+    def _push_login(self, push_uin):
+        """把**已建立的二维码会话**推送到手机 QQ。返回 (是否成功, 说明)。
+
+        关键在顺序（2026-08-13 抓浏览器抓出来的）：推送不是"另一种取二维码"，
+        而是挂在已有 qrsig 会话上的一个动作 —— 页面上先加载二维码，
+        点头像才发这一条。所以必须**先走一次普通 ptqrshow 拿到 qrsig**，
+        再发这条；直接上来就发，服务端回 ec=313「提交参数错误」。
+
+        另外它不带 e/l/s/d/v 那几个图片参数（本来就不是要图），但要带 u1。
+        """
+        if not self._cookie("qrsig"):
+            return False, "还没有二维码会话（qrsig），推送无从挂载"
+
+        # 先换一张新鲜的设备签名。抓包实测 dev_mid_sig 就是这个接口签发的，
+        # 而它认的是 pt_guid_sig（登录成功时由 ptqrlogin 下发，有效期约一个月）。
+        # 没有 dev_mid_sig 时推送回 ec=313；有但过期则回 ec=315。
+        guid_sig = self._cookie("pt_guid_sig")
+        if guid_sig:
+            try:
+                # pt_guid_token = hash33(pt_guid_sig)，和 ptqrtoken = hash33(qrsig)
+                # 是同一个套路（拿抓包里的一对验证过）。早先这里传随机数，
+                # 服务端自然认不出，回 errcode 22027「没有已记住的设备」。
+                r = self.session.get(
+                    "https://ssl.ptlogin2.qq.com/pt_fetch_dev_uin",
+                    params={"r": str(random.random()),
+                            "pt_guid_token": str(hash33(guid_sig))},
+                    headers={"Referer": "https://xui.ptlogin2.qq.com/"},
+                    timeout=15)
+                log.debug("pt_fetch_dev_uin: %s", (r.text or "")[:120])
+            except requests.RequestException as exc:
+                log.debug("pt_fetch_dev_uin 失败(忽略): %s", exc)
+        if not self._cookie("dev_mid_sig"):
+            return False, ("没有设备签名 dev_mid_sig。它由 pt_fetch_dev_uin 签发，"
+                           "而那个接口认 pt_guid_sig —— 后者要在一次成功登录后"
+                           "才由服务端下发。所以首次仍需扫码，之后才能推送")
+        try:
+            r = self.session.get(
+                "https://ssl.ptlogin2.qq.com/ptqrshow",
+                params={"qr_push": "1", "qr_push_uin": str(push_uin),
+                        "type": "1", "appid": PTLOGIN_APPID,
+                        "t": str(random.random()), "ptlang": "2052",
+                        "u1": GAME_URL, "daid": DAID, "pt_3rd_aid": "0"},
+                headers={"Referer": "https://xui.ptlogin2.qq.com/"},
+                timeout=15)
+        except requests.RequestException as exc:
+            return False, f"请求异常 {exc}"
+        text = (r.text or "")[:300]
+        m = re.search(r'"ec"\s*:\s*(\d+)', text)
+        ec = m.group(1) if m else ""
+        if ec == "0":
+            return True, ""
+        em = re.search(r'"em"\s*:\s*"([^"]*)"', text)
+        why = f"ec={ec} {em.group(1) if em else ''}".strip() or text.strip()
+        if ec == "313":
+            why += ("（多半是缺 dev_mid_sig 设备绑定；"
+                    "见 README「关于免扫码」）")
+        return False, why
+
     def _ptqrshow(self, push_uin=None):
-        """请求二维码/推送。返回 (response, 失败原因)；成功时原因为空串。
+        """请求二维码。返回 (response, 失败原因)；成功时原因为空串。
 
         腾讯拒绝时不返回 PNG，而是回一段 JSONP 或空内容；早先代码把它当成图片
         写进 qrcode.png，只报一句"未获取到 qrsig"，看不出真正原因。
@@ -279,12 +394,10 @@ class QQSession:
         params = {
             "appid": PTLOGIN_APPID, "e": "2", "l": "M", "s": "3", "d": "72",
             "v": "4", "t": str(random.random()), "daid": DAID, "pt_3rd_aid": "0",
-            "ptlang": "2052",
+            "ptlang": "2052", "u1": GAME_URL,
         }
-        if push_uin:
-            params.update({"qr_push": "1", "qr_push_uin": str(push_uin), "type": "1"})
         try:
-            r = self.session.get("https://ssl.ptlogin2.qq.com/ptqrshow",
+            r = self.session.get("https://xui.ptlogin2.qq.com/ssl/ptqrshow",
                                  params=params,
                                  headers={"Referer": "https://xui.ptlogin2.qq.com/"},
                                  timeout=15)
@@ -293,7 +406,7 @@ class QQSession:
 
         body = r.content or b""
         if body[:8] == b"\x89PNG\r\n\x1a\n":
-            if not self.session.cookies.get("qrsig"):
+            if not self._cookie("qrsig"):
                 return None, "返回了图但没有 qrsig，无法轮询"
             return r, ""
 
@@ -324,48 +437,36 @@ class QQSession:
         if push_uin is None:
             push_uin = self.uin or None
 
+        # 清会话票据但**保住设备凭据** —— 推送靠 dev_mid_sig 之类识别"推给哪台设备"，
+        # 全清了就只能回 ec=313。
+        self._clear_session_cookies(keep=DEVICE_COOKIES)
+        # 浏览器进登录页第一件事就是 xlogin，它建立 pt_login_sig 上下文
+        try:
+            s.get("https://xui.ptlogin2.qq.com/cgi-bin/xlogin",
+                  params={"daid": DAID, "appid": PTLOGIN_APPID,
+                          "hide_title_bar": "1", "low_login": "0",
+                          "qlogin_auto_login": "1", "no_verifyimg": "1",
+                          "link_target": "blank", "style": "22",
+                          "target": "self", "s_url": GAME_URL},
+                  timeout=15)
+        except requests.RequestException as exc:
+            log.debug("xlogin 预热失败(忽略): %s", exc)
+
+        # 先拿二维码：不管走不走推送都要这一步 —— 推送是挂在这个会话上的
+        r, why = self._ptqrshow()
+        if r is None:
+            log.error("二维码请求失败，无法登录：%s", why)
+            return False
+
         pushed = False
-        r = None
         if push_uin:
-            # 推送登录必须保留设备凭据：腾讯靠 ptcz/RK/superkey 判断"推给哪台设备"，
-            # 全清了它就不知道往哪推，ptqrshow 会直接返回错误而不是二维码。
-            self._clear_session_cookies(keep=DEVICE_COOKIES)
-            # 真实客户端会先走 xlogin 建立 pt_login_sig，推送通道依赖这个上下文
-            try:
-                s.get("https://xui.ptlogin2.qq.com/cgi-bin/xlogin",
-                      params={"daid": DAID, "appid": PTLOGIN_APPID,
-                              "hide_title_bar": "1", "low_login": "0",
-                              "qlogin_auto_login": "1", "no_verifyimg": "1",
-                              "link_target": "blank", "style": "22",
-                              "target": "self", "s_url": GAME_URL},
-                      timeout=15)
-            except requests.RequestException as exc:
-                log.debug("xlogin 预热失败(忽略): %s", exc)
-
-            r, why = self._ptqrshow(push_uin=push_uin)
-            if r is None:
-                # 2026-08-12 实测：qr_push 这条路目前**整条不通**，
-                # 带 type=1 一律 ec=313「提交参数错误」，换成别的 type 值网关直接 403。
-                # 设备凭据（ptcz/RK/superkey/supertoken）全都在，所以不是缺票据，
-                # 是腾讯把这个接口的参数形状改了。黑盒试不出来，
-                # 要修得先抓一次浏览器上「快捷登录」的真实请求再照抄。
-                # 这里降为 info 并只说一句 —— 它每次登录都会走到，
-                # 用 warning 刷屏会让人以为登录出了问题，其实扫码这条路好好的。
-                log.info("推送登录不可用（%s），本次用扫码。"
-                         "这是腾讯接口变更，不影响扫码登录", why)
-            else:
-                pushed = True
-
-        if r is None:                       # 普通扫码：干净会话
-            s.cookies.clear()
-            r, why = self._ptqrshow()
-            if r is None:
-                log.error("二维码请求失败，无法登录：%s", why)
-                return False
+            pushed, why = self._push_login(push_uin)
+            if not pushed:
+                log.info("推送登录没成（%s），本次用扫码", why)
 
         with open(QRCODE_FILE, "wb") as f:
             f.write(r.content)
-        qrsig = s.cookies.get("qrsig")
+        qrsig = self._cookie("qrsig")
 
         if pushed:
             log.info("已向 QQ %s 推送登录确认 —— 打开手机QQ点「确认登录」即可，"
@@ -390,15 +491,21 @@ class QQSession:
                 log.warning("二维码推送回调失败: %s", exc)
 
         ptqrtoken = hash33(qrsig)
+        # 轮询参数照浏览器来：带上 xlogin 拿到的 login_sig，以及 has_onekey=1
+        # （"一键/推送登录"标记，推送确认要靠它认）。早先 login_sig 传空串、
+        # 也没有 has_onekey，扫码能过但推送这条路认不出来。
+        login_sig = self._cookie("pt_login_sig") or ""
         deadline = time.time() + timeout_sec
         while time.time() < deadline:
-            r = s.get("https://ssl.ptlogin2.qq.com/ptqrlogin", params={
+            r = s.get("https://xui.ptlogin2.qq.com/ssl/ptqrlogin", params={
                 "u1": GAME_URL, "ptqrtoken": ptqrtoken, "ptredirect": "0",
                 "h": "1", "t": "1", "g": "1", "from_ui": "1", "ptlang": "2052",
                 "action": f"0-0-{int(time.time() * 1000)}",
-                "js_ver": "20032614", "js_type": "1", "login_sig": "",
+                "js_ver": "26071711", "js_type": "1", "login_sig": login_sig,
                 "pt_uistyle": "40", "aid": PTLOGIN_APPID, "daid": DAID,
-            }, timeout=15)
+                "has_onekey": "1",
+            }, headers={"Referer": "https://xui.ptlogin2.qq.com/"},
+                timeout=15)
             m = re.search(r"ptuiCB\('(\d+)','\d+','([^']*)','\d+','([^']*)'", r.text)
             if not m:
                 log.warning("轮询响应无法解析: %s", r.text[:200])
