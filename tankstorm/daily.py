@@ -186,8 +186,15 @@ def judge(rse_msg: str, data, ignore_left=False):
                 if isinstance(data.get(k), int) and not isinstance(data.get(k), bool)),
                None)
     if isinstance(ret, int) and ret != 0:
-        why = ("需要花钱才能做（客户端此时会弹商店），已跳过"
-               if ret == 1 else f"服务器返回 ret={ret}（错误码 heroRecruitError{ret}）")
+        if ret == 1:
+            why = "需要花钱才能做（客户端此时会弹商店），已跳过"
+        elif rse_msg == "RseHeroVisit":
+            # 这个文案键是从 RseHeroVisit 的处理函数里读出来的，只对它成立，
+            # 别的消息各有各的错误表，套上去就是误导（曾经把英雄培养的
+            # ret=81 写成 heroRecruitError81，其实完全不相干）。
+            why = f"服务器返回 ret={ret}（错误码 heroRecruitError{ret}）"
+        else:
+            why = f"服务器返回 ret={ret}（该消息自己的错误码，含义未知）"
         return False, why, True
     bits = [f"{k}={data[k]}" for k in REWARD_HINT if k in data]
     msg = "成功" + ("：" + " ".join(bits) if bits else "")
@@ -1176,11 +1183,17 @@ def _do_once(task, sock, rec, st, results, details, field_names,
         else:
             log.warning("[%s] ❌ %s", task.key, why)
             if stop:
-                # 服务器明确拒绝（ret != 0），今天别再撞了
-                st["done"][task.key] = task.max_per_day
                 st.setdefault("miss", {}).pop(task.key, None)
+                if task.cooldown_sec or task.cooldown_until:
+                    # 靠冷却限流的任务，被拒多半只是"还没到时候"，不是"今天没了"。
+                    # 英雄培养就是这样：上一轮 8 小时没走完，服务器回 ret=81，
+                    # 这时候把当天次数打满是错的 —— 等冷却过去还该再试。
+                    log.info("[%s] 本次被拒，等冷却过去再试", task.key)
+                else:
+                    # 服务器明确拒绝，且没有冷却依据，今天别再撞了
+                    st["done"][task.key] = task.max_per_day
+                    log.info("[%s] 今日不再重试", task.key)
                 _save_state(st)
-                log.info("[%s] 今日不再重试", task.key)
             elif data is None:
                 # 只是没等到响应。允许后面几轮再试，但不能无限试下去，
                 # 连续 MAX_MISS 轮都收不到就认了。
