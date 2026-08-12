@@ -59,6 +59,10 @@ DANGER_FIELD = re.compile(
 # 这些任务放到最后执行（它们领的是"前面动作累积出来的"奖励）
 ORDER_LAST = {"每日任务", "周任务"}
 
+# 连续多少轮收不到响应就放弃该任务（当天）。
+# 设 3 是为了容忍偶发的网络抖动/响应慢，又不至于无限期地空发。
+MAX_MISS = 3
+
 # 服务器响应里 ret 的含义
 # ------------------------
 # 2026-08-09 从 SWF 字节码确认（不再是推断）：RseHeroVisit 的处理函数
@@ -127,11 +131,20 @@ def _left_count(data):
 
 
 def judge(rse_msg: str, data):
-    """判断一次任务的结果。返回 (是否成功, 说明, 是否应停止今日重试)。"""
+    """判断一次任务的结果。返回 (是否成功, 说明, 是否应停止今日重试)。
+
+    "没等到响应"和"服务器明确拒绝"必须区别对待
+    ------------------------------------------
+    以前两者都会把当天次数直接打满。结果是：网络抖一下、或者响应比 6 秒慢一点，
+    这个任务当天就废了 —— 三档的任务一次超时就把三次机会全赔进去。
+    实盘反馈"收不到返回内容于是就停止了"说的正是这个。
+
+    现在只有**服务器明确回了非 0 的 ret** 才算"今天别做了"。
+    收不到响应只当这一轮没做成，由调用方按连续失败次数决定何时放弃
+    （见 run() 里的 miss 计数），免费次数本来就有闸门兜着，不会白撞墙。
+    """
     if data is None:
-        # 没等到响应：可能是服务器忽略了（次数用完常见于此），也可能只是慢。
-        # 保守处理 —— 当天不再重试。
-        return False, "未收到响应（可能次数已用完或请求被忽略）", True
+        return False, "未收到响应（这一轮不算数，稍后再试）", False
     if not isinstance(data, dict):
         return True, str(data)[:80], False
     ret = data.get("ret")
@@ -190,21 +203,39 @@ class FromResponse:
     "哪个演习场没人占"、"七天乐今天是第几天"。所以它在前置之后才解析。
 
     pick(响应字典) 返回值，或返回 None 表示"没有可用的"，此时整条任务跳过。
+
+    fresh=True  要等**这一轮前置请求之后**才到的响应。军事演习、七天乐属于这类：
+                前置发出去，服务器才把场地列表/领取状态推回来，不等就必然读空。
+    fresh=False 用最近一条即可，不要求是这轮新到的。每日任务属于这类：
+                RseDailyTask 是服务器主动推的，没有对应的前置请求可发。
     """
 
-    def __init__(self, rse_msg, pick, desc=""):
+    def __init__(self, rse_msg, pick, desc="", fresh=True, timeout=6.0):
         self.rse_msg = rse_msg
         self.pick = pick
         self.desc = desc or f"{rse_msg} 里挑一个"
+        self.fresh = fresh
+        self.timeout = timeout
 
-    def resolve(self, rec):
+    def resolve(self, rec, sock=None, since=0.0):
         if rec is None:
             return None
+        if self.fresh and sock is not None:
+            # 和闸门一样要**等**：前置刚发出去，响应还在路上。
+            # 早先这里是直接读 rec.latest，前置的回包但凡慢一点就读空，
+            # 任务被判成"取不到值"而跳过。
+            data = _await_response(sock, rec, self.rse_msg, since, self.timeout)
+            if data is None:
+                return None
+            return self._pick(data)
         got = rec.latest.get(self.rse_msg)
         if not got or not isinstance(got[1], dict):
             return None
+        return self._pick(got[1])
+
+    def _pick(self, data):
         try:
-            return self.pick(got[1])
+            return self.pick(data)
         except Exception as exc:                       # 结构和预期不符就当没有
             log.debug("FromResponse(%s) 解析失败: %s", self.rse_msg, exc)
             return None
@@ -231,12 +262,19 @@ class Followup:
         self.desc = desc
 
 
-def _resolve_fields(task, rec):
-    """把占位符换成真实值。返回 (fields, 缺失的说明)。"""
+def _resolve_fields(task, rec, sock=None, since=0.0):
+    """把占位符换成真实值。返回 (fields, 缺失的说明)。
+
+    sock/since 传下去是为了让 FromResponse 能**等**前置请求的回包
+    （since = 发前置之前的时刻，只认这之后到的）。
+    """
     out = {}
     for fno, (ftype, val) in task.fields.items():
         if hasattr(val, "resolve"):
-            got = val.resolve(rec)
+            try:
+                got = val.resolve(rec, sock, since)
+            except TypeError:            # FromServer 只收 rec
+                got = val.resolve(rec)
             if got is None:
                 return None, f"{val!r} 取不到值，跳过（不猜）"
             val = got
@@ -607,7 +645,7 @@ TASKS = [
     # 实测活跃度 64 时能领 10/30/50 三档，80/100 没达标领不了。
     _t("每日任务", "每日任务·按活跃度领奖", "043d", "RceDailyTask",
        {5: ("int32", FromResponse("RseDailyTask", _eligible_gift_tier,
-                                  "取一个达标且未领的档位"))},
+                                  "取一个达标且未领的档位", fresh=False))},
        "实测", "8/10 抓包：客户端发 {giftID:10} / {giftID:30} / {giftID:50}，"
                "giftID 是 5 号字段（此前写的 getGift/taskId 是错的）。"
                "服务器持续推 RseDailyTask，dailyTask.field2 是当前活跃度，"
@@ -751,8 +789,11 @@ def run(rec, sock, config: dict, schema=None) -> dict:
 
         # 前置请求：真实客户端每个动作前都会先开面板/查询，服务端据此建上下文。
         # 少了这步，动作发出去参数再对也不生效 —— 这是 2026-08-09 定位到的根因。
-        gate_before = ((rec.latest.get(task.gate.rse_msg) or (0,))[0]
-                       if rec and task.gate else 0)
+        # 发前置之前先记下消息序号：闸门和 FromResponse 都只认这之后到的响应，
+        # 免得把登录爆发期推来的旧数据当成这一轮的回包。
+        # 用序号不用时间戳 —— time.time() 在 Windows 上粒度约 15.6ms，
+        # 服务器回得快时会和发送时刻落在同一个 tick，导致收到了也判成超时。
+        gate_before = rec.seq_mark() if rec else 0
         for pop, pfields in task.prelude:
             try:
                 sender.send_frame(sock, pop, encode_message(pfields), rec.rc4_c2s)
@@ -783,7 +824,7 @@ def run(rec, sock, config: dict, schema=None) -> dict:
         # 占位符现在才解析：像"挑一个空演习场""七天乐第几天"这类值，
         # 必须等前置请求的响应回来才算得出。解析在安全检查之前，
         # 所以检查看到的就是真正要发出去的内容。
-        fields, why = _resolve_fields(task, rec)
+        fields, why = _resolve_fields(task, rec, sock, gate_before)
         if fields is None:
             results[task.key] = why
             log.info("[%s] %s", task.key, why)
@@ -801,8 +842,8 @@ def run(rec, sock, config: dict, schema=None) -> dict:
                          for k, v in sorted(fields.items()))
 
         rse = _rse_name(task.msg)
-        # 记下发送前该响应的时间戳，避免把上一次的旧响应误当成本次结果
-        before = (rec.latest.get(rse) or (0,))[0] if rec else 0
+        # 记下发送前的消息序号，避免把上一次的旧响应误当成本次结果
+        before = rec.seq_mark() if rec else 0
         try:
             sender.send_frame(sock, task.opcode, body, rec.rc4_c2s)
             # 注意：这里**不能**立刻给 done 计数。
@@ -824,6 +865,7 @@ def run(rec, sock, config: dict, schema=None) -> dict:
         if ok:
             # 只有**确认成功**才算用掉一次每日额度
             st["done"][task.key] = done + 1
+            st.setdefault("miss", {}).pop(task.key, None)   # 成功就清零重试计数
             _save_state(st)
             log.info("[%s] ✅ %s（今日 %d/%d）", task.key, why,
                      done + 1, task.max_per_day)
@@ -834,10 +876,24 @@ def run(rec, sock, config: dict, schema=None) -> dict:
         else:
             log.warning("[%s] ❌ %s", task.key, why)
             if stop:
-                # 判为"做不了了"就把今日次数打满，别再浪费请求
+                # 服务器明确拒绝（ret != 0），今天别再撞了
                 st["done"][task.key] = task.max_per_day
+                st.setdefault("miss", {}).pop(task.key, None)
                 _save_state(st)
                 log.info("[%s] 今日不再重试", task.key)
+            elif data is None:
+                # 只是没等到响应。允许后面几轮再试，但不能无限试下去，
+                # 连续 MAX_MISS 轮都收不到就认了。
+                miss = st.setdefault("miss", {}).get(task.key, 0) + 1
+                st["miss"][task.key] = miss
+                if miss >= MAX_MISS:
+                    st["done"][task.key] = task.max_per_day
+                    log.info("[%s] 连续 %d 轮收不到响应，今日不再重试",
+                             task.key, miss)
+                else:
+                    log.info("[%s] 第 %d/%d 次没等到响应，下一轮还会再试",
+                             task.key, miss, MAX_MISS)
+                _save_state(st)
         if data is not None:
             details[task.key] = data
         time.sleep(gap)
@@ -871,7 +927,7 @@ def _run_followup(task, sock, rec, data, field_names, resp_timeout, gap):
             log.error("[%s] 后续步骤被安全检查拦截：%s", task.key, why)
             break
         rse = _rse_name(task.msg)
-        before = (rec.latest.get(rse) or (0,))[0] if rec else 0
+        before = rec.seq_mark() if rec else 0
         desc = ", ".join(f"{field_names.get(k, k)}={v[1]!r}"
                          for k, v in sorted(nxt.items()))
         try:
@@ -890,14 +946,18 @@ def _run_followup(task, sock, rec, data, field_names, resp_timeout, gap):
     return out
 
 
-def _await_response(sock, rec, rse_msg, since_ts, timeout):
-    """发完请求后等对应的服务器响应。只认 since_ts 之后到达的，避免读到旧的。"""
+def _await_response(sock, rec, rse_msg, since_seq, timeout):
+    """发完请求后等对应的服务器响应。
+
+    since_seq 是**消息到达序号**（rec.seq_mark()），只认序号更大的，
+    这样既能排掉旧数据，又不受时钟粒度影响。
+    """
     if rec is None:
         return None
     deadline = time.time() + timeout
     while time.time() < deadline:
         got = rec.latest.get(rse_msg)
-        if got and got[0] > since_ts:
+        if got and got[0] > since_seq:
             return got[1]
         try:
             sock.settimeout(0.5)

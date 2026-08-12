@@ -264,9 +264,16 @@ class Recorder:
         self.auto_reject = conf.get("自动拒绝超级强攻", False)
         self.on_alert = on_alert
         self.on_super_storm = on_super_storm   # 收到 027c 时的回调
-        # 每种服务器消息的最新一条解码结果 {消息名: (收到时刻, 字段字典)}。
+        # 每种服务器消息的最新一条解码结果 {消息名: (到达序号, 字段字典)}。
         # 每日任务靠它读"剩余免费次数"再决定发不发，避免免费用完后扣券/扣勋章。
+        #
+        # 第一项是**单调递增的序号**，不是时间戳。曾经用 time.time()，
+        # 结果在 Windows 上翻了车：time.time() 的粒度约 15.6ms，
+        # 服务器回得快时，"发请求的时刻"和"响应到达的时刻"会落在同一个 tick 上，
+        # 于是 `到达时刻 > 发送时刻` 不成立，明明收到了却判成超时。
+        # 序号是精确的，不受时钟粒度影响。
         self.latest = {}
+        self._latest_seq = 0
         self.reader = FrameReader(on_desync=self._note_desync)          # s2c
         self.reader_out = FrameReader(on_desync=self._note_desync)      # c2s
         self.counts = {}
@@ -349,6 +356,10 @@ class Recorder:
         self._rc4, self._crypto, self._probe = {}, "off", [0, 0]
         self.reader = FrameReader(on_desync=self._note_desync)
         self.reader_out = FrameReader(on_desync=self._note_desync)
+
+    def seq_mark(self):
+        """取当前的消息到达序号。之后只认序号比它大的消息 = "这之后才到的"。"""
+        return self._latest_seq
 
     def wrap(self, sock, **meta):
         """在 connect 之后、发第一个字节之前调用，返回带旁路的 socket。
@@ -586,7 +597,9 @@ class Recorder:
                         # 缓存最新一条，供每日任务"先读状态再决策"用
                         # （如 RseWPCExplore.leftFreeCnt 剩余免费探索次数）
                         if not outgoing:
-                            self.latest[rec.get("msg", op)] = (time.time(), data)
+                            self._latest_seq += 1
+                            self.latest[rec.get("msg", op)] = (
+                                self._latest_seq, data)
 
             # ---- 以下为明文消息的原有逻辑，行为保持不变 ----
             text = _readable_text(body) if len(body) <= 65536 else ""
