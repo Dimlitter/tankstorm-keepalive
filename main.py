@@ -1,12 +1,22 @@
-"""坦克风暴（QQ空间 appid 100616028）每日任务脚本 —— 入口。
+"""坦克风暴（QQ空间 appid 100616028）—— 命令行入口。
 
-用法：
-  python main.py                 按 config.json 开关执行全部任务
-  python main.py --login         强制重新扫码登录
-  python main.py --task 每日签到  只执行指定任务（调试单个接口用）
-  python main.py --list          列出 endpoints.json 中已配置的任务
-  python main.py --check         只检查登录态和参数提取，不执行任务
-  python main.py --keepalive     保持在线守护进程（连游戏 socket 定时心跳，防掉线）
+这个脚本干**两件互相独立**的事，别把它们混在一起：
+
+  保活   `--keepalive`   常驻，连着游戏 socket 定时发心跳，防止被踢下线。
+                         唯一职责就是别掉线，跑几天几周不停。
+  每日   `--daily`       跑一轮每日任务然后退出。一次性批处理。
+
+分开的理由：保活断线会自动重连，如果每日任务挂在里面，每次重连都要重跑一轮；
+而且任务出错会牵连保活这个更重要的进程。要"连上顺带领一轮"就显式写
+`--keepalive --daily`。
+
+常用：
+  python main.py --login       扫码登录（cookie 存 cookies.json，之后自动续期）
+  python main.py --check       验证登录态，打印 uid/sid/level
+  python main.py --keepalive   保活常驻
+  python main.py --daily       跑一轮每日任务
+  python main.py --list        列出每日任务及今日进度
+  python main.py --reset       清空今日任务计数
 """
 
 import argparse
@@ -57,20 +67,34 @@ def load_config() -> dict:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="坦克风暴每日任务（纯请求版）")
-    parser.add_argument("--login", action="store_true", help="强制重新扫码登录")
-    parser.add_argument("--task", help="只执行指定名称的任务")
-    parser.add_argument("--list", action="store_true", help="列出已配置任务")
-    parser.add_argument("--check", action="store_true", help="只验证登录与参数提取")
-    parser.add_argument("--keepalive", action="store_true",
-                        help="保持在线守护进程（连游戏 socket 定时心跳）")
-    parser.add_argument("--daily", action="store_true",
-                        help="只跑一轮每日任务后退出（测试用，不常驻）")
-    parser.add_argument("--real", action="store_true",
-                        help="（已废弃，保留兼容：现在 --daily 一律真实发送）")
-    parser.add_argument("--reset", action="store_true",
-                        help="清空今日任务计数（失败的尝试误占了额度时用）")
+    parser = argparse.ArgumentParser(
+        description="坦克风暴：保活守护 + 每日任务（两件独立的事）")
+    g1 = parser.add_argument_group("登录")
+    g1.add_argument("--login", action="store_true", help="强制重新扫码登录")
+    g1.add_argument("--check", action="store_true", help="验证登录态并打印上下文")
+
+    g2 = parser.add_argument_group("保活（常驻）")
+    g2.add_argument("--keepalive", action="store_true",
+                    help="连游戏 socket 定时心跳，防掉线；断线自动重连")
+
+    g3 = parser.add_argument_group("每日任务（一次性）")
+    g3.add_argument("--daily", action="store_true",
+                    help="跑一轮每日任务后退出；与 --keepalive 同时给则由保活带着跑")
+    g3.add_argument("--list", action="store_true", help="列出每日任务及今日进度")
+    g3.add_argument("--reset", action="store_true", help="清空今日任务计数")
+
+    g4 = parser.add_argument_group("其它")
+    g4.add_argument("--task", help="（旧的 HTTP 接口任务，见 endpoints.json）")
+    g4.add_argument("--real", action="store_true",
+                    help="（已废弃，保留兼容：现在 --daily 一律真实发送）")
     args = parser.parse_args()
+
+    # 什么都不给就打印用法。以前默认会去跑 endpoints.json 里那套早已废弃的
+    # HTTP 任务，全部失败还把退出码带成 1，看着像登录坏了。
+    if not any((args.login, args.check, args.keepalive, args.daily,
+                args.list, args.reset, args.task)):
+        parser.print_help()
+        return 0
 
     config = load_config()
     endpoints = load_json(ENDPOINTS_FILE)
@@ -107,8 +131,9 @@ def main() -> int:
         print("周任务/每日任务由代码强制排最后（前面的操作会推进它们的进度）\n")
         return 0
 
-    # 同日去重：cron 重复触发/手动补跑时避免重复执行
-    if config.get("同日去重", False) and not (args.task or args.check):
+    # 同日去重只对旧的 HTTP 任务有意义。每日任务自己按 logs/daily-state.json
+    # 记每项的次数，比"今天整体跑没跑过"精确得多，不该再被这个开关拦住。
+    if config.get("同日去重", False) and args.task:
         state = load_json(STATE_FILE, required=False)
         if state.get("last_run") == date.today().isoformat():
             log.info("今天已经跑过（state.json），退出。删掉 state.json 可强制重跑")
@@ -116,14 +141,13 @@ def main() -> int:
 
     qq = QQSession()
 
-    # 保持在线：长驻守护进程；登录（含二维码 PushPlus 推送）由它内部处理
+    # 保活：常驻。--keepalive --daily 时才顺带跑一轮任务
     if args.keepalive:
-        return socket_keepalive.run(qq, config)
+        return socket_keepalive.run(qq, config, with_daily=args.daily)
 
-    # 只跑一轮每日任务就退出 —— 测试用，不必启动整个守护进程
+    # 每日任务：连一次、跑一轮、退出
     if args.daily:
         config.setdefault("每日任务", {})["启用"] = True
-        log.info("--daily：真实发送模式（干跑已移除，它给不出有效信息）")
         return socket_keepalive.run_daily_once(qq, config)
 
     # 需要人工介入时把二维码推到 PushPlus。配了 QQ 号则走「推送登录」，
@@ -152,13 +176,17 @@ def main() -> int:
         log.info("提取到的上下文: %s", json.dumps(printable, ensure_ascii=False))
         return 0
 
+    if args.login:      # --login 到这里就算完了，别再去跑那套废弃的 HTTP 任务
+        log.info("登录完成，uin=%s", qq.uin)
+        return 0
+
+    # 旧的 HTTP 接口任务（endpoints.json），只有显式 --task 才会走到
     results = engine.run_tasks(qq.session, endpoints, config, ctx, only=args.task)
     summary = engine.summarize(results)
     log.info("执行完毕:\n%s", summary)
 
-    if not (args.task or args.check):
-        with open(STATE_FILE, "w", encoding="utf-8") as f:
-            json.dump({"last_run": date.today().isoformat()}, f)
+    with open(STATE_FILE, "w", encoding="utf-8") as f:
+        json.dump({"last_run": date.today().isoformat()}, f)
 
     failed = any(r.status == "失败" for r in results)
     return 1 if failed else 0

@@ -271,10 +271,10 @@ class QQSession:
                 pass
 
     def _ptqrshow(self, push_uin=None):
-        """请求二维码/推送。成功返回 response，失败返回 None 并说明原因。
+        """请求二维码/推送。返回 (response, 失败原因)；成功时原因为空串。
 
-        腾讯在拒绝时不会返回 PNG，而是回一段文本或空内容；此前代码把它当成图片
-        写进 qrcode.png，然后只报一句"未获取到 qrsig"，看不出真正原因。
+        腾讯拒绝时不返回 PNG，而是回一段 JSONP 或空内容；早先代码把它当成图片
+        写进 qrcode.png，只报一句"未获取到 qrsig"，看不出真正原因。
         """
         params = {
             "appid": PTLOGIN_APPID, "e": "2", "l": "M", "s": "3", "d": "72",
@@ -289,21 +289,25 @@ class QQSession:
                                  headers={"Referer": "https://xui.ptlogin2.qq.com/"},
                                  timeout=15)
         except requests.RequestException as exc:
-            log.warning("ptqrshow 请求异常: %s", exc)
-            return None
+            return None, f"请求异常 {exc}"
 
         body = r.content or b""
-        is_png = body[:8] == b"\x89PNG\r\n\x1a\n"
-        if not is_png:
-            snippet = body[:200].decode("utf-8", "replace").strip()
-            log.warning("ptqrshow 未返回二维码图（%d 字节，content-type=%s）：%s",
-                        len(body), r.headers.get("Content-Type", "?"),
-                        snippet or "(空)")
-            return None
-        if not self.session.cookies.get("qrsig"):
-            log.warning("ptqrshow 返回了图但没有 qrsig，无法轮询")
-            return None
-        return r
+        if body[:8] == b"\x89PNG\r\n\x1a\n":
+            if not self.session.cookies.get("qrsig"):
+                return None, "返回了图但没有 qrsig，无法轮询"
+            return r, ""
+
+        # 失败：把 ec 码解出来，好判断是"参数变了"还是别的
+        text = body[:300].decode("utf-8", "replace").strip()
+        m = re.search(r'"ec"\s*:\s*(\d+)', text)
+        ec = m.group(1) if m else ""
+        if r.status_code == 403:
+            return None, "网关直接 403（参数组合不被接受）"
+        if ec:
+            m2 = re.search(r'"em"\s*:\s*"([^"]*)"', text)
+            return None, f"ec={ec} {m2.group(1) if m2 else ''}".strip()
+        return None, (f"HTTP {r.status_code}，{len(body)} 字节，"
+                      f"content-type={r.headers.get('Content-Type', '?')}")
 
     def qr_login(self, timeout_sec: int = 180, on_qr=None, push_uin=None) -> bool:
         """扫码登录。on_qr(qrcode_path) 在二维码生成后回调（用于推送到手机等）。
@@ -338,17 +342,25 @@ class QQSession:
             except requests.RequestException as exc:
                 log.debug("xlogin 预热失败(忽略): %s", exc)
 
-            r = self._ptqrshow(push_uin=push_uin)
+            r, why = self._ptqrshow(push_uin=push_uin)
             if r is None:
-                log.warning("推送登录未能建立（QQ %s），回退到普通扫码", push_uin)
+                # 2026-08-12 实测：qr_push 这条路目前**整条不通**，
+                # 带 type=1 一律 ec=313「提交参数错误」，换成别的 type 值网关直接 403。
+                # 设备凭据（ptcz/RK/superkey/supertoken）全都在，所以不是缺票据，
+                # 是腾讯把这个接口的参数形状改了。黑盒试不出来，
+                # 要修得先抓一次浏览器上「快捷登录」的真实请求再照抄。
+                # 这里降为 info 并只说一句 —— 它每次登录都会走到，
+                # 用 warning 刷屏会让人以为登录出了问题，其实扫码这条路好好的。
+                log.info("推送登录不可用（%s），本次用扫码。"
+                         "这是腾讯接口变更，不影响扫码登录", why)
             else:
                 pushed = True
 
         if r is None:                       # 普通扫码：干净会话
             s.cookies.clear()
-            r = self._ptqrshow()
+            r, why = self._ptqrshow()
             if r is None:
-                log.error("二维码请求失败，无法登录")
+                log.error("二维码请求失败，无法登录：%s", why)
                 return False
 
         with open(QRCODE_FILE, "wb") as f:

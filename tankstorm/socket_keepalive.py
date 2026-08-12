@@ -49,7 +49,8 @@ def _http_warmup(qq, ctx: dict) -> None:
         log.debug("warmup 失败(忽略): %s", exc)
 
 
-def _one_session(qq, spec: dict, conf: dict, config: dict, rec=None) -> str:
+def _one_session(qq, spec: dict, conf: dict, config: dict, rec=None,
+                 with_daily: bool = False) -> str:
     """跑一次完整连接，直到断开。返回断开原因（字符串）。"""
     ctx = get_game_context(qq)
     host = ctx.get("server") or spec.get("default_host", "tankstorm-proxy.sincetimes.com")
@@ -117,9 +118,12 @@ def _one_session(qq, spec: dict, conf: dict, config: dict, rec=None) -> str:
             # sid 是加密载荷分析时的头号候选密钥材料，记进会话元信息
             rec.note("login_ok", sid=ctx.get("sid"), uid=ctx.get("uid"))
 
-        # 每日任务：登录完成后跑一次。失败不影响保活主循环——保活是主业务，
-        # 领奖失败大不了明天再领，不能因此把连接掀翻。
-        if config.get("每日任务", {}).get("启用", False):
+        # 每日任务默认**不在这里跑**。保活和每日任务是两件事：
+        #   · 保活是常驻的、唯一的职责就是别掉线，必须尽可能不出错
+        #   · 每日任务是一次性的批处理，跑完就该结束
+        # 混在一起的坏处是每次重连都会重跑一轮任务，而且任务出问题会牵连保活。
+        # 需要"连上顺便领一轮"时显式传 with_daily=True（或 --keepalive --daily）。
+        if with_daily:
             try:
                 res, det = daily.run(rec, sock, config)
                 _push_daily_summary(config, res, det)
@@ -308,7 +312,12 @@ def relogin_with_push(qq, config: dict) -> bool:
         time.sleep(15)
 
 
-def run(qq, config: dict) -> int:
+def run(qq, config: dict, with_daily: bool = False) -> int:
+    """保活守护进程。只负责别掉线。
+
+    with_daily=True 时，每次连上后顺带跑一轮每日任务（`--keepalive --daily`）。
+    默认不跑 —— 保活和每日任务是两件独立的事，见 _one_session 里的说明。
+    """
     conf = config.get("保持活跃", {})
     if not conf.get("启用", False):
         log.info("保持活跃未启用（config.json 保持活跃.启用=false）")
@@ -350,7 +359,8 @@ def run(qq, config: dict) -> int:
             if not qq.is_valid():
                 relogin_with_push(qq, config)
 
-            reason = _one_session(qq, spec, conf, config, rec)
+            reason = _one_session(qq, spec, conf, config, rec,
+                                  with_daily=with_daily)
             log.warning("本次连接结束：%s", reason)
             # 断开后退避重连
             wait = min(backoff, max_backoff)
