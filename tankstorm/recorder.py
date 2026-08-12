@@ -274,6 +274,11 @@ class Recorder:
         # 序号是精确的，不受时钟粒度影响。
         self.latest = {}
         self._latest_seq = 0
+        # 同名消息的近几条历史 {消息名: [(序号, 字段字典), ...]}。
+        # 服务器常常连着推同名但 type 不同的两条（实测 RseWPCBaseOpen 先来
+        # type:0 带 leftFreeCnt，紧跟着 type:3 只有擂台信息），只留最后一条
+        # 就会把真正有用的那条冲掉。闸门要按内容挑，所以得留一小段历史。
+        self.recent = {}
         self.reader = FrameReader(on_desync=self._note_desync)          # s2c
         self.reader_out = FrameReader(on_desync=self._note_desync)      # c2s
         self.counts = {}
@@ -303,6 +308,7 @@ class Recorder:
         self._rc4 = {}
         self._crypto = "off"
         self._probe = [0, 0]        # [合法数, 已验数]
+        self._rc4_out_rec = None    # 录制上行专用的第二条 c2s 密钥流
 
         # 原始字节流旁路。默认**开启**，而且不该关：RC4 密钥流在同方向的
         # 非豁免 body 之间连续累积，唯一保险的做法就是把整条流从第一个字节
@@ -389,6 +395,19 @@ class Recorder:
                      "tools/redwar_rc4.py 解", why)
             return False
         self._rc4, self._crypto, self._probe = rc4, "probing", [0, 0]
+
+        # 上行**录制**要用一条独立的同源密钥流，绝不能和发送共用一个实例。
+        #
+        # RC4 是有状态的流密码：crypt() 一次就往前走 len(body) 个字节。
+        # sender.send_frame 拿 rec.rc4_c2s 加密发出去，紧接着旁路又把这份字节
+        # 喂回 feed(data,"c2s")，如果还用同一个实例去"解密留档"，
+        # 同一帧就把密钥流推进了两次 —— 第一帧还对，从第二帧起我们加密的位置
+        # 就比服务端预期多走一倍，服务端解出来是乱码，于是**默默丢弃**，
+        # 表现就是"请求发出去了但永远没有回包"。2026-08-12 实盘定位到这里。
+        #
+        # 两条流同源、各自每帧只走一次，因此始终与服务端对齐。
+        rec_rc4, _ = crypto.from_ctx(ctx or {})
+        self._rc4_out_rec = (rec_rc4 or {}).get("c2s")
         log.info("实时解密已就绪：%s", why)
         return True
 
@@ -403,8 +422,12 @@ class Recorder:
         return self._rc4.get("c2s")
 
     def _decrypt(self, direction, op, body):
-        """解一条非豁免 body。必须**无条件**调用，漏一条密钥流就永久错位。"""
-        c = self._rc4.get(direction)
+        """解一条非豁免 body。必须**无条件**调用，漏一条密钥流就永久错位。
+
+        上行用的是录制专用的那条密钥流（_rc4_out_rec），不是发送用的那条，
+        否则同一帧会把发送密钥流推进两次。见 enable_crypto 里的说明。
+        """
+        c = self._rc4_out_rec if direction == "c2s" else self._rc4.get(direction)
         if c is None or self._crypto == "failed":
             return None
         plain = c.crypt(body)
@@ -598,8 +621,12 @@ class Recorder:
                         # （如 RseWPCExplore.leftFreeCnt 剩余免费探索次数）
                         if not outgoing:
                             self._latest_seq += 1
-                            self.latest[rec.get("msg", op)] = (
-                                self._latest_seq, data)
+                            nm = rec.get("msg", op)
+                            self.latest[nm] = (self._latest_seq, data)
+                            hist = self.recent.setdefault(nm, [])
+                            hist.append((self._latest_seq, data))
+                            if len(hist) > 8:
+                                del hist[:-8]
 
             # ---- 以下为明文消息的原有逻辑，行为保持不变 ----
             text = _readable_text(body) if len(body) <= 65536 else ""

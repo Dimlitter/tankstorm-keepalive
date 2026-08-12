@@ -276,7 +276,8 @@ def _resolve_fields(task, rec, sock=None, since=0.0):
             except TypeError:            # FromServer 只收 rec
                 got = val.resolve(rec)
             if got is None:
-                return None, f"{val!r} 取不到值，跳过（不猜）"
+                # 多数时候这不是故障，而是"今天这份已经领过了"之类的正常状态
+                return None, f"{val!r} 没有可做的（已领过或暂时没有），跳过"
             val = got
         out[fno] = (ftype, val)
     return out, ""
@@ -573,11 +574,14 @@ TASKS = [
                 ("04e1", {1: ("int32", 0)}),
                 ("04e1", {1: ("int32", 21)})]),
 
+    # 抓包里客户端连 strategytype:0 也写了，照抄（见 encode_message 的 omit_zero）
     _t("战略训练", "战争学院·战略技能训练", "04a5", "RceWarCollegeOpt",
-       {1: ("int32", 4), 3: ("int32", 1)},
-       "实测", "实测 {type:1} 开面板 → {type:4,trainskilltype:1} 训练，每日 7 次",
+       {1: ("int32", 4), 2: ("int32", 0), 3: ("int32", 1)},
+       "实测", "8/10 抓包：{type:1,strategytype:0,trainskilltype:0} 开面板 → "
+               "{type:4,strategytype:0,trainskilltype:1} 训练，每日 7 次",
        max_per_day=7,
-       prelude=[("04a5", {1: ("int32", 1)})]),
+       prelude=[("04a5", {1: ("int32", 1), 2: ("int32", 0),
+                          3: ("int32", 0)})]),
 
     # 占领是真正拿收益的那一步，此前只发了查询，等于什么也没做。
     # tokenNum 是当天剩余占领次数（实测 3，占一次变 2），正好当闸门。
@@ -594,13 +598,14 @@ TASKS = [
 
     # 探索只是找矿，占下来才有产出。占矿的 resourceID 来自探索响应。
     _t("矿区争夺", "矿区争夺·探索并占矿", "049a", "RceResourceOpt",
-       {1: ("int32", 2), 3: ("int32", 1)},
+       {1: ("int32", 2), 2: ("int32", 0), 3: ("int32", 1), 4: ("string", "")},
        "实测", "8/10 抓包：{type:1} 查询 → {type:2,searchType:1} 探索 → "
                "{type:3,resourceID:120007} 占矿。探索响应 field5 是探到的矿，"
                "只有 field1 没有 field6 的就是无人占领的那个。"
                "查询响应 searchTimes 是当天剩余搜索次数（实测 5）",
        max_per_day=5, cooldown_sec=600,
-       prelude=[("049a", {1: ("int32", 1)})],
+       prelude=[("049a", {1: ("int32", 1), 2: ("int32", 0),
+                          3: ("int32", 0), 4: ("string", "")})],
        gate=Gate("RseResourceOpt", "searchTimes"),
        followup=Followup("049a", _next_mine_to_occupy, max_rounds=1,
                          desc="占下探到的无主矿")),
@@ -617,17 +622,29 @@ TASKS = [
        prelude=[("045c", {1: ("int32", 1)}),
                 ("045b", {1: ("bool", False), 2: ("int32", 5)})]),
 
+    # 客户端把 11 个字段全写了（除 type 外都是 0），照抄。
+    # 1=costCredit 虽然命中危险字段名，但值是 0，安全检查照样放行。
     _t("国家宝箱", "国家·宝箱领取", "0463", "RceCountryOpt",
-       {4: ("int32", 15)},
-       "实测", "实测 RceCountryOpen{} 开面板 → RceCountryOpt{type:15}",
+       {1: ("int32", 0), 2: ("int32", 0), 3: ("int32", 0), 4: ("int32", 15),
+        6: ("int32", 0), 7: ("int32", 0), 9: ("int32", 0), 13: ("int32", 0),
+        14: ("int32", 0), 15: ("int32", 0), 16: ("int32", 0)},
+       "实测", "8/10 抓包：RceCountryOpen{} 开面板 → RceCountryOpt{type:15}，"
+               "其余 10 个字段客户端都显式写了 0",
        prelude=[("0462", {})]),
 
     # 顺序按抓包来：type:0 → type:2 → type:14 → type:16。
     # 原先把捐献排在公会战前面，等于跳过了 type:14 那一步。
+    # 抓包里每个 RceGuildOpt 都带着这一串 0，照抄
     _t("公会战", "公会战·领奖/报名", "0479", "RceGuildOpt",
-       {2: ("int32", 14)},
+       {2: ("int32", 14), 4: ("int32", 0), 13: ("int32", 0), 17: ("int32", 0),
+        18: ("int32", 0), 22: ("int32", 0), 23: ("int32", 0)},
        "实测", "8/10 抓包：type:0 → type:2 → type:14",
-       prelude=[("0479", {2: ("int32", 0)}), ("0479", {2: ("int32", 2)})]),
+       prelude=[("0479", {2: ("int32", 0), 4: ("int32", 0), 13: ("int32", 0),
+                          17: ("int32", 0), 18: ("int32", 0),
+                          22: ("int32", 0), 23: ("int32", 0)}),
+                ("0479", {2: ("int32", 2), 4: ("int32", 0), 13: ("int32", 0),
+                          17: ("int32", 0), 18: ("int32", 0),
+                          22: ("int32", 0), 23: ("int32", 0)})]),
 
     _t("公会捐献", "公会·捐献", "0479", "RceGuildOpt",
        {2: ("int32", 16), 6: ("string", FromServer("RseInit", "username")),
@@ -796,7 +813,9 @@ def run(rec, sock, config: dict, schema=None) -> dict:
         gate_before = rec.seq_mark() if rec else 0
         for pop, pfields in task.prelude:
             try:
-                sender.send_frame(sock, pop, encode_message(pfields), rec.rc4_c2s)
+                sender.send_frame(sock, pop,
+                                  encode_message(pfields, omit_zero=False),
+                                  rec.rc4_c2s)
                 log.debug("[%s] 前置 %s", task.key, pop)
                 time.sleep(0.4)
             except Exception as exc:
@@ -807,8 +826,11 @@ def run(rec, sock, config: dict, schema=None) -> dict:
         # 闸门：前置请求的响应里就有剩余免费次数，客户端正是读它决定
         # 走免费档还是扣券/扣勋章档。读不到就不发。
         if task.gate:
+            # 只认真正带着次数字段的那条 —— 同名消息可能连来好几条
+            gfield = task.gate.field
             gdata = _await_response(sock, rec, task.gate.rse_msg,
-                                    gate_before, task.gate.timeout)
+                                    gate_before, task.gate.timeout,
+                                    want=lambda d: gfield in d)
             passed, why, exhausted = _check_gate(task.gate, gdata)
             if not passed:
                 results[task.key] = f"闸门拦截：{why}"
@@ -837,7 +859,9 @@ def run(rec, sock, config: dict, schema=None) -> dict:
             log.error("[%s] %s", task.key, results[task.key])
             continue
 
-        body = encode_message(fields)
+        # omit_zero=False：任务表里列的字段一个都不能省，0 也要显式写出来。
+        # 真实客户端就是这么发的，省掉等于把 type/expType 这些字段整个丢了。
+        body = encode_message(fields, omit_zero=False)
         desc = ", ".join(f"{field_names.get(k, k)}={v[1]!r}"
                          for k, v in sorted(fields.items()))
 
@@ -913,7 +937,7 @@ def _run_followup(task, sock, rec, data, field_names, resp_timeout, gap):
     fu = task.followup
     if fu is None or data is None:
         return []
-    out, last = [], data
+    out, last, seen = [], data, set()
     for _ in range(fu.max_rounds):
         try:
             nxt = fu.build(last)
@@ -922,6 +946,13 @@ def _run_followup(task, sock, rec, data, field_names, resp_timeout, gap):
             break
         if not nxt:
             break
+        # 同一包别发第二遍。服务器对领奖的即时回包里状态还没更新
+        # （实测领了 giftID=10，回包里它仍标着"未领"），照着算就会再领一次。
+        sig = tuple(sorted((k, v[1]) for k, v in nxt.items()))
+        if sig in seen:
+            log.debug("[%s] 后续步骤重复（%s），停", task.key, sig)
+            break
+        seen.add(sig)
         ok, why = _check_safety(task, field_names, nxt)
         if not ok:
             log.error("[%s] 后续步骤被安全检查拦截：%s", task.key, why)
@@ -931,7 +962,9 @@ def _run_followup(task, sock, rec, data, field_names, resp_timeout, gap):
         desc = ", ".join(f"{field_names.get(k, k)}={v[1]!r}"
                          for k, v in sorted(nxt.items()))
         try:
-            sender.send_frame(sock, fu.opcode, encode_message(nxt), rec.rc4_c2s)
+            sender.send_frame(sock, fu.opcode,
+                              encode_message(nxt, omit_zero=False),
+                              rec.rc4_c2s)
             log.info("[%s] 后续 %s(%s) {%s}", task.key, fu.desc, fu.opcode, desc)
         except Exception as exc:
             log.warning("[%s] 后续步骤发送失败: %s", task.key, exc)
@@ -946,19 +979,39 @@ def _run_followup(task, sock, rec, data, field_names, resp_timeout, gap):
     return out
 
 
-def _await_response(sock, rec, rse_msg, since_seq, timeout):
+def _pick_recent(rec, rse_msg, since_seq, want=None):
+    """从这条消息的近期历史里挑一条序号更新、且满足 want 的。
+
+    只看 rec.latest 是不够的：服务器会连着推同名但内容不同的两条
+    （RseWPCBaseOpen 先 type:0 带 leftFreeCnt，再 type:3 只有擂台信息），
+    latest 会被后一条冲掉，闸门就以为"没有这个字段"。
+    """
+    hist = getattr(rec, "recent", {}).get(rse_msg)
+    if hist:
+        for seq, data in reversed(hist):
+            if seq > since_seq and (want is None or want(data)):
+                return data
+        return None
+    got = rec.latest.get(rse_msg)                 # 老录制器没有 recent
+    if got and got[0] > since_seq and (want is None or want(got[1])):
+        return got[1]
+    return None
+
+
+def _await_response(sock, rec, rse_msg, since_seq, timeout, want=None):
     """发完请求后等对应的服务器响应。
 
     since_seq 是**消息到达序号**（rec.seq_mark()），只认序号更大的，
     这样既能排掉旧数据，又不受时钟粒度影响。
+    want 可选，用来在同名的几条里挑出真正有用的那条。
     """
     if rec is None:
         return None
     deadline = time.time() + timeout
     while time.time() < deadline:
-        got = rec.latest.get(rse_msg)
-        if got and got[0] > since_seq:
-            return got[1]
+        hit = _pick_recent(rec, rse_msg, since_seq, want)
+        if hit is not None:
+            return hit
         try:
             sock.settimeout(0.5)
             if not sock.recv(8192):
