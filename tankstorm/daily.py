@@ -625,11 +625,18 @@ TASKS = [
     # ⚠️ heroType 是**这个号自己的英雄编号**，换号要重新抓。
     # 该消息里 10=credit、13=usehonorcredit、17/18=itemID/itemCount 都是花钱字段，
     # 我们一个都不发，安全检查也会拦。
+    # ⚠️ 默认关闭，别打开，除非先补上闸门。
+    # 参数本身是 8/12 抓包实测的，问题出在**没有任何可读的剩余次数或冷却字段**：
+    # RseBuildingModify 只回 error/资源快照，翻遍也没有像计数器的东西。
+    # 按项目铁律「先查询、没次数就不做」，这种就不能自动跑 —— 参谋和军备
+    # 都已证明"看着像每日、实际隔两三天"，凭猜测每天发一次早晚要出事。
+    # 要开它，得先抓一次"做到不能再做为止"的包，找出哪个字段在递减。
     _t("英雄培养", "英雄中心·培养", "0414", "RceBuildingModify",
        {2: ("int32", 10049), 3: ("int32", 75),
         15: ("int32", 1122), 16: ("int32", 0)},
-       "实测", "8/12 抓包实测一次，credit 未变。heroType=1122 是本账号的英雄编号，"
-               "换号必须重抓；没有剩余次数字段，一天只做一次",
+       "待确认", "参数实测（8/12 抓包，credit 未变），但响应里找不到剩余次数或冷却，"
+                 "无法判断隔多久能做一次，故默认不执行。"
+                 "另注：heroType=1122 是本账号的英雄编号，换号必须重抓",
        max_per_day=1),
 
     _t("技能书将领", "将领·免费技能书", "048a", "RceBookCollection",
@@ -646,21 +653,21 @@ TASKS = [
     # 读不到剩余次数就等于不知道还免不免费，撞过头就开始扣勋章。
     # 规矩是**先查询、没次数就不做**，查不到次数就只做一次。
     # RseAdviserOpt 有 nVistAdvCnt 字段疑似次数，但实测响应里没带，暂不敢用。
-    _t("参谋操作", "参谋·免费派遣", "04da", "RceAdviserOpt",
+    # 参谋分两档：noptType 11=普通、12=高级，各有独立的免费次数。
+    # **不是每天都能做** —— 8/12 抓包实测高级用掉后，下次可用时刻推到了
+    # 2.6 天以后。所以绝不能按"一天一次"发，必须读次数。
+    #   sVisitData.field4 = [普通剩余, 高级剩余]   实测 [0,1] → 用掉高级 → [0,0]
+    #   sVisitData.field5 = [普通下次可用时刻, 高级下次可用时刻]（unix 秒）
+    # 用券版是再带一个 nitemID 字段，我们永远不发，所以花不掉券。
+    _t("参谋操作", "参谋·免费招募（普通+高级）", "04da", "RceAdviserOpt",
        {1: ("int32", 11)},
-       "实测", "实测 noptType:1 查询 → 11。响应里读不到剩余免费次数，"
-               "所以一轮只做一次，绝不靠撞墙试探",
-       prelude=[("04da", {1: ("int32", 1)})]),
-
-    # 8/12 抓包：高级招募是 noptType:12，每天一次免费。
-    # 用券那次是 {noptType:12, nitemID:10107} —— **多一个 nitemID 字段**。
-    # 也就是说免费和用券是两个不同的请求，只要我们永远不发 nitemID，
-    # 就不可能把券花掉。响应里没有剩余次数字段，所以一天只做一次。
-    _t("参谋高级", "参谋·高级招募（免费那次）", "04da", "RceAdviserOpt",
-       {1: ("int32", 12)},
-       "实测", "8/12 抓包：{noptType:1} 查询 → {noptType:12} 免费高级招募。"
-               "用券版是再带 nitemID，我们不发；实测 credit 全程未变",
-       prelude=[("04da", {1: ("int32", 1)})]),
+       "实测", "8/12 抓包：{noptType:1} 查询 → {noptType:11} 普通 / {noptType:12} 高级。"
+               "闸门读 sVisitData.field4=[普通,高级] 剩余次数；"
+               "field5 是下次可用时刻，实测高级间隔约 2.6 天，绝非每日",
+       max_per_day=4,
+       prelude=[("04da", {1: ("int32", 1)})],
+       gate=Gate("RseAdviserOpt", "sVisitData.field4"),
+       tiers=Tiers(1, [11, 12])),
 
     _t("特工派遣", "远程火炮·特工派遣", "04d6", "RceTrenchMortarOpt",
        {1: ("int32", 1), 2: ("int32", 1001)},
@@ -688,26 +695,18 @@ TASKS = [
 
     _t("军备制造", "军备研究·制造", "04e1", "RceJunBeiOpt",
        {1: ("int32", 22), 5: ("int32", 1)},
-       "实测", "8/10 抓包：type:21 → type:0 → type:21 三步前置，再 {type:22, nExlType:1}。"
+       "实测", "8/10+8/12 抓包：type:21 → type:0 → type:21 三步前置，"
+               "再 {type:22, nExlType:1} 普通 / nExlType:4 自动化制造厂（高级）。"
                "nExlType 是 5 号字段 —— 此前误写成 2 号(nJunBeiID)。"
-               "⚠️ RseJunBeiOpt 里找不到可信的剩余免费次数字段，"
-               "所以一轮只做一次，不靠撞墙试探",
-       max_per_day=1,
+               "闸门读 field14[].field1=[普通剩余, 高级剩余]，"
+               "field14[].field2 是下次可用时刻；高级实测用掉后推到 0.9 天以后，"
+               "同样不是每天都能做。用券版再带 nItemID，我们不发",
+       max_per_day=4,
        prelude=[("04e1", {1: ("int32", 21)}),
                 ("04e1", {1: ("int32", 0)}),
-                ("04e1", {1: ("int32", 21)})]),
-
-    # 8/12 抓包：自动化制造厂（高级）是 nExlType:4，每天一次免费。
-    # 用券那次是 {type:22, nExlType:4, nItemID:10116} —— 多一个 nItemID 字段。
-    # 和参谋高级同理：免费与用券是两个不同的请求，不发 nItemID 就花不掉券。
-    _t("军备高级", "军备研究·自动化制造厂（免费那次）", "04e1", "RceJunBeiOpt",
-       {1: ("int32", 22), 5: ("int32", 4)},
-       "实测", "8/12 抓包：同样三步前置 → {type:22, nExlType:4}。"
-               "用券版再带 nItemID，我们不发；实测全程 credit 未变",
-       max_per_day=1,
-       prelude=[("04e1", {1: ("int32", 21)}),
-                ("04e1", {1: ("int32", 0)}),
-                ("04e1", {1: ("int32", 21)})]),
+                ("04e1", {1: ("int32", 21)})],
+       gate=Gate("RseJunBeiOpt", "field14[].field1"),
+       tiers=Tiers(5, [1, 4])),
 
     # 开面板响应里的 skilltraintimes 就是剩余训练次数（实测 5→4→…→0）。
     # 次数用完后服务器直接回 ret=11 拒绝，**不会扣费**（要加次数得自己去买），
@@ -758,7 +757,8 @@ TASKS = [
                "不是真的去打、也没有战斗奖励",
        max_per_day=2,
        prelude=[("045c", {1: ("int32", 1)}),
-                ("045b", {1: ("bool", False), 2: ("int32", 5)})]),
+                ("045b", {1: ("bool", False), 2: ("int32", 5)})],
+       gate=Gate("RsePVEFightOpt", "fightdata.field2")),
 
     # 客户端把 11 个字段全写了（除 type 外都是 0），照抄。
     # 1=costCredit 虽然命中危险字段名，但值是 0，安全检查照样放行。
@@ -850,6 +850,49 @@ def _save_state(st):
 
 # ---------------------------------------------------------------- 执行
 
+def _read_path(data, path):
+    """按路径从响应里取值，支持嵌套和"从每个元素里挑一个字段"。
+
+    形如：
+        "freeVisitCnt"          顶层字段
+        "sVisitData.field4"     嵌套一层（参谋的 [低级剩余, 高级剩余]）
+        "field14[].field1"      列表里逐个取 field1（军备的 [{剩余,冷却}, …]）
+
+    取不到返回 None。
+    """
+    cur = data
+    for part in path.split("."):
+        pluck = part.endswith("[]")
+        if pluck:
+            part = part[:-2]
+        if isinstance(cur, dict):
+            cur = cur.get(part)
+        else:
+            return None
+        if cur is None:
+            return None
+        if pluck:
+            if not isinstance(cur, list):
+                cur = [cur]
+            return cur                     # 下一段负责从每个元素里挑
+    return cur
+
+
+def _read_counts(data, path):
+    """取"每档剩余次数"。返回 int、list[int] 或 None。"""
+    if "[]." in path:
+        head, leaf = path.split("[].", 1)
+        items = _read_path(data, head + "[]")
+        if not isinstance(items, list):
+            return None
+        out = []
+        for e in items:
+            v = e.get(leaf) if isinstance(e, dict) else None
+            out.append(v if isinstance(v, int) and not isinstance(v, bool) else 0)
+        return out or None
+    return _read_path(data, path)
+
+
 def _check_gate(gate, data, tiers=None):
     """判断闸门。返回 (是否放行, 说明, 免费次数是否已归零, 该打第几档)。
 
@@ -860,9 +903,9 @@ def _check_gate(gate, data, tiers=None):
     if data is None:
         return (False, f"{gate.timeout:.0f}s 内没收到 {gate.rse_msg}，"
                        "这一轮不做（宁可少做也不误扣券/勋章）", False, None)
-    raw = data.get(gate.field)
+    raw = _read_counts(data, gate.field)
     if raw is None:
-        return (False, f"{gate.rse_msg} 里没有 {gate.field} 字段，这一轮不做",
+        return (False, f"{gate.rse_msg} 里没有 {gate.field}，这一轮不做",
                 False, None)
     whole = raw
 
@@ -1017,7 +1060,7 @@ def _do_once(task, sock, rec, st, results, details, field_names,
             gfield = task.gate.field
             gdata = _await_response(sock, rec, task.gate.rse_msg,
                                     gate_before, task.gate.timeout,
-                                    want=lambda d: gfield in d)
+                                    want=lambda d: _read_counts(d, gfield) is not None)
             passed, why, exhausted, tier = _check_gate(task.gate, gdata,
                                                        task.tiers)
             if not passed:
