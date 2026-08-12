@@ -519,7 +519,11 @@ class Task:
 
     def __init__(self, key, name, opcode, msg, fields, confidence,
                  note="", max_per_day=1, gate=None, cooldown_sec=0,
-                 prelude=(), followup=None, tiers=None):
+                 prelude=(), followup=None, tiers=None, cooldown_until=None):
+        # cooldown_until：从响应里读"下次可用时刻"（unix 秒）的字段路径。
+        # 比写死一个 cooldown_sec 靠谱得多 —— 占矿的时长随矿的等级变，
+        # 演习场占领时长也是服务端定的，猜一个数必然是错的。
+        self.cooldown_until = cooldown_until
         self.prelude = list(prelude)
         self.gate = gate                # 读 prelude 的响应，免费次数 >0 才发
         self.followup = followup        # 动作成功后按响应继续发（占矿、领多档奖励）
@@ -731,9 +735,12 @@ TASKS = [
        "实测", "8/10 抓包：{type:1} 查询（分页推 300 个场地/页）→ "
                "{type:2,siteID:409} 占领。空场地 = 列表条目里没有 field6(占领者)。"
                "占领响应 bOccupySite=true、siteEndTime 给出结束时刻",
-       max_per_day=3, cooldown_sec=3600,
+       max_per_day=3,
        prelude=[("04a7", {1: ("int32", 1)})],
-       gate=Gate("RseWarGameOpt", "tokenNum")),
+       gate=Gate("RseWarGameOpt", "tokenNum"),
+       # 占领时长由服务端定，别猜。占领响应里 startTime→siteEndTime
+       # 实测相差 14400 秒（4 小时），此前写死的 60 分钟错了四倍。
+       cooldown_until="siteEndTime"),
 
     # 探索只是找矿，占下来才有产出。占矿的 resourceID 来自探索响应。
     _t("矿区争夺", "矿区争夺·探索并占矿", "049a", "RceResourceOpt",
@@ -742,10 +749,13 @@ TASKS = [
                "{type:3,resourceID:120007} 占矿。探索响应 field5 是探到的矿，"
                "只有 field1 没有 field6 的就是无人占领的那个。"
                "查询响应 searchTimes 是当天剩余搜索次数（实测 5）",
-       max_per_day=5, cooldown_sec=600,
+       max_per_day=5,
        prelude=[("049a", {1: ("int32", 1), 2: ("int32", 0),
                           3: ("int32", 0), 4: ("string", "")})],
        gate=Gate("RseResourceOpt", "searchTimes"),
+       # 占矿时长跟矿的等级有关，写死必错：实测 8/10 那次约 1.06 小时，
+       # 8/12 那次约 1.4 小时。resourceEndTime 在占矿（后续步骤）的回包里。
+       cooldown_until="resourceEndTime",
        followup=Followup("049a", _next_mine_to_occupy, max_rounds=1,
                          desc="占下探到的无主矿")),
 
@@ -988,7 +998,17 @@ def run(rec, sock, config: dict, schema=None) -> dict:
             log.info("[%s] %s", task.key, results[task.key])
             continue
 
-        # 冷却：军事演习占领后要等演习结束、矿区占矿有间隔，不能连着刷
+        # 冷却之一：服务器明确告诉我们"到这个时刻才能再做"（占领结束时刻等）。
+        # 这个是读来的，优先于任何写死的秒数。
+        until = st.get("until", {}).get(task.key, 0)
+        if until and time.time() < until:
+            wait = until - time.time()
+            results[task.key] = (f"占用中，服务器给的结束时刻还有 "
+                                 f"{wait / 60:.0f} 分钟")
+            log.info("[%s] %s", task.key, results[task.key])
+            continue
+
+        # 冷却之二：写死的秒数，只在服务器没给时刻时才用（如英雄培养的 8 小时）
         if task.cooldown_sec:
             last = st.get("last", {}).get(task.key, 0)
             wait = task.cooldown_sec - (time.time() - last)
@@ -1016,6 +1036,9 @@ def run(rec, sock, config: dict, schema=None) -> dict:
             if not more:
                 break
             ran += 1
+            # 服务器说这东西被占用到某时刻（占了演习场/占了矿），就别接着刷了
+            if st.get("until", {}).get(task.key, 0) > time.time():
+                break
             time.sleep(gap)
         if ran > 1:
             log.info("[%s] 本轮共成功 %d 次（今日 %d/%d）", task.key, ran,
@@ -1136,10 +1159,13 @@ def _do_once(task, sock, rec, st, results, details, field_names,
             _save_state(st)
             log.info("[%s] ✅ %s（今日 %d/%d）", task.key, why,
                      done + 1, task.max_per_day)
-            extra = _run_followup(task, sock, rec, data, field_names,
-                                  resp_timeout, gap)
+            extra, last_data = _run_followup(task, sock, rec, data, field_names,
+                                             resp_timeout, gap)
             if extra:
                 results[task.key] = why + "；" + "；".join(extra)
+            # 记下服务器给的"下次可用时刻"。矿区的 resourceEndTime 只在占矿
+            # （后续步骤）的回包里，所以后续的响应也要看。
+            _note_until(task, st, results, last_data or data)
             if stop:
                 # 成功了，但响应说剩余次数已归零 —— 别再循环了
                 st["done"][task.key] = task.max_per_day
@@ -1173,15 +1199,41 @@ def _do_once(task, sock, rec, st, results, details, field_names,
         return ok
 
 
+def _note_until(task, st, results, data):
+    """把服务器给的"下次可用时刻"记进状态，供下一轮判冷却。
+
+    只认落在合理区间的 unix 秒（既不能是过去，也不能远到离谱），
+    免得把某个恰好是大整数的字段错当成时间戳。
+    """
+    if not task.cooldown_until or not isinstance(data, dict):
+        return
+    ts = _read_path(data, task.cooldown_until)
+    if isinstance(ts, list):
+        ts = max((x for x in ts if isinstance(x, int)), default=None)
+    now = time.time()
+    if not isinstance(ts, int) or isinstance(ts, bool):
+        return
+    if not (now < ts < now + 30 * 86400):     # 未来 30 天以内才当真
+        return
+    st.setdefault("until", {})[task.key] = ts
+    _save_state(st)
+    mins = (ts - now) / 60
+    log.info("[%s] 服务器给的下次可用时刻：%s（还有 %.0f 分钟）", task.key,
+             time.strftime("%m-%d %H:%M", time.localtime(ts)), mins)
+    results[task.key] = results.get(task.key, "") + f"；占用至 {mins:.0f} 分钟后"
+
+
 def _run_followup(task, sock, rec, data, field_names, resp_timeout, gap):
     """动作成功后按响应继续发（占矿、把达标的奖励档位领完）。
 
-    返回每一轮的说明列表。任何一轮失败或没东西可发就停 —— 后续步骤本来就是
-    "有就做，没有就算"，不该把整条任务判成失败。
+    返回 (每一轮的说明列表, 最后一条响应)。后者用来读"下次可用时刻" ——
+    矿区的 resourceEndTime 只出现在占矿那一步的回包里。
+    任何一轮失败或没东西可发就停 —— 后续步骤本来就是"有就做，没有就算"，
+    不该把整条任务判成失败。
     """
     fu = task.followup
     if fu is None or data is None:
-        return []
+        return [], None
     out, last, seen = [], data, set()
     for _ in range(fu.max_rounds):
         try:
@@ -1221,7 +1273,7 @@ def _run_followup(task, sock, rec, data, field_names, resp_timeout, gap):
         out.append(f"{fu.desc}: {why}")
         if not ok or last is None:
             break
-    return out
+    return out, last
 
 
 def _pick_recent(rec, rse_msg, since_seq, want=None):
