@@ -94,6 +94,39 @@ REWARD_HINT = ("ret", "freeVisitCnt", "leftFreeCnt", "getTimes", "leftTime",
                "trainExp", "nAddRes")
 
 
+# 请求里用来区分"这是哪一步"的字段名。前置和动作常常是同一个 opcode
+# （04a5 既是开面板又是训练），响应也就同名，光按消息名等会把**前置的回包**
+# 当成动作的结果 —— 2026-08-12 实盘就这样：战略训练第 6、7 次服务器已经回
+# ret=11 拒绝了，我们却匹配到前置那条 type:1 的回包，判成功继续打。
+DISCRIMINATORS = ("type", "noptType", "OptType", "optType", "nType",
+                  "ntype", "nOptType")
+
+
+def _field_names(schema, op):
+    """opcode -> {字段号: 字段名}。schema 模块没有现成的 field_names。"""
+    e = (getattr(schema, "SCHEMA", {}) or {}).get(op) if schema else None
+    if not e:
+        return {}
+    return {int(k): v[0] for k, v in e.get("fields", {}).items()}
+
+
+def _echo_want(fields, names):
+    """按请求里的区分字段，造一个"这条响应是不是本次动作的回包"的判据。
+
+    响应里没有这个字段就不强求（有些回包确实不回显），只在**回显了但对不上**
+    时拒绝 —— 那必然是别的步骤的回包。
+    """
+    checks = [(names[fno], val)
+              for fno, (_t, val) in fields.items()
+              if names.get(fno) in DISCRIMINATORS]
+    if not checks:
+        return None
+
+    def want(d):
+        return all(d.get(n) == v for n, v in checks if n in d)
+    return want
+
+
 def _rse_name(rce_msg: str) -> str:
     """请求消息名 → 对应的响应消息名（RceXxx → RseXxx）。"""
     return "Rse" + rce_msg[3:] if rce_msg.startswith("Rce") else rce_msg
@@ -130,7 +163,7 @@ def _left_count(data):
     return None
 
 
-def judge(rse_msg: str, data):
+def judge(rse_msg: str, data, ignore_left=False):
     """判断一次任务的结果。返回 (是否成功, 说明, 是否应停止今日重试)。
 
     "没等到响应"和"服务器明确拒绝"必须区别对待
@@ -154,10 +187,13 @@ def judge(rse_msg: str, data):
         return False, why, True
     bits = [f"{k}={data[k]}" for k in REWARD_HINT if k in data]
     msg = "成功" + ("：" + " ".join(bits) if bits else "")
-    # 成功了，但如果响应说剩余次数已归零，就别再来了
-    left = _left_count(data)
-    if left is not None and left <= 0:
-        return True, msg + "（剩余次数已用完，今日到此为止）", True
+    # 成功了，但如果响应说剩余次数已归零，就别再来了。
+    # 分档任务除外：动作回包里的 leftFreeCnt 只是**当前这一档**的剩余，
+    # 打完 10001 它就是 0，可 10002/10003 各还有一次，换档的事交给闸门判。
+    if not ignore_left:
+        left = _left_count(data)
+        if left is not None and left <= 0:
+            return True, msg + "（剩余次数已用完，今日到此为止）", True
     return True, msg, False
 
 
@@ -366,6 +402,38 @@ def _next_daily_gift(data):
     return None if tier is None else {5: ("int32", tier)}
 
 
+def _country_fields(type_, count=0):
+    """RceCountryOpt 的整包字段（客户端 11 个字段全写，只有 type/count 有值）。"""
+    f = {1: ("int32", 0), 2: ("int32", count), 3: ("int32", 0),
+         4: ("int32", type_), 6: ("int32", 0), 7: ("int32", 0),
+         9: ("int32", 0), 13: ("int32", 0), 14: ("int32", 0),
+         15: ("int32", 0), 16: ("int32", 0)}
+    return f
+
+
+def _next_country_box(data):
+    """国家宝箱是三步，光发 type:15 什么也领不到。
+
+    8/10 抓包：
+        {type:15}            查询 → 响应 boxPage.field4 = 可领数量（实测 6）
+        {type:10, count:6}   领取 → countryData.field1 +6
+        {type:11, count:1}   开箱 → 响应带 field15（实测掉 30028/20012 两样东西）
+    按上一条响应的 type 决定下一步发什么。
+    """
+    t = data.get("type")
+    if t == 15:
+        box = data.get("boxPage")
+        if isinstance(box, list):
+            box = box[-1] if box else None
+        n = box.get("field4") if isinstance(box, dict) else None
+        if isinstance(n, int) and n > 0:
+            return _country_fields(10, n)
+        return None
+    if t == 10:
+        return _country_fields(11, 1)
+    return None
+
+
 class Gate:
     """动作前的免费次数闸门：读**前置请求的响应**，还有免费次数才发动作。
 
@@ -408,6 +476,22 @@ class Gate:
         self.timeout = timeout
 
 
+class Tiers:
+    """一个任务的多个档位，每档有各自独立的免费次数。
+
+    闸门读到的数组第 i 项就是第 i 档还剩几次，把 field 换成 values[i]
+    就是打那一档。实测：
+        英雄开采/将领冶炼  type      = 0 / 1 / 2      freeVisitCnt=[3,1,1]
+        特工派遣           subType   = 1001/1002/1003 freeVisitCnt=[3,1,1,…]
+        配件探索           sceneID   = 10001/2/3      leftFreeCnt=[3,1,1]
+    三档要一档一档领干净 —— 早先只打第 0 档，等于白扔掉中级和高级各一次。
+    """
+
+    def __init__(self, field, values):
+        self.field = field
+        self.values = values
+
+
 class Task:
     """一个每日任务 = 前置请求 + 一条动作消息。
 
@@ -431,10 +515,11 @@ class Task:
 
     def __init__(self, key, name, opcode, msg, fields, confidence,
                  note="", max_per_day=1, gate=None, cooldown_sec=0,
-                 prelude=(), followup=None):
+                 prelude=(), followup=None, tiers=None):
         self.prelude = list(prelude)
         self.gate = gate                # 读 prelude 的响应，免费次数 >0 才发
         self.followup = followup        # 动作成功后按响应继续发（占矿、领多档奖励）
+        self.tiers = tiers              # 多档位任务：逐档把免费次数领干净
         # 很多任务并非"一天一次"：军事演习占领后有时长，结束才能再占（每天 3 次）；
         # 英雄训练 8 小时可重复。cooldown_sec>0 表示两次执行之间要等这么久，
         # 配合 max_per_day 一起限制。守护进程会周期性地重跑任务轮次。
@@ -513,16 +598,18 @@ TASKS = [
                "8/10 抓包：RseHeroOpen.freeVisitCnt=[低级,中级,高级]=[3,1,0]，"
                "三次免费后依次 [2,1,0]→[1,1,0]→[0,1,0]。"
                "第四次客户端改发 {free:0,credit:20} 走付费档 —— 我们只做第 0 档免费",
-       max_per_day=3,
+       max_per_day=5,
        prelude=[("0400", {3: ("int32", 0)})],
-       gate=Gate("RseHeroOpen", "freeVisitCnt", index=0)),
+       gate=Gate("RseHeroOpen", "freeVisitCnt"),
+       tiers=Tiers(4, [0, 1, 2])),
 
     _t("将领冶炼", "将领·金属冶炼", "0450", "RceAdmiralVisit",
        {3: ("int32", 1), 4: ("int32", 0)},
        "实测", "实测顺序：RceAdmiralOpen{type:0} → RceAdmiralVisit{free:1,type:0}",
-       max_per_day=3,
+       max_per_day=5,
        prelude=[("044e", {3: ("int32", 0)})],
-       gate=Gate("RseAdmiralOpen", "freeVisitCnt")),
+       gate=Gate("RseAdmiralOpen", "freeVisitCnt"),
+       tiers=Tiers(4, [0, 1, 2])),
 
     # 将领和参谋是两份独立的技能书，各领各的。原先是一个任务 max_per_day=2，
     # 但 fields 写死 ActiveType=0，跑第二次只是把将领那份又领一遍。
@@ -537,18 +624,24 @@ TASKS = [
        "实测", "实测 {OptType:0,ActiveType:1} 查询 → {OptType:1,ActiveType:1} 领取",
        prelude=[("048a", {1: ("int32", 0), 2: ("int32", 1)})]),
 
+    # ⚠️ 只做一次。曾经放开到 3 次、靠"服务器拒绝再收手"，那是错的：
+    # 读不到剩余次数就等于不知道还免不免费，撞过头就开始扣勋章。
+    # 规矩是**先查询、没次数就不做**，查不到次数就只做一次。
+    # RseAdviserOpt 有 nVistAdvCnt 字段疑似次数，但实测响应里没带，暂不敢用。
     _t("参谋操作", "参谋·免费派遣", "04da", "RceAdviserOpt",
        {1: ("int32", 11)},
-       "实测", "实测 noptType:1 查询 → 11 → 12",
+       "实测", "实测 noptType:1 查询 → 11。响应里读不到剩余免费次数，"
+               "所以一轮只做一次，绝不靠撞墙试探",
        prelude=[("04da", {1: ("int32", 1)})]),
 
     _t("特工派遣", "远程火炮·特工派遣", "04d6", "RceTrenchMortarOpt",
        {1: ("int32", 1), 2: ("int32", 1001)},
        "实测", "实测 optType:0 查询 → optType:1 + subType 1001/1002/1003 三档。"
                "查询响应 RseTrenchMortarOpt.freeVisitCnt 给出各档剩余免费次数",
-       max_per_day=3,
+       max_per_day=5,
        prelude=[("04d6", {1: ("int32", 0)})],
-       gate=Gate("RseTrenchMortarOpt", "freeVisitCnt")),
+       gate=Gate("RseTrenchMortarOpt", "freeVisitCnt"),
+       tiers=Tiers(2, [1001, 1002, 1003])),
 
     # 8/10 抓包：客户端把 7 个字段全都显式写了（除 sceneID 外一律 0），
     # 不是只发 sceneID。protobuf 里"显式写 0"和"不写"在服务端是
@@ -560,28 +653,35 @@ TASKS = [
                "useItemID/useItemCnt 是库存上报不是消耗，此处一律不发。"
                "开面板响应 RseWPCBaseOpen.leftFreeCnt 才是剩余免费次数，"
                "leftTime 是冷却秒数（此前把它当次数用过）",
-       max_per_day=3,
+       max_per_day=5,
        prelude=[("0437", {1: ("int32", 1)})],
-       gate=Gate("RseWPCBaseOpen", "leftFreeCnt")),
+       gate=Gate("RseWPCBaseOpen", "leftFreeCnt"),
+       tiers=Tiers(1, [10001, 10002, 10003])),
 
     _t("军备制造", "军备研究·制造", "04e1", "RceJunBeiOpt",
        {1: ("int32", 22), 5: ("int32", 1)},
-       "实测", "8/10 抓包：type:21 → type:0 → type:21 三步前置，再 {type:22, nExlType:1} ×3。"
-               "nExlType 是 5 号字段 —— 此前误写成 2 号(nJunBeiID)，"
-               "等于把档位号填进了军备 ID，服务端当然不认",
-       max_per_day=3,
+       "实测", "8/10 抓包：type:21 → type:0 → type:21 三步前置，再 {type:22, nExlType:1} ×3，"
+               "另有 {type:22, nExlType:4}（自动化制造厂/高级）×1。"
+               "nExlType 是 5 号字段 —— 此前误写成 2 号(nJunBeiID)。"
+               "⚠️ RseJunBeiOpt 里找不到可信的剩余免费次数字段，"
+               "所以一轮只做一次；要把 3 次低级 + 1 次高级都吃满，"
+               "得先抓一次'做到没次数为止'的包，看哪个字段在递减",
+       max_per_day=1,
        prelude=[("04e1", {1: ("int32", 21)}),
                 ("04e1", {1: ("int32", 0)}),
                 ("04e1", {1: ("int32", 21)})]),
 
-    # 抓包里客户端连 strategytype:0 也写了，照抄（见 encode_message 的 omit_zero）
+    # 开面板响应里的 skilltraintimes 就是剩余训练次数（实测 5→4→…→0）。
+    # 次数用完后服务器直接回 ret=11 拒绝，**不会扣费**（要加次数得自己去买），
+    # 所以这里本来就是安全的；加闸门只是别再发那两个注定失败的包。
     _t("战略训练", "战争学院·战略技能训练", "04a5", "RceWarCollegeOpt",
        {1: ("int32", 4), 2: ("int32", 0), 3: ("int32", 1)},
-       "实测", "8/10 抓包：{type:1,strategytype:0,trainskilltype:0} 开面板 → "
-               "{type:4,strategytype:0,trainskilltype:1} 训练，每日 7 次",
+       "实测", "8/10 抓包：{type:1} 开面板 → {type:4,trainskilltype:1} 训练。"
+               "开面板响应 skilltraintimes = 剩余次数；用完后 ret=11 拒绝，不扣费",
        max_per_day=7,
        prelude=[("04a5", {1: ("int32", 1), 2: ("int32", 0),
-                          3: ("int32", 0)})]),
+                          3: ("int32", 0)})],
+       gate=Gate("RseWarCollegeOpt", "skilltraintimes")),
 
     # 占领是真正拿收益的那一步，此前只发了查询，等于什么也没做。
     # tokenNum 是当天剩余占领次数（实测 3，占一次变 2），正好当闸门。
@@ -618,19 +718,21 @@ TASKS = [
        "实测", "8/10 抓包：045c{type:1} → 045b{type:5,bAutoTreat:false} → "
                "045b{type:2} ×2，响应 result=0。注意这只推进活跃度，"
                "不是真的去打、也没有战斗奖励",
-       max_per_day=2, cooldown_sec=300,
+       max_per_day=2,
        prelude=[("045c", {1: ("int32", 1)}),
                 ("045b", {1: ("bool", False), 2: ("int32", 5)})]),
 
     # 客户端把 11 个字段全写了（除 type 外都是 0），照抄。
     # 1=costCredit 虽然命中危险字段名，但值是 0，安全检查照样放行。
-    _t("国家宝箱", "国家·宝箱领取", "0463", "RceCountryOpt",
-       {1: ("int32", 0), 2: ("int32", 0), 3: ("int32", 0), 4: ("int32", 15),
-        6: ("int32", 0), 7: ("int32", 0), 9: ("int32", 0), 13: ("int32", 0),
-        14: ("int32", 0), 15: ("int32", 0), 16: ("int32", 0)},
-       "实测", "8/10 抓包：RceCountryOpen{} 开面板 → RceCountryOpt{type:15}，"
-               "其余 10 个字段客户端都显式写了 0",
-       prelude=[("0462", {})]),
+    _t("国家宝箱", "国家·宝箱领取并开箱", "0463", "RceCountryOpt",
+       _country_fields(15),
+       "实测", "8/10 抓包三步：RceCountryOpen{} 开面板 → {type:15} 查询 → "
+               "{type:10,count:N} 领取 → {type:11,count:1} 开箱。"
+               "N 取自查询响应的 boxPage.field4（实测 6）。"
+               "此前只发了 type:15，等于只查询没领取",
+       prelude=[("0462", {})],
+       followup=Followup("0463", _next_country_box, max_rounds=3,
+                         desc="领取并开箱")),
 
     # 顺序按抓包来：type:0 → type:2 → type:14 → type:16。
     # 原先把捐献排在公会战前面，等于跳过了 type:14 那一步。
@@ -710,35 +812,52 @@ def _save_state(st):
 
 # ---------------------------------------------------------------- 执行
 
-def _check_gate(gate, data):
-    """判断闸门。返回 (是否放行, 说明, 免费次数是否已归零)。
+def _check_gate(gate, data, tiers=None):
+    """判断闸门。返回 (是否放行, 说明, 免费次数是否已归零, 该打第几档)。
 
-    最后一项用来区分"确定没次数了"和"读不到"：前者可以把今日次数打满，
+    第三项用来区分"确定没次数了"和"读不到"：前者可以把今日次数打满，
     后者只是这一轮不做，不该消耗配额。
+    第四项是本次要打的档位下标（不分档的任务返回 None）。
     """
     if data is None:
-        return False, f"{gate.timeout:.0f}s 内没收到 {gate.rse_msg}，" \
-                      "这一轮不做（宁可少做也不误扣券/勋章）", False
+        return (False, f"{gate.timeout:.0f}s 内没收到 {gate.rse_msg}，"
+                       "这一轮不做（宁可少做也不误扣券/勋章）", False, None)
     raw = data.get(gate.field)
     if raw is None:
-        return False, f"{gate.rse_msg} 里没有 {gate.field} 字段，这一轮不做", False
+        return (False, f"{gate.rse_msg} 里没有 {gate.field} 字段，这一轮不做",
+                False, None)
     whole = raw
-    tier = ""
-    # 分档数组：只看本任务要做的那一档。取 max 是错的 —— [0,1,0] 会被
-    # 当成"还有次数"，然后照样对着已经归零的第 0 档发请求。
-    # 有些模块（军事演习 tokenNum、矿区 searchTimes）直接给标量，不分档。
+
     if isinstance(raw, (list, tuple)):
-        if gate.index >= len(raw):
-            return False, (f"{gate.field}={raw} 没有第 {gate.index} 档，"
-                           "这一轮不做"), False
-        raw = raw[gate.index]
-        tier = f"第 {gate.index} 档"
+        nums = [x if isinstance(x, int) and not isinstance(x, bool) else 0
+                for x in raw]
+        if tiers:
+            # 分档任务：从低到高找第一个还有次数的档，逐档领干净
+            n = min(len(nums), len(tiers.values))
+            for i in range(n):
+                if nums[i] > 0:
+                    return (True, f"第 {i} 档（{tiers.field}={tiers.values[i]}）"
+                                  f"还有 {nums[i]} 次（{gate.field}={whole}）",
+                            False, i)
+            return (False, f"各档免费次数都已用完（{gate.field}={whole}）",
+                    True, None)
+        # 不分档但服务端给的是数组：只看约定的那一档
+        if gate.index >= len(nums):
+            return (False, f"{gate.field}={whole} 没有第 {gate.index} 档，"
+                           "这一轮不做", False, None)
+        cnt = nums[gate.index]
+        if cnt <= 0:
+            return (False, f"第 {gate.index} 档免费次数已用完 "
+                           f"{gate.field}={whole}（再发就会扣券/勋章）", True, None)
+        return (True, f"第 {gate.index} 档还有 {cnt} 次（{gate.field}={whole}）",
+                False, None)
+
     if isinstance(raw, bool) or not isinstance(raw, int):
-        return False, f"{gate.field}{tier}={raw!r} 不是次数，这一轮不做", False
+        return (False, f"{gate.field}={raw!r} 不是次数，这一轮不做", False, None)
     if raw <= 0:
-        return False, (f"{tier or ''}免费次数已用完 "
-                       f"{gate.field}={whole}（再发就会扣券/勋章）"), True
-    return True, f"{tier or '剩余'}免费 {raw} 次（{gate.field}={whole}）", False
+        return (False, f"免费次数已用完 {gate.field}={whole}（再发就会扣券/勋章）",
+                True, None)
+    return True, f"剩余 {raw} 次（{gate.field}={whole}）", False, None
 
 
 def _check_safety(task, field_names, fields=None):
@@ -800,10 +919,39 @@ def run(rec, sock, config: dict, schema=None) -> dict:
             log.warning("[%s] %s", task.key, results[task.key])
             continue
 
-        field_names = {}
-        if schema is not None:
-            field_names = schema.field_names(task.msg) if hasattr(schema, "field_names") else {}
+        field_names = _field_names(schema, task.opcode)
 
+        # 一个任务在**一轮里就要把当天的次数做完**，而不是做一次就走。
+        # freeVisitCnt=[3,1,1] 是三个档位各自的免费次数（低级 3 次、中级 1 次、
+        # 高级 1 次），三档都要领；战略训练更是一天 7 次同样的包。
+        # 早先每轮只发一次，等于绝大多数次数根本没用上。
+        ran = 0
+        while st["done"].get(task.key, 0) < task.max_per_day:
+            done = st["done"].get(task.key, 0)
+            more = _do_once(task, sock, rec, st, results, details,
+                            field_names, resp_timeout, gap, done)
+            if not more:
+                break
+            ran += 1
+            time.sleep(gap)
+        if ran > 1:
+            log.info("[%s] 本轮共成功 %d 次（今日 %d/%d）", task.key, ran,
+                     st["done"].get(task.key, 0), task.max_per_day)
+        continue
+
+    log.info("=== 每日任务结束 ===")
+    for k, v in results.items():
+        log.info("  %-12s %s", k, v)
+    return results, details
+
+
+def _do_once(task, sock, rec, st, results, details, field_names,
+             resp_timeout, gap, done):
+    """做这个任务一次。返回 True 表示成功且可以接着再做一次。
+
+    返回 False 的情形都不该重试：闸门拦下、服务器拒绝、没等到响应、发送失败。
+    """
+    if True:
         # 前置请求：真实客户端每个动作前都会先开面板/查询，服务端据此建上下文。
         # 少了这步，动作发出去参数再对也不生效 —— 这是 2026-08-09 定位到的根因。
         # 发前置之前先记下消息序号：闸门和 FromResponse 都只认这之后到的响应，
@@ -811,6 +959,7 @@ def run(rec, sock, config: dict, schema=None) -> dict:
         # 用序号不用时间戳 —— time.time() 在 Windows 上粒度约 15.6ms，
         # 服务器回得快时会和发送时刻落在同一个 tick，导致收到了也判成超时。
         gate_before = rec.seq_mark() if rec else 0
+        tier = None
         for pop, pfields in task.prelude:
             try:
                 sender.send_frame(sock, pop,
@@ -831,16 +980,17 @@ def run(rec, sock, config: dict, schema=None) -> dict:
             gdata = _await_response(sock, rec, task.gate.rse_msg,
                                     gate_before, task.gate.timeout,
                                     want=lambda d: gfield in d)
-            passed, why, exhausted = _check_gate(task.gate, gdata)
+            passed, why, exhausted, tier = _check_gate(task.gate, gdata,
+                                                       task.tiers)
             if not passed:
-                results[task.key] = f"闸门拦截：{why}"
-                log.info("[%s] %s", task.key, results[task.key])
+                if done == 0 or "已用完" not in why:
+                    results[task.key] = f"闸门拦截：{why}"
+                log.info("[%s] 闸门拦截：%s", task.key, why)
                 if exhausted:
                     # 确定没免费次数了，今天别再来
                     st["done"][task.key] = task.max_per_day
                     _save_state(st)
-                time.sleep(gap)
-                continue
+                return False
             log.info("[%s] 闸门放行：%s", task.key, why)
 
         # 占位符现在才解析：像"挑一个空演习场""七天乐第几天"这类值，
@@ -848,16 +998,21 @@ def run(rec, sock, config: dict, schema=None) -> dict:
         # 所以检查看到的就是真正要发出去的内容。
         fields, why = _resolve_fields(task, rec, sock, gate_before)
         if fields is None:
-            results[task.key] = why
+            if done == 0:
+                results[task.key] = why
             log.info("[%s] %s", task.key, why)
-            time.sleep(gap)
-            continue
+            return False
+
+        # 档位：把档位字段换成本次要打的那一档（低级/中级/高级）
+        if task.tiers and tier is not None:
+            fields = dict(fields)
+            fields[task.tiers.field] = ("int32", task.tiers.values[tier])
 
         ok, why = _check_safety(task, field_names, fields)
         if not ok:
             results[task.key] = f"安全检查拦截：{why}"
             log.error("[%s] %s", task.key, results[task.key])
-            continue
+            return False
 
         # omit_zero=False：任务表里列的字段一个都不能省，0 也要显式写出来。
         # 真实客户端就是这么发的，省掉等于把 type/expType 这些字段整个丢了。
@@ -880,11 +1035,16 @@ def run(rec, sock, config: dict, schema=None) -> dict:
         except Exception as exc:
             results[task.key] = f"发送失败：{exc}"
             log.error("[%s] %s", task.key, results[task.key])
-            continue
+            return False
 
-        # 收响应并判成败 —— 不能只管发不管结果，否则"三次机会"用完了还在撞墙
-        data = _await_response(sock, rec, rse, before, resp_timeout)
-        ok, why, stop = judge(rse, data)
+        # 收响应并判成败 —— 不能只管发不管结果，否则"三次机会"用完了还在撞墙。
+        # 必须按区分字段挑出**本次动作**的回包，别把前置的回包当成结果。
+        data = _await_response(sock, rec, rse, before, resp_timeout,
+                               want=_echo_want(fields, field_names))
+        # 分档任务的"剩余次数"要看开面板响应的整个数组，不能信动作回包里那个
+        # 标量 —— 它只说当前这一档没了（配件探索打完 10001 就报 leftFreeCnt=0，
+        # 而 10002/10003 其实各还有一次）。换档交给闸门。
+        ok, why, stop = judge(rse, data, ignore_left=bool(task.tiers))
         results[task.key] = why
         if ok:
             # 只有**确认成功**才算用掉一次每日额度
@@ -897,6 +1057,13 @@ def run(rec, sock, config: dict, schema=None) -> dict:
                                   resp_timeout, gap)
             if extra:
                 results[task.key] = why + "；" + "；".join(extra)
+            if stop:
+                # 成功了，但响应说剩余次数已归零 —— 别再循环了
+                st["done"][task.key] = task.max_per_day
+                _save_state(st)
+                if data is not None:
+                    details[task.key] = data
+                return False
         else:
             log.warning("[%s] ❌ %s", task.key, why)
             if stop:
@@ -920,12 +1087,7 @@ def run(rec, sock, config: dict, schema=None) -> dict:
                 _save_state(st)
         if data is not None:
             details[task.key] = data
-        time.sleep(gap)
-
-    log.info("=== 每日任务结束 ===")
-    for k, v in results.items():
-        log.info("  %-12s %s", k, v)
-    return results, details
+        return ok
 
 
 def _run_followup(task, sock, rec, data, field_names, resp_timeout, gap):
