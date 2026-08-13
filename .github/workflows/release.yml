@@ -1,0 +1,117 @@
+name: 发布
+
+# 只有在 main 上打了 v 开头的 tag 才会触发。
+# develop 上的日常推送不会跑这条流水线，开发完全不受影响。
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:        # 也允许手动触发，方便在正式发版前试一遍
+
+permissions:
+  contents: write           # 建 Release 需要写权限
+
+jobs:
+  build:
+    name: 编译 ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false      # 某个平台挂了，别把其它平台的产物也一起废掉
+      matrix:
+        include:
+          # runner 标签一律钉死版本，不用 -latest。
+          # 2026-06 GitHub 把 windows-latest 换成了 VS 2026、macos-latest 换成了
+          # macOS 26，用 -latest 等于把编译环境交给别人随时改。
+          - { runner: windows-2025,     target: windows-x64,   ext: ".exe" }
+          - { runner: windows-11-arm,   target: windows-arm64, ext: ".exe" }
+          - { runner: macos-15,         target: macos-arm64,   ext: "" }
+          # macos-13 已于 2025-12 退役；Intel Mac 现在只能用 macos-15-intel，
+          # 而它本身也只提供到 2027-08，之后 Actions 不再支持 x86_64 macOS。
+          - { runner: macos-15-intel,   target: macos-x64,     ext: "" }
+          - { runner: ubuntu-24.04,     target: linux-x64,     ext: "" }
+          - { runner: ubuntu-24.04-arm, target: linux-arm64,   ext: "" }
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"      # engine.py 用了 `str | None`，要 3.10+
+
+      - name: 装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: 打包
+        run: pyinstaller --clean --noconfirm tankstorm.spec
+
+      - name: 冒烟测试
+        shell: bash
+        run: |
+          BIN="dist/tankstorm${{ matrix.ext }}"
+          test -f "$BIN" || { echo "没产出 $BIN"; exit 1; }
+          chmod +x "$BIN" 2>/dev/null || true
+          # --help 不联网、不读配置，只验证能起来、依赖没漏
+          "$BIN" --help
+
+      - name: 组装发布目录
+        shell: bash
+        run: |
+          NAME="tankstorm-${{ matrix.target }}"
+          mkdir -p "pkg/$NAME"
+          cp "dist/tankstorm${{ matrix.ext }}" "pkg/$NAME/"
+          cp README.md LICENSE "pkg/$NAME/"
+          # 出厂配置也放一份在外面，用户下载完就能直接改，不用等首次运行生成
+          cp config.json endpoints.json "pkg/$NAME/"
+
+      - name: 压缩（Windows）
+        if: startsWith(matrix.runner, 'windows')
+        shell: pwsh
+        run: |
+          $n = "tankstorm-${{ matrix.target }}"
+          Compress-Archive -Path "pkg/$n" -DestinationPath "$n.zip"
+
+      - name: 压缩（macOS / Linux）
+        if: ${{ !startsWith(matrix.runner, 'windows') }}
+        shell: bash
+        run: |
+          N="tankstorm-${{ matrix.target }}"
+          tar -czf "$N.tar.gz" -C pkg "$N"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tankstorm-${{ matrix.target }}
+          path: |
+            tankstorm-${{ matrix.target }}.zip
+            tankstorm-${{ matrix.target }}.tar.gz
+          if-no-files-found: error
+
+  release:
+    name: 建 Release
+    needs: build
+    runs-on: ubuntu-24.04
+    # 手动触发时只编译不发布，避免误建 Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: 校验产物
+        run: |
+          ls -lh artifacts
+          cd artifacts && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt
+
+      - name: 发布
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --title "${{ github.ref_name }}" \
+            --notes-file .github/release-notes.md \
+            artifacts/*

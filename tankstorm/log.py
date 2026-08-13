@@ -3,7 +3,32 @@ import os
 import sys
 from datetime import date
 
-LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs")
+from .paths import user_path                      # noqa: E402
+
+# 日志和当天任务计数是**可写数据**，打包后要落在 exe 旁边而不是临时解压目录，
+# 否则每次运行完就被删掉，当天次数永远从零开始。见 paths.py。
+LOG_DIR = user_path("logs")
+
+
+def _force_utf8_console() -> None:
+    """把 stdout/stderr 钉成 UTF-8。
+
+    输出**重定向到文件或管道**时，Python 不走控制台的 Unicode 通道，
+    而是回落到系统 locale 编码 —— 中文 Windows 上是 GBK，编不了日志里的
+    ✅ / ❌，于是抛 UnicodeEncodeError 把整个进程带崩。
+    README 里 cron 那行 `>> logs/cron.log` 正是这种用法，打包成 exe 后
+    用户更容易这么跑，所以这不是显示问题，是会真的挂掉。
+
+    errors="replace" 是兜底：再冷门的字符最多显示成问号，不该让程序退出。
+    """
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError, OSError):
+            pass          # 流被换成了不支持 reconfigure 的对象，忽略即可
+
+
+_force_utf8_console()
 
 
 def get_logger(name: str = "tankstorm") -> logging.Logger:

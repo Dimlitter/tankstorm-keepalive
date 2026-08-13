@@ -37,8 +37,12 @@ from .log import get_logger
 
 log = get_logger()
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PROTOCOL_FILE = os.path.join(BASE_DIR, "protocol.json")
+from . import paths                               # noqa: E402
+
+BASE_DIR = paths.app_dir()
+# 协议表是只读数据：exe 旁边有用户自己那份就用它（换游戏版本时可以直接替换），
+# 没有就用打包进去的出厂默认值。
+PROTOCOL_FILE = paths.data_file("protocol.json")
 
 
 class ProtocolNotConfigured(Exception):

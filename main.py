@@ -25,19 +25,27 @@ import os
 import sys
 from datetime import date
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, BASE_DIR)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from tankstorm import engine, notify, qzone, socket_keepalive   # noqa: E402
+from tankstorm import engine, notify, paths, qzone, socket_keepalive  # noqa: E402
 from tankstorm.log import get_logger                 # noqa: E402
 from tankstorm.qq_login import QQSession             # noqa: E402
 
 log = get_logger()
 
-CONFIG_FILE = os.path.join(BASE_DIR, "config.json")
-LOCAL_CONFIG_FILE = os.path.join(BASE_DIR, "config.local.json")  # 放密钥，已 gitignore
-ENDPOINTS_FILE = os.path.join(BASE_DIR, "endpoints.json")
-STATE_FILE = os.path.join(BASE_DIR, "state.json")
+# 打包成 exe 后，第一次运行把出厂配置复制到 exe 旁边，用户改那一份。
+# 不复制的话用户看不到 config.json，也就无从配置。已存在则绝不覆盖。
+for _f in ("config.json", "endpoints.json", "protocol.json"):
+    if paths.ensure_user_copy(_f):
+        log.info("已在程序目录生成 %s，可直接编辑", _f)
+
+BASE_DIR = paths.app_dir()
+# 配置和协议表：exe 旁边有就用用户那份，没有才用随包默认值
+CONFIG_FILE = paths.data_file("config.json")
+ENDPOINTS_FILE = paths.data_file("endpoints.json")
+# 这两个一律写在程序目录：密钥文件和运行状态都是用户数据
+LOCAL_CONFIG_FILE = paths.user_path("config.local.json")   # 放密钥，已 gitignore
+STATE_FILE = paths.user_path("state.json")
 
 
 def load_json(path: str, required: bool = True) -> dict:

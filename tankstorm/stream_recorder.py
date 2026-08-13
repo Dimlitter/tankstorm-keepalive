@@ -56,8 +56,10 @@ import threading
 import time
 from datetime import datetime
 
+from .paths import app_dir                        # noqa: E402
+
 DEFAULT_DIR = "logs/streams"
-_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_REPO_ROOT = app_dir()                            # 录制产物属可写数据
 
 # 帧结构备忘，写进 meta.json 供离线工具参考
 FRAMING = "[u16be len][u16be op][u32be seq][body]; len 覆盖 op+seq+body"

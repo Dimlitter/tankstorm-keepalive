@@ -16,13 +16,26 @@ import json
 import os
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
-_PATH = os.path.join(_HERE, "schema.json")
 
+# schema.json 跟着包走，是只读数据。打包成单文件后它被解压到 _MEIPASS/tankstorm/，
+# 此时 __file__ 也指向那里，所以第一条就能命中；退路是 exe 旁边放一份，
+# 方便游戏更新后直接替换而不必等新版本。
+_CANDIDATES = [os.path.join(_HERE, "schema.json")]
 try:
-    with open(_PATH, encoding="utf-8") as _f:
-        SCHEMA = json.load(_f)
-except (OSError, ValueError):
-    SCHEMA = {}
+    from .paths import bundled_dir, user_path
+    _CANDIDATES += [os.path.join(bundled_dir(), "tankstorm", "schema.json"),
+                    user_path("schema.json")]
+except ImportError:                                # 极端情况下别让导入失败拖垮整个包
+    pass
+
+SCHEMA = {}
+for _PATH in _CANDIDATES:
+    try:
+        with open(_PATH, encoding="utf-8") as _f:
+            SCHEMA = json.load(_f)
+        break
+    except (OSError, ValueError):
+        continue
 
 
 def name_of(op: str) -> str:

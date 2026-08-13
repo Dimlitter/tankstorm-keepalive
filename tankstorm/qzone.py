@@ -23,8 +23,10 @@ from .log import get_logger
 
 log = get_logger()
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DEBUG_DIR = os.path.join(BASE_DIR, "debug")
+from . import paths                               # noqa: E402
+
+BASE_DIR = paths.app_dir()
+DEBUG_DIR = paths.user_path("debug")              # 抓下来的页面，属可写数据
 
 CANVAS_HOST = "tankstorm-qzone.sincetimes.com"
 
