@@ -37,6 +37,7 @@ import re
 import time
 from datetime import date
 
+from . import schema as _schema
 from . import sender
 from .log import LOG_DIR, get_logger
 from .proto_encode import encode_message
@@ -98,8 +99,13 @@ REWARD_HINT = ("ret", "freeVisitCnt", "leftFreeCnt", "getTimes", "leftTime",
 # （04a5 既是开面板又是训练），响应也就同名，光按消息名等会把**前置的回包**
 # 当成动作的结果 —— 2026-08-12 实盘就这样：战略训练第 6、7 次服务器已经回
 # ret=11 拒绝了，我们却匹配到前置那条 type:1 的回包，判成功继续打。
+# 除了"这是哪一步"（OptType/type），还要带上"这是哪一档" —— 技能书将领和参谋
+# 是同一个 opcode、都发 OptType:1，**只靠 ActiveType 区分**（0=将领 1=参谋）。
+# 2026-08-13 03:13:06 两条回包同一秒到达，不认 ActiveType 就会互相串。
+# subType/sceneID/nExlType 同理，是特工派遣/配件探索/军备的档位选择字段。
 DISCRIMINATORS = ("type", "noptType", "OptType", "optType", "nType",
-                  "ntype", "nOptType")
+                  "ntype", "nOptType", "ActiveType", "subType", "sceneID",
+                  "nExlType")
 
 
 def _field_names(schema, op):
@@ -652,15 +658,33 @@ TASKS = [
                "⚠️ heroType=1122 是本账号的英雄编号，换号必须重抓",
        max_per_day=3, cooldown_sec=8 * 3600),
 
+    # 技能书不是"一天一次"，是**每 24 小时一次**，而且以前既没闸门也没冷却，
+    # 每轮都照发。2026-08-13 03:13 帧日志实测：
+    #   查询 {OptType:0,ActiveType:0} → ret=0, field4=[
+    #        {field1:1, field2:0, field3:1786609115},   ← 免费档：剩 0 次
+    #        {field1:2, field2:3, field3:0},
+    #        {field1:3, field2:0, field3:0}]
+    #   领取 {OptType:1,ActiveType:0} → **ret=1**（被拒，当时还在冷却里）
+    # field3 是"下次可用时刻"（unix 秒），实测正好是上次领取 + 24 小时；
+    # 将领和参谋各有各的计时（两者相差 4 秒，正是昨天两次领取的间隔）。
+    # 所以闸门读免费档的剩余次数，冷却读免费档的下次可用时刻，都按 field1==1
+    # 选元素而不是按下标。
     _t("技能书将领", "将领·免费技能书", "048a", "RceBookCollection",
        {1: ("int32", 1), 2: ("int32", 0)},
-       "实测", "实测 {OptType:0,ActiveType:0} 查询 → {OptType:1,ActiveType:0} 领取",
-       prelude=[("048a", {1: ("int32", 0), 2: ("int32", 0)})]),
+       "实测", "实测 {OptType:0,ActiveType:0} 查询 → {OptType:1,ActiveType:0} 领取。"
+               "闸门读 field4 里 field1==1（免费档）的 field2 剩余次数，"
+               "冷却读同一元素的 field3（上次领取+24 小时）",
+       prelude=[("048a", {1: ("int32", 0), 2: ("int32", 0)})],
+       gate=Gate("RseBookCollection", "field4[field1=1].field2"),
+       cooldown_until="field4[field1=1].field3"),
 
     _t("技能书参谋", "参谋·免费技能书", "048a", "RceBookCollection",
        {1: ("int32", 1), 2: ("int32", 1)},
-       "实测", "实测 {OptType:0,ActiveType:1} 查询 → {OptType:1,ActiveType:1} 领取",
-       prelude=[("048a", {1: ("int32", 0), 2: ("int32", 1)})]),
+       "实测", "实测 {OptType:0,ActiveType:1} 查询 → {OptType:1,ActiveType:1} 领取。"
+               "闸门与冷却同「技能书将领」，但参谋这一档自己单独计时",
+       prelude=[("048a", {1: ("int32", 0), 2: ("int32", 1)})],
+       gate=Gate("RseBookCollection", "field4[field1=1].field2"),
+       cooldown_until="field4[field1=1].field3"),
 
     # ⚠️ 只做一次。曾经放开到 3 次、靠"服务器拒绝再收手"，那是错的：
     # 读不到剩余次数就等于不知道还免不免费，撞过头就开始扣勋章。
@@ -869,18 +893,42 @@ def _save_state(st):
 
 # ---------------------------------------------------------------- 执行
 
+_SELECT = re.compile(r"^([A-Za-z_]\w*)\[(\w+)=(-?\d+)\]$")
+
+
 def _read_path(data, path):
-    """按路径从响应里取值，支持嵌套和"从每个元素里挑一个字段"。
+    """按路径从响应里取值，支持嵌套、"从每个元素里挑一个字段"和"按标记选元素"。
 
     形如：
-        "freeVisitCnt"          顶层字段
-        "sVisitData.field4"     嵌套一层（参谋的 [低级剩余, 高级剩余]）
-        "field14[].field1"      列表里逐个取 field1（军备的 [{剩余,冷却}, …]）
+        "freeVisitCnt"              顶层字段
+        "sVisitData.field4"         嵌套一层（参谋的 [低级剩余, 高级剩余]）
+        "field14[].field1"          列表里逐个取 field1（军备的 [{剩余,冷却}, …]）
+        "field4[field1=1].field2"   列表里挑 field1==1 的那个元素，再取 field2
+
+    最后一种是给技能书用的：RseBookCollection.field4 是
+    [{field1:档位, field2:剩余, field3:下次可用}, …]，免费档是 field1==1。
+    **按标记挑而不是按下标挑** —— 下标会随服务端调整档位顺序而错位，
+    而错位在这个项目里已经犯过一次（schema 字段名按位置对齐，错了 198 个消息）。
 
     取不到返回 None。
     """
     cur = data
     for part in path.split("."):
+        sel = _SELECT.match(part)
+        if sel:
+            name, key, val = sel.group(1), sel.group(2), int(sel.group(3))
+            if not isinstance(cur, dict):
+                return None
+            items = cur.get(name)
+            if items is None:
+                return None
+            if not isinstance(items, list):
+                items = [items]
+            cur = next((e for e in items
+                        if isinstance(e, dict) and e.get(key) == val), None)
+            if cur is None:
+                return None
+            continue
         pluck = part.endswith("[]")
         if pluck:
             part = part[:-2]
@@ -979,6 +1027,17 @@ def run(rec, sock, config: dict, schema=None) -> dict:
 
     返回 {任务名: 结果字符串}。
     """
+    # schema 默认用项目自带的那份。
+    #
+    # 2026-08-13 定位：两个调用点（socket_keepalive 的保活带跑和 --daily）
+    # 都是 daily.run(rec, sock, config)，schema 一直是 None，于是
+    # _field_names() 永远返回 {}，_echo_want() 拿不到字段名、造不出判据，
+    # **所有任务都失去了"前置回包 vs 动作回包"的区分能力** —— 谁先到算谁。
+    # 实盘后果：技能书发出 {OptType:1} 后 2 毫秒就"成功"，其实读到的是
+    # 前置 {OptType:0} 的回包；真正的动作回包 4 秒后才到，ret=1（被拒）。
+    # 公会战同样，type=14 读到的是前置 type=0 的回包。
+    if schema is None:
+        schema = _schema
     conf = (config.get("每日任务", {}) or {})
     if not conf.get("启用", False):
         log.info("每日任务未启用（config.json 每日任务.启用=false）")
@@ -1039,7 +1098,7 @@ def run(rec, sock, config: dict, schema=None) -> dict:
         while st["done"].get(task.key, 0) < task.max_per_day:
             done = st["done"].get(task.key, 0)
             more = _do_once(task, sock, rec, st, results, details,
-                            field_names, resp_timeout, gap, done)
+                            field_names, resp_timeout, gap, done, schema)
             if not more:
                 break
             ran += 1
@@ -1059,7 +1118,7 @@ def run(rec, sock, config: dict, schema=None) -> dict:
 
 
 def _do_once(task, sock, rec, st, results, details, field_names,
-             resp_timeout, gap, done):
+             resp_timeout, gap, done, schema=None):
     """做这个任务一次。返回 True 表示成功且可以接着再做一次。
 
     返回 False 的情形都不该重试：闸门拦下、服务器拒绝、没等到响应、发送失败。
@@ -1088,11 +1147,23 @@ def _do_once(task, sock, rec, st, results, details, field_names,
         # 闸门：前置请求的响应里就有剩余免费次数，客户端正是读它决定
         # 走免费档还是扣券/扣勋章档。读不到就不发。
         if task.gate:
-            # 只认真正带着次数字段的那条 —— 同名消息可能连来好几条
+            # 只认真正带着次数字段的那条 —— 同名消息可能连来好几条。
+            # 还要认前置自己的区分字段：技能书将领({ActiveType:0})和参谋
+            # ({ActiveType:1}) 是同一条消息、各有各的计时，光看"有没有 field4"
+            # 会把对方的那条读进来。
             gfield = task.gate.field
+            pre_want = None
+            if task.prelude:
+                pop, pfields = task.prelude[-1]
+                pre_want = _echo_want(pfields, _field_names(schema, pop))
+
+            def _gwant(d, _f=gfield, _w=pre_want):
+                return (_read_counts(d, _f) is not None
+                        and (_w is None or _w(d)))
+
             gdata = _await_response(sock, rec, task.gate.rse_msg,
                                     gate_before, task.gate.timeout,
-                                    want=lambda d: _read_counts(d, gfield) is not None)
+                                    want=_gwant)
             passed, why, exhausted, tier = _check_gate(task.gate, gdata,
                                                        task.tiers)
             if not passed:
@@ -1124,6 +1195,16 @@ def _do_once(task, sock, rec, st, results, details, field_names,
         ok, why = _check_safety(task, field_names, fields)
         if not ok:
             results[task.key] = f"安全检查拦截：{why}"
+            log.error("[%s] %s", task.key, results[task.key])
+            return False
+
+        # 前置和动作同一个 opcode 时，响应也同名，必须靠区分字段（OptType/type…）
+        # 才能认出哪条是动作的回包。造不出判据就**不发** —— 发了也分不清结果，
+        # 只会把前置的 ret=0 当成"成功"。2026-08-13 实盘就是这么假成功的。
+        if any(pop == task.opcode for pop, _ in task.prelude) \
+                and _echo_want(fields, field_names) is None:
+            results[task.key] = ("认不出动作回包（前置与动作同 opcode 且拿不到"
+                                 "区分字段名），这一轮不做")
             log.error("[%s] %s", task.key, results[task.key])
             return False
 
@@ -1166,10 +1247,23 @@ def _do_once(task, sock, rec, st, results, details, field_names,
             _save_state(st)
             log.info("[%s] ✅ %s（今日 %d/%d）", task.key, why,
                      done + 1, task.max_per_day)
-            extra, last_data = _run_followup(task, sock, rec, data, field_names,
-                                             resp_timeout, gap)
+            extra, last_data, fu_ok = _run_followup(task, sock, rec, data,
+                                                    field_names, resp_timeout,
+                                                    gap)
             if extra:
                 results[task.key] = why + "；" + "；".join(extra)
+            if fu_ok is False:
+                # 有些任务的"动作"其实只是开面板（国家宝箱的 type=15 恒回 ret=0），
+                # 真正干活的是后续步骤。后续被拒还把当天次数记满，就等于这一天
+                # 再也不会重试了 —— 国家宝箱要早上六点后才能领，凌晨那轮必然被拒，
+                # 记满之后当天就永远领不到。所以后续失败时退回这一次计数。
+                st["done"][task.key] = done
+                _save_state(st)
+                log.info("[%s] 后续步骤未成，本次不计入当天次数，稍后可再试",
+                         task.key)
+                if data is not None:
+                    details[task.key] = data
+                return False
             # 记下服务器给的"下次可用时刻"。矿区的 resourceEndTime 只在占矿
             # （后续步骤）的回包里，所以后续的响应也要看。
             _note_until(task, st, results, last_data or data)
@@ -1239,15 +1333,17 @@ def _note_until(task, st, results, data):
 def _run_followup(task, sock, rec, data, field_names, resp_timeout, gap):
     """动作成功后按响应继续发（占矿、把达标的奖励档位领完）。
 
-    返回 (每一轮的说明列表, 最后一条响应)。后者用来读"下次可用时刻" ——
-    矿区的 resourceEndTime 只出现在占矿那一步的回包里。
+    返回 (每一轮的说明列表, 最后一条响应, 成败)。第二项用来读"下次可用时刻"
+    —— 矿区的 resourceEndTime 只出现在占矿那一步的回包里。
+    第三项：True=至少发出去一轮且都成了，False=发出去但被拒，
+    None=压根没有后续步骤可发（这时不该影响主动作的判定）。
     任何一轮失败或没东西可发就停 —— 后续步骤本来就是"有就做，没有就算"，
     不该把整条任务判成失败。
     """
     fu = task.followup
     if fu is None or data is None:
-        return [], None
-    out, last, seen = [], data, set()
+        return [], None, None
+    out, last, seen, verdict = [], data, set(), None
     for _ in range(fu.max_rounds):
         try:
             nxt = fu.build(last)
@@ -1284,9 +1380,10 @@ def _run_followup(task, sock, rec, data, field_names, resp_timeout, gap):
         ok, why, _stop = judge(rse, last)
         log.info("[%s] 后续结果：%s %s", task.key, "✅" if ok else "❌", why)
         out.append(f"{fu.desc}: {why}")
+        verdict = bool(ok)
         if not ok or last is None:
             break
-    return out, last
+    return out, last, verdict
 
 
 def _pick_recent(rec, rse_msg, since_seq, want=None):
