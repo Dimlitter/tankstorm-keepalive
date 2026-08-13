@@ -57,6 +57,17 @@ DANGER_FIELD = re.compile(
     r"num|cnt|count|times|amount|soul|medal|credit|"
     r"item|card|ticket|discount", re.I)
 
+# (opcode, 字段名) 白名单：抓包实证这个字段在**这一条消息里**不是花钱字段。
+# 只按消息逐条放行，绝不整体放宽 DANGER_FIELD —— 同名字段在别的消息里照样危险。
+#
+# 0463 RceCountryOpt.count：国家宝箱领取/开箱的"第几档/开几个"，跟着面板回包的
+#   boxPage.field4 走。2026-08-10 真客户端抓包实证 {type:10,count:6,costCredit:0}
+#   与 {type:11,count:1,costCredit:0} 均 ret=0，全程免费；这条消息里真正花钱的是
+#   costCredit，我们恒发 0，安全检查照旧盯着它。
+#   注意：这个误伤是修好 schema 之后才暴露的 —— 以前字段名解不出来，
+#   拿 "field2" 去匹配危险词自然不命中，等于一直在裸奔。
+SAFE_FIELDS = {("0463", "count")}
+
 # 这些任务放到最后执行（它们领的是"前面动作累积出来的"奖励）
 ORDER_LAST = {"每日任务", "周任务"}
 
@@ -1085,6 +1096,8 @@ def _check_safety(task, field_names, fields=None):
         return False, f"opcode {task.opcode} 不在白名单"
     for fno, (ftype, val) in (fields or task.fields).items():
         fname = field_names.get(fno, f"field{fno}")
+        if (task.opcode, fname) in SAFE_FIELDS:
+            continue
         if DANGER_FIELD.search(fname) and val not in (0, False, "", None):
             return False, f"危险字段 {fname}={val!r} 非零，拒发（防止消耗资产）"
     return True, ""
@@ -1240,9 +1253,17 @@ def _do_once(task, sock, rec, st, results, details, field_names,
                     results[task.key] = f"闸门拦截：{why}"
                 log.info("[%s] 闸门拦截：%s", task.key, why)
                 if exhausted:
-                    # 确定没免费次数了，今天别再来
-                    st["done"][task.key] = task.max_per_day
-                    _save_state(st)
+                    if task.cooldown_until:
+                        # 靠冷却限流的任务，"次数为 0"只说明**现在**不能做，
+                        # 不等于今天做不了了。技能书是 24 小时一轮，
+                        # 上午拦下、下午到点还该再领 —— 这时候记满当天次数，
+                        # 当天就再也不会重试。改为把服务端给的下次可用时刻记下来。
+                        _note_until(task, st, results, gdata)
+                        _save_state(st)
+                    else:
+                        # 确定没免费次数了，今天别再来
+                        st["done"][task.key] = task.max_per_day
+                        _save_state(st)
                 return False
             log.info("[%s] 闸门放行：%s", task.key, why)
             # 前置响应里的看点（排名/积分/剩余次数）记下来，最后并进结果一起推送
@@ -1440,6 +1461,8 @@ def _run_followup(task, sock, rec, data, field_names, resp_timeout, gap):
         ok, why = _check_safety(task, field_names, nxt)
         if not ok:
             log.error("[%s] 后续步骤被安全检查拦截：%s", task.key, why)
+            out.append(f"{fu.desc}: 被安全检查拦截（{why}）")
+            verdict = False       # 拦下了就是没做成，别让主动作顶着"成功"过关
             break
         rse = _rse_name(task.msg)
         before = rec.seq_mark() if rec else 0
