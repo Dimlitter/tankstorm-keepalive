@@ -622,10 +622,19 @@ def _t(*a, **kw):
 
 TASKS = [
     # ---- 纯领取（第一批）----
+    # ⚠️ 2026-08-13 纠正：**以前根本没在签到**，只发了查询那一条。
+    # 原注释写"客户端只发 nType=0"是当初看漏了第二条。8/10 真客户端抓包实际是两条：
+    #   {nType:0, nActivetype:0} 查询 → bSignIn:false, nSignInDays:8
+    #   {nType:1, nActivetype:0} 签到 → bSignIn:true,  nSignInDays:9
+    # 响应里 field9 是当月 31 天的 bool 数组，签到后对应那天由 false 翻 true。
+    # nDay 和 nGiftID 客户端确实不发（服务端自己算今天是第几天），这点原来没错。
     _t("每日签到", "每日签到", "04a4", "RceDailySignIn",
-       {2: ("int32", 0), 4: ("int32", 0)},
-       "实测", "抓包实测：客户端只发 nType=0 / nActivetype=0，"
-               "nDay 和 nGiftID 根本不发（服务端自己算当前是第几天）"),
+       {2: ("int32", 1), 4: ("int32", 0)},
+       "实测", "8/10 抓包：{nType:0} 查询 → {nType:1} 签到。"
+               "闸门读 bSignIn：false 才签，true 说明今天签过了",
+       prelude=[("04a4", {2: ("int32", 0), 4: ("int32", 0)})],
+       gate=Gate("RseDailySignIn", "bSignIn", claimed_flag=True),
+       report=("bSignIn", "nSignInDays", "nReplenishDays")),
 
     _t("七天乐", "七天乐领奖", "047a", "RceSevenDays",
        {1: ("int32", 1),
@@ -883,19 +892,34 @@ TASKS = [
        followup=Followup("0463", _next_country_box, max_rounds=3,
                          desc="领取并开箱")),
 
-    # 顺序按抓包来：type:0 → type:2 → type:14 → type:16。
-    # 原先把捐献排在公会战前面，等于跳过了 type:14 那一步。
-    # 抓包里每个 RceGuildOpt 都带着这一串 0，照抄
-    _t("公会战", "公会战·领奖/报名", "0479", "RceGuildOpt",
+    # 顺序按抓包来。抓包里每个 RceGuildOpt 都带着这一串 0，照抄。
+    #
+    # ⚠️ 这一项**没有在"参加"公会战**，只是打开战报面板。
+    # 8/10 真客户端一共发了 9 条 RceGuildOpt：type 73/80/81/78/70/0/2/14/16，
+    # 我们只用了 0、2、14、16。逐条看回包：
+    #   type:14 → userGuild + log（战斗记录），所以它是**看战报**，不是领奖也不是报名
+    #   type:73 → 带 **dayHasPK**（今天参加过公会战没有）+ 一份公会列表（可打的对手）
+    #   type:70/78/80/81 → 公会信息/排行，没有动作语义
+    # 抓包那会儿 dayHasPK 已经是 true（用户早就打过了），**所以抓包里没有
+    # "参加"那一下的请求**。按铁律不猜 type 值 —— 要补这一项，得请用户在游戏里
+    # 真点一次"参加公会战"并抓包。
+    # 眼下先把 type:73 加进前置，每轮把 dayHasPK 读出来报给用户。
+    _t("公会战", "公会战·看战报（读今日参战状态）", "0479", "RceGuildOpt",
        {2: ("int32", 14), 4: ("int32", 0), 13: ("int32", 0), 17: ("int32", 0),
         18: ("int32", 0), 22: ("int32", 0), 23: ("int32", 0)},
-       "实测", "8/10 抓包：type:0 → type:2 → type:14",
+       "实测", "8/10 抓包：type:0 → type:2 → type:73 → type:14。"
+               "type:73 的回包带 dayHasPK＝今天参加过公会战没有。"
+               "⚠️「参加」本身尚未实现：抓包里 dayHasPK 已为 true，没拍到那一下",
        prelude=[("0479", {2: ("int32", 0), 4: ("int32", 0), 13: ("int32", 0),
                           17: ("int32", 0), 18: ("int32", 0),
                           22: ("int32", 0), 23: ("int32", 0)}),
                 ("0479", {2: ("int32", 2), 4: ("int32", 0), 13: ("int32", 0),
                           17: ("int32", 0), 18: ("int32", 0),
-                          22: ("int32", 0), 23: ("int32", 0)})]),
+                          22: ("int32", 0), 23: ("int32", 0)}),
+                ("0479", {2: ("int32", 73), 4: ("int32", 0), 13: ("int32", 0),
+                          17: ("int32", 0), 18: ("int32", 0),
+                          22: ("int32", 0), 23: ("int32", 0)})],
+       report=("dayHasPK", "lastBtlRank", "curSesionBtlOver", "bRankGet")),
 
     _t("公会捐献", "公会·捐献", "0479", "RceGuildOpt",
        {2: ("int32", 16), 6: ("string", FromServer("RseInit", "username")),
@@ -1278,6 +1302,22 @@ def _do_once(task, sock, rec, st, results, details, field_names,
                     panel_note = " ".join(bits)
                     log.info("[%s] 面板：%s", task.key, panel_note)
 
+        # 没有闸门的任务也要能报面板（公会战就靠它把 dayHasPK 读出来）。
+        # 闸门那条路已经顺手取过了，这里只补没闸门的情形。
+        if task.report and not panel_note and task.prelude:
+            pop, pfields = task.prelude[-1]
+            pname = (getattr(schema, "SCHEMA", {}) or {}).get(pop, {}).get("name")
+            if pname:
+                pw = _echo_want(pfields, _field_names(schema, pop))
+                pdata = _await_response(sock, rec, _rse_name(pname),
+                                        gate_before, 3.0, want=pw)
+                if isinstance(pdata, dict):
+                    bits = [f"{f}={_show(pdata[f])}"
+                            for f in task.report if f in pdata]
+                    if bits:
+                        panel_note = " ".join(bits)
+                        log.info("[%s] 面板：%s", task.key, panel_note)
+
         # 占位符现在才解析：像"挑一个空演习场""七天乐第几天"这类值，
         # 必须等前置请求的响应回来才算得出。解析在安全检查之前，
         # 所以检查看到的就是真正要发出去的内容。
@@ -1340,8 +1380,15 @@ def _do_once(task, sock, rec, st, results, details, field_names,
         # 标量 —— 它只说当前这一档没了（配件探索打完 10001 就报 leftFreeCnt=0，
         # 而 10002/10003 其实各还有一次）。换档交给闸门。
         ok, why, stop = judge(rse, data, ignore_left=bool(task.tiers))
+        # 动作回包里若也带着这些字段，用它 —— 那是**做完之后**的状态。
+        # 否则会出现"✅ 成功（面板：bSignIn=False）"这种自相矛盾的话：
+        # False 是签到**前**闸门读到的值，签完已经是 True 了。
+        if task.report and isinstance(data, dict):
+            after = [f"{f}={_show(data[f])}" for f in task.report if f in data]
+            if after:
+                panel_note = " ".join(after)
         if panel_note:
-            why = f"{why}（面板：{panel_note}）"
+            why = f"{why}（{panel_note}）"
         results[task.key] = why
         if ok:
             # 只有**确认成功**才算用掉一次每日额度
