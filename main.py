@@ -1,12 +1,22 @@
-"""坦克风暴（QQ空间 appid 100616028）每日任务脚本 —— 入口。
+"""坦克风暴（QQ空间 appid 100616028）—— 命令行入口。
 
-用法：
-  python main.py                 按 config.json 开关执行全部任务
-  python main.py --login         强制重新扫码登录
-  python main.py --task 每日签到  只执行指定任务（调试单个接口用）
-  python main.py --list          列出 endpoints.json 中已配置的任务
-  python main.py --check         只检查登录态和参数提取，不执行任务
-  python main.py --keepalive     保持在线守护进程（连游戏 socket 定时心跳，防掉线）
+这个脚本干**两件互相独立**的事，别把它们混在一起：
+
+  保活   `--keepalive`   常驻，连着游戏 socket 定时发心跳，防止被踢下线。
+                         唯一职责就是别掉线，跑几天几周不停。
+  每日   `--daily`       跑一轮每日任务然后退出。一次性批处理。
+
+分开的理由：保活断线会自动重连，如果每日任务挂在里面，每次重连都要重跑一轮；
+而且任务出错会牵连保活这个更重要的进程。要"连上顺带领一轮"就显式写
+`--keepalive --daily`。
+
+常用：
+  python main.py --login       扫码登录（cookie 存 cookies.json，之后自动续期）
+  python main.py --check       验证登录态，打印 uid/sid/level
+  python main.py --keepalive   保活常驻
+  python main.py --daily       跑一轮每日任务
+  python main.py --list        列出每日任务及今日进度
+  python main.py --reset       清空今日任务计数
 """
 
 import argparse
@@ -57,27 +67,76 @@ def load_config() -> dict:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="坦克风暴每日任务（纯请求版）")
-    parser.add_argument("--login", action="store_true", help="强制重新扫码登录")
-    parser.add_argument("--task", help="只执行指定名称的任务")
-    parser.add_argument("--list", action="store_true", help="列出已配置任务")
-    parser.add_argument("--check", action="store_true", help="只验证登录与参数提取")
-    parser.add_argument("--keepalive", action="store_true",
-                        help="保持在线守护进程（连游戏 socket 定时心跳）")
+    parser = argparse.ArgumentParser(
+        description="坦克风暴：保活守护 + 每日任务（两件独立的事）")
+    g1 = parser.add_argument_group("登录")
+    g1.add_argument("--login", action="store_true", help="强制重新扫码登录")
+    g1.add_argument("--check", action="store_true", help="验证登录态并打印上下文")
+    g1.add_argument("--import-device", metavar="文件",
+                    help="从浏览器搬一次设备记录以启用推送登录（一次性，"
+                         "文件里放浏览器的 Cookie；给 - 表示从标准输入读）")
+
+    g2 = parser.add_argument_group("保活（常驻）")
+    g2.add_argument("--keepalive", action="store_true",
+                    help="连游戏 socket 定时心跳，防掉线；断线自动重连")
+
+    g3 = parser.add_argument_group("每日任务（一次性）")
+    g3.add_argument("--daily", action="store_true",
+                    help="跑一轮每日任务后退出；与 --keepalive 同时给则由保活带着跑")
+    g3.add_argument("--list", action="store_true", help="列出每日任务及今日进度")
+    g3.add_argument("--reset", action="store_true", help="清空今日任务计数")
+
+    g4 = parser.add_argument_group("其它")
+    g4.add_argument("--task", help="（旧的 HTTP 接口任务，见 endpoints.json）")
+    g4.add_argument("--real", action="store_true",
+                    help="（已废弃，保留兼容：现在 --daily 一律真实发送）")
     args = parser.parse_args()
+
+    # 什么都不给就打印用法。以前默认会去跑 endpoints.json 里那套早已废弃的
+    # HTTP 任务，全部失败还把退出码带成 1，看着像登录坏了。
+    if not any((args.login, args.check, args.keepalive, args.daily,
+                args.list, args.reset, args.task, args.import_device)):
+        parser.print_help()
+        return 0
 
     config = load_config()
     endpoints = load_json(ENDPOINTS_FILE)
 
+    if args.reset:
+        from tankstorm import daily as _daily
+        if os.path.exists(_daily.STATE_FILE):
+            os.remove(_daily.STATE_FILE)
+            print(f"已清空今日任务计数：{_daily.STATE_FILE}")
+        else:
+            print("今日计数本来就是空的")
+        if not args.daily:
+            return 0
+
     if args.list:
-        for t in endpoints.get("tasks", []):
-            n = len(t.get("requests", []))
-            state = "已配置" if n else "空(待抓包)"
-            print(f"  {t.get('name')}  [{state}, {n} 条请求]")
+        from tankstorm import daily as _daily
+        sw = (config.get("每日任务", {}) or {}).get("任务", {})
+        conf = config.get("每日任务", {}) or {}
+        st = _daily._load_state()
+        print(f"\n每日任务（{'已启用' if conf.get('启用') else '未启用'}，"
+              f"实发模式）")
+        print(f"{'执行顺序':<4} {'任务':<12} {'opcode':<8} {'消息':<22} "
+              f"{'上限':<5} {'今日':<5} {'参数':<6} 开关")
+        print("-" * 92)
+        for i, t in enumerate(_daily.ordered_tasks(), 1):
+            done = st.get("done", {}).get(t.key, 0)
+            on = "✅开" if sw.get(t.key) else "  关"
+            cd = f"/{t.cooldown_sec // 60}分冷却" if t.cooldown_sec else ""
+            mark = "实测" if t.confidence == "实测" else "待确认"
+            print(f"{i:>4}   {t.key:<12} {t.opcode:<8} {t.msg:<22} "
+                  f"{str(t.max_per_day) + cd:<5} {done:<5} {mark:<6} {on}")
+        print("-" * 92)
+        print("『实测』= 参数来自真实抓包，可放心开；『待确认』= 默认跳过，需先抓包核对")
+        print("周任务/每日任务由代码强制排最后（前面的操作会推进它们的进度）\n")
         return 0
 
-    # 同日去重：cron 重复触发/手动补跑时避免重复执行
-    if config.get("同日去重", False) and not (args.task or args.check):
+    # 同日去重只对旧的 HTTP 任务有意义。每日任务自己按 logs/daily-state.json
+    # 记每项的次数，比"今天整体跑没跑过"精确得多，不该再被这个开关拦住。
+    if config.get("同日去重", False) and args.task:
         state = load_json(STATE_FILE, required=False)
         if state.get("last_run") == date.today().isoformat():
             log.info("今天已经跑过（state.json），退出。删掉 state.json 可强制重跑")
@@ -85,18 +144,54 @@ def main() -> int:
 
     qq = QQSession()
 
-    # 保持在线：长驻守护进程；登录（含二维码 PushPlus 推送）由它内部处理
-    if args.keepalive:
-        return socket_keepalive.run(qq, config)
+    # 一次性引导：把浏览器的设备记录搬进来，之后推送登录才有 dev_mid_sig 可用。
+    # pt_fetch_dev_uin 只能给已有的续期，签发不出第一个，所以只能这么来。
+    if args.import_device:
+        if args.import_device == "-":
+            text = sys.stdin.read()
+        else:
+            with open(args.import_device, encoding="utf-8") as f:
+                text = f.read()
+        try:
+            got = qq.import_device_cookies(text)
+        except (ValueError, KeyError, TypeError) as exc:
+            log.error("设备记录解析失败：%s", exc)
+            return 1
+        if not got:
+            log.error("没找到可用的设备记录。至少要有 dev_mid_sig —— "
+                      "在浏览器里打开 ptlogin2.qq.com 的页面，从开发者工具里"
+                      "把 Cookie 复制出来")
+            return 1
+        log.info("已导入 %s", "、".join(got))
+        log.info("设备状态：%s", qq.device_status())
+        return 0
 
-    # 扫码时把二维码推送到 PushPlus（服务器无屏幕时用手机扫）
-    def on_qr(path):
-        notify.send_qrcode(config, "坦克风暴：请扫码登录", path)
+    # 保活：常驻。--keepalive --daily 时才顺带跑一轮任务
+    if args.keepalive:
+        return socket_keepalive.run(qq, config, with_daily=args.daily)
+
+    # 每日任务：连一次、跑一轮、退出
+    if args.daily:
+        config.setdefault("每日任务", {})["启用"] = True
+        return socket_keepalive.run_daily_once(qq, config)
+
+    # 需要人工介入时把二维码推到 PushPlus。配了 QQ 号则走「推送登录」，
+    # 手机QQ点确认即可，不用扫码（存图后同机扫码会被腾讯拒）。
+    push_uin = (config.get("登录", {}) or {}).get("推送登录QQ号") or qq.uin or None
+
+    def on_qr(path, pushed=False):
+        if pushed:
+            notify.send_qrcode(config, "坦克风暴：请在手机QQ点「确认登录」", path,
+                               note=f"已向 QQ {push_uin} 推送登录确认，"
+                                    f"<b>打开手机QQ点确认即可，不用扫码</b>。")
+        else:
+            notify.send_qrcode(config, "坦克风暴：请扫码登录", path,
+                               note="请用<b>另一台设备</b>打开本条消息再扫码。")
 
     if args.login:
-        if not qq.qr_login(on_qr=on_qr):
+        if not qq.qr_login(on_qr=on_qr, push_uin=push_uin):
             return 1
-    elif not qq.ensure_login(on_qr=on_qr):
+    elif not qq.ensure_login(on_qr=on_qr, push_uin=push_uin):
         return 1
 
     ctx = qzone.get_game_context(qq)
@@ -104,15 +199,20 @@ def main() -> int:
         printable = {k: (v[:12] + "…" if isinstance(v, str) and len(v) > 16 else v)
                      for k, v in ctx.items() if k not in ("skey",)}
         log.info("提取到的上下文: %s", json.dumps(printable, ensure_ascii=False))
+        log.info("设备状态：%s", qq.device_status())
         return 0
 
+    if args.login:      # --login 到这里就算完了，别再去跑那套废弃的 HTTP 任务
+        log.info("登录完成，uin=%s", qq.uin)
+        return 0
+
+    # 旧的 HTTP 接口任务（endpoints.json），只有显式 --task 才会走到
     results = engine.run_tasks(qq.session, endpoints, config, ctx, only=args.task)
     summary = engine.summarize(results)
     log.info("执行完毕:\n%s", summary)
 
-    if not (args.task or args.check):
-        with open(STATE_FILE, "w", encoding="utf-8") as f:
-            json.dump({"last_run": date.today().isoformat()}, f)
+    with open(STATE_FILE, "w", encoding="utf-8") as f:
+        json.dump({"last_run": date.today().isoformat()}, f)
 
     failed = any(r.status == "失败" for r in results)
     return 1 if failed else 0

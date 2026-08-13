@@ -4,15 +4,15 @@
 "cls": "_-AO",
 "fields": {
 "1": [
-"field1",
+"id",
 "int32"
 ],
 "2": [
-"field2",
+"starttime",
 "int32"
 ],
 "3": [
-"field3",
+"endtime",
 "int32"
 ]
 }
@@ -102,23 +102,23 @@
 "int32"
 ],
 "5": [
-"activetype",
+"field5",
 "int32"
 ],
 "6": [
-"ntotalScore",
+"field6",
 "int32"
 ],
 "7": [
-"nstardtime",
+"field7",
 "int32"
 ],
 "8": [
-"field8",
+"activetype",
 "int32"
 ],
 "9": [
-"field9",
+"ntotalScore",
 "int32"
 ],
 "10": [
@@ -126,7 +126,7 @@
 "bool"
 ],
 "11": [
-"field11",
+"nstardtime",
 "int32"
 ]
 }
@@ -152,7 +152,7 @@
 "int32"
 ],
 "5": [
-"field5",
+"hasGet",
 "bool"
 ]
 }
@@ -170,11 +170,11 @@
 "int32"
 ],
 "3": [
-"hasBind",
+"hasGet",
 "bool"
 ],
 "4": [
-"field4",
+"hasBind",
 "bool"
 ]
 }
@@ -188,7 +188,7 @@
 "int32"
 ],
 "2": [
-"field2",
+"promptdata",
 "message"
 ]
 }
@@ -206,7 +206,7 @@
 "int32"
 ],
 "3": [
-"field3",
+"army",
 "message"
 ]
 }
@@ -404,95 +404,95 @@
 "int32"
 ],
 "8": [
-"mushRoom",
+"academy",
 "message"
 ],
 "9": [
-"credit",
+"mushRoom",
 "message"
 ],
 "10": [
-"level",
+"army",
 "message"
 ],
 "11": [
-"basevalue",
+"resources",
 "string"
 ],
 "12": [
-"basepoints",
+"credit",
 "string"
 ],
 "13": [
-"honor",
+"level",
 "string"
 ],
 "14": [
-"slaveRoom",
+"basevalue",
 "string"
 ],
 "15": [
-"feats",
+"basepoints",
 "string"
 ],
 "16": [
-"extraMedal",
+"honor",
 "string"
 ],
 "17": [
-"extraOil",
+"slaveRoom",
 "message"
 ],
 "18": [
-"buildingAddCount",
+"feats",
 "string"
 ],
 "19": [
-"ZhuZiTimes",
+"extraMedal",
 "string"
 ],
 "20": [
-"BuildingUpdate",
+"extraOil",
 "string"
 ],
 "21": [
-"vipMetalAddtion",
+"buildingAddCount",
 "int32"
 ],
 "22": [
-"vipOilAddtion",
+"ZhuZiTimes",
 "int32"
 ],
 "23": [
-"upgradeherolst",
+"field23",
 "int32"
 ],
 "24": [
-"towerenhancetype",
+"BuildingUpdate",
 "int32"
 ],
 "25": [
-"nGetResTimes",
+"vipMetalAddtion",
 "string"
 ],
 "26": [
-"colonyName",
+"vipOilAddtion",
 "string"
 ],
 "27": [
-"colonyPic",
+"upgradeherolst",
 "message"
 ],
 "28": [
-"snowmanMetalAdd",
+"hero",
 "message"
 ],
 "29": [
-"snowmanOilAdd",
+"towerenhancetype",
 "int32"
 ],
 "30": [
-"field30",
+"nGetResTimes",
 "int32"
 ],
 "31": [
@@ -504,19 +504,19 @@
 "message"
 ],
 "33": [
-"field33",
+"colonyName",
 "string"
 ],
 "34": [
-"field34",
+"colonyPic",
 "string"
 ],
 "35": [
-"field35",
+"snowmanMetalAdd",
 "string"
 ],
 "36": [
-"field36",
+"snowmanOilAdd",
 "string"
 ]
 }
@@ -538,31 +538,31 @@
 "message"
 ],
 "4": [
-"mineEx",
+"academy",
 "message"
 ],
 "5": [
-"credit",
+"resources",
 "string"
 ],
 "6": [
-"level",
+"mineEx",
 "message"
 ],
 "7": [
-"basevalue",
+"credit",
 "string"
 ],
 "8": [
-"basepoints",
+"level",
 "string"
 ],
 "9": [
-"upgradeherolst",
+"basevalue",
 "string"
 ],
 "10": [
-"TrapEx",
+"basepoints",
 "string"
 ],
 "11": [
@@ -570,15 +570,15 @@
 "message"
 ],
 "12": [
-"field12",
+"upgradeherolst",
 "message"
 ],
 "13": [
-"field13",
+"hero",
 "message"
 ],
 "14": [
-"field14",
+"TrapEx",
 "message"
 ]
 }
@@ -642,11 +642,11 @@
 "cls": "_-0El",
 "fields": {
 "1": [
-"type",
+"field1",
 "message"
 ],
 "2": [
-"field2",
+"type",
 "int32"
 ]
 }
@@ -656,39 +656,39 @@
 "cls": "_-3l-",
 "fields": {
 "1": [
-"currenttime",
+"bases",
 "message"
 ],
 "2": [
-"type",
+"currenttime",
 "int32"
 ],
 "3": [
-"getid",
+"type",
 "int32"
 ],
 "4": [
-"error",
+"getid",
 "string"
 ],
 "5": [
-"errorDesc",
+"error",
 "string"
 ],
 "6": [
-"h",
+"errorDesc",
 "string"
 ],
 "7": [
-"hn",
+"field7",
 "string"
 ],
 "8": [
-"field8",
+"h",
 "string"
 ],
 "9": [
-"field9",
+"hn",
 "string"
 ]
 }
@@ -1017,307 +1017,307 @@
 "string"
 ],
 "13": [
-"quests",
+"buildingdata",
 "message"
 ],
 "14": [
-"basevalue",
+"quests",
 "message"
 ],
 "15": [
-"basepoints",
+"basevalue",
 "string"
 ],
 "16": [
-"aiattacks",
+"basepoints",
 "string"
 ],
 "18": [
-"effects",
+"aiattacks",
 "message"
 ],
 "19": [
-"mushrooms",
+"effects",
 "string"
 ],
 "20": [
-"stats",
+"mushrooms",
 "message"
 ],
 "21": [
-"monsterbaiter",
+"stats",
 "message"
 ],
 "22": [
-"mineEx",
+"academy",
 "message"
 ],
 "23": [
-"fbCreditsBalance",
+"monsterbaiter",
 "message"
 ],
 "24": [
-"flags",
+"mineEx",
 "message"
 ],
 "25": [
-"points",
+"fbCreditsBalance",
 "string"
 ],
 "27": [
-"name",
+"attacks",
 "message"
 ],
 "28": [
-"factionid",
+"storedata",
 "message"
 ],
 "29": [
-"destroycnt",
+"storeitems",
 "message"
 ],
 "30": [
-"attackcnt",
+"flags",
 "message"
 ],
 "31": [
-"sciencelevel",
+"field31",
 "string"
 ],
 "32": [
-"honor",
+"field32",
 "string"
 ],
 "33": [
-"activitydata",
+"army",
 "message"
 ],
 "34": [
-"recoverArmy",
+"points",
 "int32"
 ],
 "35": [
-"totallogin24tm",
+"name",
 "string"
 ],
 "36": [
-"totallogout24tm",
+"wmstatus",
 "message"
 ],
 "37": [
-"buffdata",
+"factionid",
 "int32"
 ],
 "38": [
-"comInuse",
+"destroycnt",
 "int32"
 ],
 "39": [
-"hasLogonToday",
+"attackcnt",
 "int32"
 ],
 "40": [
-"slaveRoom",
+"sciencelevel",
 "message"
 ],
 "41": [
-"wallType",
+"honor",
 "int32"
 ],
 "42": [
-"combatpowervalue",
+"activitydata",
 "message"
 ],
 "43": [
-"emblemInuse",
+"recoverArmy",
 "message"
 ],
 "44": [
-"feats",
+"totallogin24tm",
 "uint32"
 ],
 "45": [
-"tmsnowiceMode",
+"totallogout24tm",
 "uint32"
 ],
 "46": [
-"admiralInuse",
+"buffdata",
 "message"
 ],
 "47": [
-"popAD",
+"comInuse",
 "message"
 ],
 "48": [
-"tutorialtype",
+"hasLogonToday",
 "bool"
 ],
 "49": [
-"bookInuse",
+"slaveRoom",
 "message"
 ],
 "50": [
-"frdBaseExplore",
+"wallType",
 "int32"
 ],
 "51": [
-"countryData",
+"combatpowervalue",
 "uint32"
 ],
 "52": [
-"nIntegralScore",
+"emblemInuse",
 "message"
 ],
 "53": [
-"equipInuse",
+"feats",
 "int32"
 ],
 "54": [
-"curBloodBtlCnt",
+"tmsnowiceMode",
 "uint32"
 ],
 "55": [
-"lastuseweapontime",
+"admiralInuse",
 "message"
 ],
 "56": [
-"userGuild",
+"popAD",
 "bool"
 ],
 "57": [
-"officerPosition",
+"tutorialtype",
 "int32"
 ],
 "58": [
-"vipData",
+"bookInuse",
 "message"
 ],
 "59": [
-"destroynpccnt",
+"frdBaseExplore",
 "message"
 ],
 "60": [
-"attacknpccnt",
+"countryData",
 "message"
 ],
 "61": [
-"pvebattlecnt",
+"nIntegralScore",
 "int32"
 ],
 "62": [
-"heroInuse",
+"equipInuse",
 "message"
 ],
 "63": [
-"property",
+"curBloodBtlCnt",
 "int32"
 ],
 "64": [
-"heroScore",
+"lastuseweapontime",
 "int32"
 ],
 "65": [
-"logindays",
+"userGuild",
 "message"
 ],
 "66": [
-"cmdlv",
+"officerPosition",
 "int32"
 ],
 "67": [
-"logoutProTime",
+"vipData",
 "message"
 ],
 "68": [
-"TrapEx",
+"destroynpccnt",
 "int32"
 ],
 "69": [
-"mhInuse",
+"attacknpccnt",
 "int32"
 ],
 "70": [
-"nLeagueTitle",
+"pvebattlecnt",
 "int32"
 ],
 "71": [
-"colonyState",
+"heroInuse",
 "message"
 ],
 "72": [
-"bSelfVip",
+"property",
 "message"
 ],
 "73": [
-"nColonyNum",
+"heroScore",
 "int32"
 ],
 "74": [
-"tmspritemode",
+"logindays",
 "int32"
 ],
 "75": [
-"nSpecailHead",
+"cmdlv",
 "int32"
 ],
 "76": [
-"nDayAddCredit",
+"field76",
 "message"
 ],
 "77": [
-"nDayCostCredit",
+"logoutProTime",
 "int32"
 ],
 "78": [
-"tmbattlepassmap",
+"field78",
 "message"
 ],
 "79": [
-"OtherSaveflag",
+"TrapEx",
 "message"
 ],
 "80": [
-"lstUI",
+"mhInuse",
 "message"
 ],
 "81": [
-"BuildlstUI",
+"nLeagueTitle",
 "int32"
 ],
 "82": [
-"usertitle",
+"field82",
 "message"
 ],
 "83": [
-"mortarskin",
+"colonyState",
 "int32"
 ],
 "84": [
-"Wishtreeskin",
+"field84",
 "message"
 ],
 "85": [
-"eggskin",
+"bSelfVip",
 "bool"
 ],
 "86": [
-"cakeinfo",
+"nColonyNum",
 "int32"
 ],
 "87": [
-"basehomeskin",
+"tmspritemode",
 "int32"
 ],
 "88": [
-"field88",
+"nSpecailHead",
 "int32"
 ],
 "89": [
-"field89",
+"nDayAddCredit",
 "int32"
 ],
 "90": [
-"field90",
+"nDayCostCredit",
 "int32"
 ],
 "91": [
@@ -1325,43 +1325,43 @@
 "message"
 ],
 "92": [
-"field92",
+"tmbattlepassmap",
 "int32"
 ],
 "93": [
-"field93",
+"OtherSaveflag",
 "int32"
 ],
 "94": [
-"field94",
+"lstUI",
 "message"
 ],
 "95": [
-"field95",
+"BuildlstUI",
 "message"
 ],
 "96": [
-"field96",
+"usertitle",
 "message"
 ],
 "97": [
-"field97",
+"mortarskin",
 "message"
 ],
 "98": [
-"field98",
+"Wishtreeskin",
 "message"
 ],
 "99": [
-"field99",
+"eggskin",
 "message"
 ],
 "100": [
-"field100",
+"cakeinfo",
 "message"
 ],
 "101": [
-"field101",
+"basehomeskin",
 "message"
 ]
 }
@@ -1387,27 +1387,27 @@
 "message"
 ],
 "5": [
-"credit",
+"resources",
 "string"
 ],
 "6": [
-"level",
+"credit",
 "string"
 ],
 "7": [
-"basevalue",
+"level",
 "string"
 ],
 "8": [
-"basepoints",
+"basevalue",
 "string"
 ],
 "9": [
-"recycleFlag",
+"basepoints",
 "string"
 ],
 "10": [
-"field10",
+"recycleFlag",
 "bool"
 ]
 }
@@ -1417,47 +1417,47 @@
 "cls": "_-2nZ",
 "fields": {
 "1": [
-"credit",
+"resources",
 "string"
 ],
 "2": [
-"type",
+"credit",
 "string"
 ],
 "3": [
-"error",
+"type",
 "string"
 ],
 "4": [
-"count",
+"error",
 "int32"
 ],
 "5": [
-"shopID",
+"count",
 "int32"
 ],
 "6": [
-"itemID",
+"shopID",
 "int32"
 ],
 "7": [
-"feats",
+"itemID",
 "int32"
 ],
 "8": [
-"nIntegralScore",
+"feats",
 "string"
 ],
 "9": [
-"heroScore",
+"nIntegralScore",
 "int32"
 ],
 "12": [
-"buycount",
+"heroScore",
 "int32"
 ],
 "13": [
-"openBoxScore",
+"field13",
 "int32"
 ],
 "14": [
@@ -1465,11 +1465,11 @@
 "int32"
 ],
 "15": [
-"field15",
+"buycount",
 "int32"
 ],
 "16": [
-"field16",
+"openBoxScore",
 "int32"
 ]
 }
@@ -1537,35 +1537,35 @@
 "string"
 ],
 "10": [
-"saving",
+"updates",
 "string"
 ],
 "11": [
-"error",
+"saving",
 "string"
 ],
 "12": [
-"errorDesc",
+"error",
 "string"
 ],
 "13": [
-"h",
+"errorDesc",
 "string"
 ],
 "14": [
-"hn",
+"field14",
 "string"
 ],
 "16": [
-"type",
+"h",
 "string"
 ],
 "17": [
-"field17",
+"hn",
 "string"
 ],
 "18": [
-"field18",
+"type",
 "int32"
 ]
 }
@@ -1609,51 +1609,51 @@
 "string"
 ],
 "7": [
-"unreadmessages",
+"updates",
 "string"
 ],
 "8": [
-"giftsentcount",
+"unreadmessages",
 "string"
 ],
 "9": [
-"flags",
+"giftsentcount",
 "string"
 ],
 "10": [
-"error",
+"flags",
 "message"
 ],
 "12": [
-"errorDesc",
+"field12",
 "string"
 ],
 "13": [
-"currenttime",
+"field13",
 "string"
 ],
 "14": [
-"h",
+"error",
 "string"
 ],
 "15": [
-"hn",
+"errorDesc",
 "int32"
 ],
 "16": [
-"field16",
+"h",
 "string"
 ],
 "17": [
-"field17",
+"currenttime",
 "string"
 ],
 "51": [
-"field51",
+"h",
 "string"
 ],
 "52": [
-"field52",
+"hn",
 "string"
 ]
 }
@@ -1703,15 +1703,15 @@
 "uint32"
 ],
 "11": [
-"combatpowervalue",
+"field11",
 "message"
 ],
 "12": [
-"bluecharge",
+"combatpowervalue",
 "uint32"
 ],
 "13": [
-"field13",
+"bluecharge",
 "bool"
 ]
 }
@@ -1947,23 +1947,23 @@
 "string"
 ],
 "4": [
-"atkAdmiralExp",
+"field4",
 "message"
 ],
 "5": [
-"defAdmiralExp",
+"field5",
 "message"
 ],
 "6": [
-"weapon",
+"atkAdmiralExp",
 "int32"
 ],
 "7": [
-"field7",
+"defAdmiralExp",
 "int32"
 ],
 "8": [
-"field8",
+"weapon",
 "message"
 ]
 }
@@ -2031,11 +2031,11 @@
 "int32"
 ],
 "5": [
-"bSendGiftGain",
+"field5",
 "string"
 ],
 "6": [
-"baskGiftGain",
+"field6",
 "int32"
 ],
 "7": [
@@ -2047,7 +2047,7 @@
 "string"
 ],
 "9": [
-"field9",
+"getTime",
 "int32"
 ],
 "10": [
@@ -2055,19 +2055,19 @@
 "int32"
 ],
 "11": [
-"field11",
+"hasDone",
 "int32"
 ],
 "12": [
-"field12",
+"bSendGiftGain",
 "bool"
 ],
 "13": [
-"field13",
+"baskGiftGain",
 "bool"
 ],
 "14": [
-"field14",
+"playerName",
 "string"
 ],
 "15": [
@@ -2303,7 +2303,7 @@
 "message"
 ],
 "3": [
-"field3",
+"bagItem",
 "message"
 ]
 }
@@ -2371,31 +2371,31 @@
 "int32"
 ],
 "11": [
-"activeFlag",
+"field11",
 "int32"
 ],
 "12": [
-"dayGetGiftCount",
+"field12",
 "int32"
 ],
 "13": [
-"totalGetGiftPrivilege",
+"activeFlag",
 "int32"
 ],
 "14": [
-"dayCostGetTime",
+"dayGetGiftCount",
 "int32"
 ],
 "15": [
-"hasGetRankGift",
+"totalGetGiftPrivilege",
 "int32"
 ],
 "16": [
-"field16",
+"dayCostGetTime",
 "int32"
 ],
 "17": [
-"field17",
+"hasGetRankGift",
 "bool"
 ]
 }
@@ -2433,27 +2433,27 @@
 "int32"
 ],
 "8": [
-"activeFlag",
+"stake",
 "message"
 ],
 "9": [
-"dayGetGiftCount",
+"activeFlag",
 "int32"
 ],
 "10": [
-"totalGetGiftPrivilege",
+"dayGetGiftCount",
 "int32"
 ],
 "11": [
-"dayCostGetTime",
+"totalGetGiftPrivilege",
 "int32"
 ],
 "12": [
-"hasGetRankGift",
+"dayCostGetTime",
 "int32"
 ],
 "13": [
-"field13",
+"hasGetRankGift",
 "bool"
 ]
 }
@@ -2467,31 +2467,31 @@
 "int32"
 ],
 "2": [
-"invitegaincredit",
+"invitefriends",
 "message"
 ],
 "3": [
-"lvlgaincredit",
+"invitegaincredit",
 "int32"
 ],
 "4": [
-"topupgaincredit",
+"lvlgaincredit",
 "int32"
 ],
 "5": [
-"gaincreditall",
+"topupgaincredit",
 "int32"
 ],
 "6": [
-"nerror",
+"gaincreditall",
 "int32"
 ],
 "7": [
-"ncredit",
+"nerror",
 "int32"
 ],
 "8": [
-"field8",
+"ncredit",
 "int32"
 ]
 }
@@ -2515,23 +2515,23 @@
 "int32"
 ],
 "2": [
-"champion",
+"field2",
 "int32"
 ],
 "3": [
-"searchTime",
+"leftFreeCnt",
 "int32"
 ],
 "4": [
-"wishtreeSearchCnt",
+"leftTime",
 "int32"
 ],
 "5": [
-"wpcallcnt",
+"champion",
 "message"
 ],
 "6": [
-"field6",
+"list",
 "message"
 ],
 "7": [
@@ -2539,15 +2539,15 @@
 "message"
 ],
 "8": [
-"field8",
+"searchTime",
 "int32"
 ],
 "9": [
-"field9",
+"wishtreeSearchCnt",
 "int32"
 ],
 "10": [
-"field10",
+"wpcallcnt",
 "int32"
 ]
 }
@@ -2629,63 +2629,63 @@
 "int32"
 ],
 "3": [
-"leftFreeCnt",
+"itemID",
 "int32"
 ],
 "5": [
-"leftTime",
+"leftFreeCnt",
 "int32"
 ],
 "6": [
-"ret",
+"leftTime",
 "int32"
 ],
 "7": [
-"discountType",
+"ret",
 "int32"
 ],
 "8": [
-"jungong",
+"field8",
 "int32"
 ],
 "9": [
-"searchTimes",
+"bookID",
 "int32"
 ],
 "10": [
-"bJinKa",
+"discountType",
 "int32"
 ],
 "11": [
-"halloweenGetCandy",
+"jungong",
 "int32"
 ],
 "12": [
-"precisestrikepart",
+"searchTimes",
 "int32"
 ],
 "13": [
-"wishtreeSearchCnt",
+"jammerID",
 "int32"
 ],
 "14": [
-"wpcallcnt",
+"bJinKa",
 "bool"
 ],
 "15": [
-"field15",
+"halloweenGetCandy",
 "int32"
 ],
 "16": [
-"field16",
+"precisestrikepart",
 "int32"
 ],
 "17": [
-"field17",
+"wishtreeSearchCnt",
 "int32"
 ],
 "18": [
-"field18",
+"wpcallcnt",
 "int32"
 ]
 }
@@ -2755,19 +2755,19 @@
 "int32"
 ],
 "2": [
-"nIndex",
+"field2",
 "message"
 ],
 "3": [
-"nError",
+"nIndex",
 "int32"
 ],
 "4": [
-"bIsNew",
+"nError",
 "int32"
 ],
 "5": [
-"field5",
+"bIsNew",
 "bool"
 ]
 }
@@ -2777,19 +2777,19 @@
 "cls": "_-3hP",
 "fields": {
 "1": [
-"dailyTask",
+"getGift",
 "message"
 ],
 "2": [
-"privilegeId",
+"dailyTask",
 "message"
 ],
 "3": [
-"hasPrivilegeComplete",
+"privilegeId",
 "int32"
 ],
 "4": [
-"field4",
+"hasPrivilegeComplete",
 "bool"
 ]
 }
@@ -2895,11 +2895,11 @@
 "cls": "_-6n-",
 "fields": {
 "1": [
-"logonday",
+"records",
 "message"
 ],
 "2": [
-"field2",
+"logonday",
 "int32"
 ]
 }
@@ -3065,59 +3065,59 @@
 "int32"
 ],
 "3": [
-"soulCnt",
+"field3",
 "message"
 ],
 "4": [
-"hasCreditVisit",
+"soulCnt",
 "int32"
 ],
 "5": [
-"soul4Admiral",
+"field5",
 "int32"
 ],
 "6": [
-"admiralletter",
+"freeVisitCnt",
 "int32"
 ],
 "7": [
-"nRemainSoulBuy",
+"finishVisitTime",
 "int32"
 ],
 "8": [
-"hasHalfPrice",
+"hasCreditVisit",
 "bool"
 ],
 "9": [
-"optimusPrimescore",
+"field9",
 "int32"
 ],
 "10": [
-"hasGeneralCombine",
+"soul4Admiral",
 "int32"
 ],
 "11": [
-"heroskillAddpro",
+"admiralletter",
 "message"
 ],
 "12": [
-"nActVisitCnt",
+"remainNum",
 "int32"
 ],
 "13": [
-"nSuipianEndtime",
+"nRemainSoulBuy",
 "int32"
 ],
 "14": [
-"ngetSuipianAwd",
+"hasHalfPrice",
 "bool"
 ],
 "15": [
-"field15",
+"optimusPrimescore",
 "int32"
 ],
 "16": [
-"field16",
+"hasGeneralCombine",
 "int32"
 ],
 "17": [
@@ -3125,19 +3125,19 @@
 "message"
 ],
 "18": [
-"field18",
+"heroskillAddpro",
 "int32"
 ],
 "19": [
-"field19",
+"nActVisitCnt",
 "int32"
 ],
 "20": [
-"field20",
+"nSuipianEndtime",
 "int32"
 ],
 "21": [
-"field21",
+"ngetSuipianAwd",
 "bool"
 ]
 }
@@ -3155,47 +3155,47 @@
 "int32"
 ],
 "3": [
-"soulCnt",
+"admiral",
 "message"
 ],
 "4": [
-"admiralInuse",
+"field4",
 "int32"
 ],
 "5": [
-"itemID",
+"soulCnt",
 "int32"
 ],
 "6": [
-"itemCnt",
+"admiralInuse",
 "message"
 ],
 "7": [
-"admiralletter",
+"itemID",
 "int32"
 ],
 "8": [
-"trainExp",
+"itemCnt",
 "int32"
 ],
 "9": [
-"getType",
+"admiralletter",
 "message"
 ],
 "10": [
-"getsoul",
+"trainExp",
 "int32"
 ],
 "11": [
-"admiralcombineinfo",
+"getType",
 "int32"
 ],
 "12": [
-"field12",
+"getsoul",
 "int32"
 ],
 "13": [
-"field13",
+"admiralcombineinfo",
 "message"
 ]
 }
@@ -3213,67 +3213,67 @@
 "int32"
 ],
 "4": [
-"hasCreditVisit",
+"freeVisitCnt",
 "int32"
 ],
 "5": [
-"getType",
+"hasCreditVisit",
 "bool"
 ],
 "6": [
-"Admiral",
+"finishVisitTime",
 "int32"
 ],
 "7": [
-"soulCnt",
+"getType",
 "int32"
 ],
 "8": [
-"itemID",
+"Admiral",
 "message"
 ],
 "9": [
-"itemCnt",
+"soulCnt",
 "int32"
 ],
 "10": [
-"trainExp",
+"itemID",
 "int32"
 ],
 "11": [
-"admiralletter",
+"itemCnt",
 "int32"
 ],
 "12": [
-"jungong",
+"trainExp",
 "int32"
 ],
 "13": [
-"nRemainSoulBuy",
+"admiralletter",
 "message"
 ],
 "14": [
-"optimusPrimescore",
+"jungong",
 "int32"
 ],
 "15": [
-"precisestrikepart",
+"remainNum",
 "int32"
 ],
 "16": [
-"bGetTenDrawDayAwd",
+"nRemainSoulBuy",
 "int32"
 ],
 "17": [
-"nActVisitCnt",
+"optimusPrimescore",
 "int32"
 ],
 "18": [
-"field18",
+"precisestrikepart",
 "int32"
 ],
 "19": [
-"field19",
+"bGetTenDrawDayAwd",
 "int32"
 ],
 "20": [
@@ -3281,7 +3281,7 @@
 "message"
 ],
 "21": [
-"field21",
+"nActVisitCnt",
 "int32"
 ]
 }
@@ -3303,7 +3303,7 @@
 "int32"
 ],
 "4": [
-"crank",
+"field4",
 "int32"
 ],
 "5": [
@@ -3311,7 +3311,7 @@
 "int32"
 ],
 "6": [
-"field6",
+"crank",
 "message"
 ]
 }
@@ -3345,23 +3345,23 @@
 "int32"
 ],
 "7": [
-"getItemID",
+"field7",
 "int32"
 ],
 "8": [
-"getItemCnt",
+"field8",
 "int32"
 ],
 "9": [
-"balance",
+"getItemID",
 "int32"
 ],
 "10": [
-"field10",
+"getItemCnt",
 "int32"
 ],
 "11": [
-"field11",
+"balance",
 "bool"
 ],
 "12": [
@@ -3401,7 +3401,7 @@
 "cls": "_-X4",
 "fields": {
 "1": [
-"sendCountAll",
+"giftID",
 "int32"
 ],
 "2": [
@@ -3413,7 +3413,7 @@
 "int32"
 ],
 "4": [
-"field4",
+"sendCountAll",
 "int32"
 ]
 }
@@ -3573,7 +3573,7 @@
 "int32"
 ],
 "14": [
-"field14",
+"booklockMOre",
 "message"
 ]
 }
@@ -3635,23 +3635,23 @@
 "bool"
 ],
 "6": [
-"nKillBossID",
+"field6",
 "message"
 ],
 "8": [
-"tRewardTime",
+"nKillBossID",
 "int32"
 ],
 "9": [
-"nIdleRewardID",
+"tRewardTime",
 "int32"
 ],
 "10": [
-"nIdleRewardNum",
+"nIdleRewardID",
 "int32"
 ],
 "11": [
-"field11",
+"nIdleRewardNum",
 "int32"
 ],
 "12": [
@@ -3673,19 +3673,19 @@
 "int32"
 ],
 "3": [
-"generalindex",
+"field3",
 "message"
 ],
 "4": [
-"heroInuse",
+"field4",
 "message"
 ],
 "5": [
-"curPlan",
+"field5",
 "message"
 ],
 "6": [
-"nret",
+"generalindex",
 "int32"
 ],
 "7": [
@@ -3693,15 +3693,15 @@
 "message"
 ],
 "8": [
-"field8",
+"heroInuse",
 "message"
 ],
 "9": [
-"field9",
+"curPlan",
 "int32"
 ],
 "10": [
-"field10",
+"nret",
 "int32"
 ]
 }
@@ -3715,31 +3715,31 @@
 "int32"
 ],
 "2": [
-"optarmytype",
+"field2",
 "int32"
 ],
 "3": [
-"optarmycnt",
+"optarmytype",
 "int32"
 ],
 "4": [
-"optrel",
+"optarmycnt",
 "int32"
 ],
 "5": [
-"generalindex",
+"optrel",
 "int32"
 ],
 "6": [
-"tmpspc",
+"generalindex",
 "int32"
 ],
 "7": [
-"tmpspcend",
+"tmpspc",
 "int32"
 ],
 "8": [
-"field8",
+"tmpspcend",
 "int32"
 ]
 }
@@ -3873,19 +3873,19 @@
 "message"
 ],
 "3": [
-"cityTarget",
+"field3",
 "message"
 ],
 "4": [
-"getZhanGongRankFromWeb",
+"cityTarget",
 "message"
 ],
 "5": [
-"hasQingMingEffect",
+"getZhanGongRankFromWeb",
 "bool"
 ],
 "6": [
-"field6",
+"hasQingMingEffect",
 "bool"
 ]
 }
@@ -3903,143 +3903,143 @@
 "int32"
 ],
 "3": [
-"pageInx",
+"field3",
 "int32"
 ],
 "4": [
-"userCnt",
+"pageInx",
 "int32"
 ],
 "5": [
-"admiral",
+"userCnt",
 "int32"
 ],
 "6": [
-"ememyBack",
+"admiral",
 "message"
 ],
 "7": [
-"cityData",
+"ememyBack",
 "message"
 ],
 "8": [
-"countryData",
+"cityData",
 "message"
 ],
 "9": [
-"boxPage",
+"countryData",
 "message"
 ],
 "10": [
-"captureCity",
+"boxPage",
 "message"
 ],
 "11": [
-"cityTarget",
+"report",
 "message"
 ],
 "12": [
-"bloodBtl",
+"field12",
 "message"
 ],
 "13": [
-"dailyGiftId",
+"field13",
 "message"
 ],
 "14": [
-"bloodRewardID",
+"captureCity",
 "message"
 ],
 "15": [
-"bloodWin",
+"field15",
 "message"
 ],
 "16": [
-"bombZhanGong",
+"field16",
 "message"
 ],
 "17": [
-"wpcRankUid",
+"cityTarget",
 "message"
 ],
 "18": [
-"nstormbox",
+"bloodBtl",
 "message"
 ],
 "19": [
-"leagueMsg",
+"field19",
 "message"
 ],
 "20": [
-"getLeagueReward",
+"field20",
 "message"
 ],
 "21": [
-"CityBuffs",
+"dailyGiftId",
 "int32"
 ],
 "22": [
-"dayatktimes",
+"bloodRewardID",
 "int32"
 ],
 "23": [
-"getsheetnum",
+"bloodWin",
 "bool"
 ],
 "24": [
-"nSucCountryID",
+"bombZhanGong",
 "int32"
 ],
 "25": [
-"nBuffEndTime",
+"wpcRankUid",
 "string"
 ],
 "26": [
-"selfHBInfo",
+"nstormbox",
 "int32"
 ],
 "27": [
-"nCostThrew",
+"leagueMsg",
 "message"
 ],
 "28": [
-"bGetCostThrewReward",
+"getLeagueReward",
 "bool"
 ],
 "29": [
-"bHasCostThrewReward",
+"CityBuffs",
 "message"
 ],
 "30": [
-"nSuperBloodAtkGift",
+"dayatktimes",
 "int32"
 ],
 "32": [
-"field32",
+"getsheetnum",
 "int32"
 ],
 "33": [
-"field33",
+"nSucCountryID",
 "int32"
 ],
 "34": [
-"field34",
+"nBuffEndTime",
 "int32"
 ],
 "35": [
-"field35",
+"selfHBInfo",
 "message"
 ],
 "36": [
-"field36",
+"nCostThrew",
 "int32"
 ],
 "37": [
-"field37",
+"bGetCostThrewReward",
 "bool"
 ],
 "38": [
-"field38",
+"bHasCostThrewReward",
 "bool"
 ],
 "39": [
@@ -4051,7 +4051,7 @@
 "int32"
 ],
 "41": [
-"field41",
+"nSuperBloodAtkGift",
 "int32"
 ],
 "42": [
@@ -4069,11 +4069,11 @@
 "int32"
 ],
 "2": [
-"NoDataCnt",
+"user",
 "message"
 ],
 "3": [
-"field3",
+"NoDataCnt",
 "int32"
 ]
 }
@@ -4131,65 +4131,7 @@
 "int32"
 ],
 "4": [
-"Token",
-"int32"
-],
-"5": [
-"ChosenTimes",
-"int32"
-],
-"6": [
-"nFreeFreshNum",
-"int32"
-],
-"7": [
-"nRoundNum",
-"int32"
-],
-"8": [
-"nRoundReward",
-"int32"
-],
-"9": [
-"id",
-"int32"
-],
-"10": [
-"nReward",
-"int32"
-],
-"11": [
-"field11",
-"int32"
-],
-"12": [
-"field12",
-"int32"
-],
-"13": [
-"field13",
-"int32"
-]
-}
-},
-"026d": {
-"name": "RseLuckyWheelMsg",
-"cls": "_-4tx",
-"fields": {
-"1": [
-"Token",
-"int32"
-],
-"2": [
-"ChosenTimes",
-"int32"
-],
-"3": [
-"id",
-"int32"
-],
-"4": [
-"type",
+"field4",
 "int32"
 ],
 "5": [
@@ -4201,7 +4143,65 @@
 "int32"
 ],
 "7": [
-"field7",
+"Token",
+"int32"
+],
+"8": [
+"ChosenTimes",
+"int32"
+],
+"9": [
+"nFreeFreshNum",
+"int32"
+],
+"10": [
+"nRoundNum",
+"int32"
+],
+"11": [
+"nRoundReward",
+"int32"
+],
+"12": [
+"id",
+"int32"
+],
+"13": [
+"nReward",
+"int32"
+]
+}
+},
+"026d": {
+"name": "RseLuckyWheelMsg",
+"cls": "_-4tx",
+"fields": {
+"1": [
+"field1",
+"int32"
+],
+"2": [
+"field2",
+"int32"
+],
+"3": [
+"Token",
+"int32"
+],
+"4": [
+"ChosenTimes",
+"int32"
+],
+"5": [
+"id",
+"int32"
+],
+"6": [
+"type",
+"int32"
+],
+"7": [
+"cost",
 "int32"
 ]
 }
@@ -4211,43 +4211,43 @@
 "cls": "_-0Va",
 "fields": {
 "1": [
-"alltoken",
+"field1",
 "int32"
 ],
 "2": [
-"dayhasget1",
+"alltoken",
 "int32"
 ],
 "3": [
-"dayhasget2",
+"dayhasget1",
 "bool"
 ],
 "4": [
-"dayhasget3",
+"dayhasget2",
 "bool"
 ],
 "5": [
-"dayhasgetall1",
+"dayhasget3",
 "bool"
 ],
 "6": [
-"dayhasgetall2",
+"dayhasgetall1",
 "bool"
 ],
 "7": [
-"dayhasgetall3",
+"dayhasgetall2",
 "bool"
 ],
 "8": [
-"dayhasgetall4",
+"dayhasgetall3",
 "bool"
 ],
 "9": [
-"nType",
+"dayhasgetall4",
 "bool"
 ],
 "10": [
-"field10",
+"nType",
 "int32"
 ]
 }
@@ -4275,67 +4275,67 @@
 "int32"
 ],
 "2": [
-"nRankSelf",
+"field2",
 "uint32"
 ],
 "3": [
-"nRankSelfLast",
+"field3",
 "uint32"
 ],
 "4": [
-"bLastRankGet",
+"arenareportSelf",
 "message"
 ],
 "5": [
-"nCanFightTimes",
+"arenareportFight",
 "message"
 ],
 "6": [
-"nBuyFightTimes",
+"field6",
 "message"
 ],
 "7": [
-"nIntegralScore",
+"nRankSelf",
 "int32"
 ],
 "8": [
-"nJoinPlayers",
+"nRankSelfLast",
 "int32"
 ],
 "9": [
-"lastfightRecord",
+"bLastRankGet",
 "bool"
 ],
 "10": [
-"nLastScore",
+"nCanFightTimes",
 "int32"
 ],
 "11": [
-"nNowScore",
+"nBuyFightTimes",
 "int32"
 ],
 "12": [
-"bScoreGiftGain",
+"nIntegralScore",
 "int32"
 ],
 "13": [
-"field13",
+"nJoinPlayers",
 "int32"
 ],
 "14": [
-"field14",
+"lastfightRecord",
 "message"
 ],
 "15": [
-"field15",
+"nLastScore",
 "int32"
 ],
 "16": [
-"field16",
+"nNowScore",
 "int32"
 ],
 "17": [
-"field17",
+"bScoreGiftGain",
 "bool"
 ]
 }
@@ -4409,7 +4409,7 @@
 "int32"
 ],
 "4": [
-"field4",
+"user",
 "message"
 ]
 }
@@ -4424,47 +4424,47 @@
 "cls": "_-zX",
 "fields": {
 "1": [
-"nType",
+"field1",
 "bool"
 ],
 "2": [
-"nDay",
+"nType",
 "int32"
 ],
 "3": [
-"nGiftID",
+"nDay",
 "int32"
 ],
 "4": [
-"nResult",
+"nGiftID",
 "int32"
 ],
 "5": [
-"bSignIn",
+"nResult",
 "int32"
 ],
 "6": [
-"nReplenishDays",
+"bSignIn",
 "bool"
 ],
 "7": [
-"nSignInDays",
+"nReplenishDays",
 "int32"
 ],
 "8": [
-"nActivetype",
+"nSignInDays",
 "int32"
 ],
 "9": [
-"nTotalSignCnt",
+"field9",
 "bool"
 ],
 "10": [
-"field10",
+"nActivetype",
 "int32"
 ],
 "11": [
-"field11",
+"nTotalSignCnt",
 "int32"
 ],
 "12": [
@@ -4494,67 +4494,67 @@
 "int32"
 ],
 "5": [
-"strategyexp",
+"strategy",
 "message"
 ],
 "6": [
-"skillunlocktype",
+"strategyexp",
 "int32"
 ],
 "7": [
-"skilltraintimes",
+"skillunlocktype",
 "int32"
 ],
 "8": [
-"resetskilltraintimes",
+"skilltraintimes",
 "int32"
 ],
 "9": [
-"strategytype",
+"skill",
 "message"
 ],
 "10": [
-"trainskilltype",
+"resetskilltraintimes",
 "int32"
 ],
 "11": [
-"upskilltype",
+"strategytype",
 "int32"
 ],
 "12": [
-"atkadd",
+"trainskilltype",
 "int32"
 ],
 "13": [
-"crtadd",
+"upskilltype",
 "int32"
 ],
 "14": [
-"defadd",
+"atkadd",
 "int32"
 ],
 "15": [
-"hpadd",
+"crtadd",
 "int32"
 ],
 "16": [
-"buyskilltraintimes",
+"defadd",
 "int32"
 ],
 "17": [
-"wargameTokesNum",
+"hpadd",
 "int32"
 ],
 "18": [
-"wargameReportNum",
+"buyskilltraintimes",
 "int32"
 ],
 "19": [
-"field19",
+"wargameTokesNum",
 "int32"
 ],
 "20": [
-"field20",
+"wargameReportNum",
 "int32"
 ]
 }
@@ -4568,15 +4568,15 @@
 "int32"
 ],
 "2": [
-"credit",
+"field2",
 "bool"
 ],
 "3": [
-"result",
+"credit",
 "int32"
 ],
 "4": [
-"field4",
+"result",
 "int32"
 ]
 }
@@ -4634,55 +4634,55 @@
 "message"
 ],
 "13": [
-"atkName",
+"field13",
 "message"
 ],
 "14": [
-"startTime",
+"field14",
 "message"
 ],
 "15": [
-"nAddReport",
+"atkName",
 "string"
 ],
 "16": [
-"admiralInuse",
+"startTime",
 "int32"
 ],
 "17": [
-"atkUid",
+"nAddReport",
 "int32"
 ],
 "18": [
-"bMinGet",
+"admiralInuse",
 "message"
 ],
 "19": [
-"nMinGetNum",
+"atkUid",
 "string"
 ],
 "20": [
-"bLastMsg",
+"bMinGet",
 "bool"
 ],
 "21": [
-"TruceStartTime",
+"nMinGetNum",
 "int32"
 ],
 "22": [
-"TruceEndTime",
+"bLastMsg",
 "bool"
 ],
 "23": [
-"deftUid",
+"TruceStartTime",
 "int32"
 ],
 "24": [
-"field24",
+"TruceEndTime",
 "int32"
 ],
 "25": [
-"field25",
+"deftUid",
 "string"
 ]
 }
@@ -4752,15 +4752,15 @@
 "int32"
 ],
 "4": [
-"msUid",
+"soulList",
 "message"
 ],
 "5": [
-"admiralList",
+"msUid",
 "string"
 ],
 "6": [
-"field6",
+"admiralList",
 "message"
 ]
 }
@@ -4804,15 +4804,15 @@
 "int32"
 ],
 "2": [
-"awardflag",
+"field2",
 "bool"
 ],
 "3": [
-"ret",
+"awardflag",
 "int32"
 ],
 "4": [
-"field4",
+"ret",
 "int32"
 ]
 }
@@ -4826,7 +4826,7 @@
 "int32"
 ],
 "2": [
-"nTotalNum",
+"field2",
 "message"
 ],
 "3": [
@@ -4834,7 +4834,7 @@
 "message"
 ],
 "4": [
-"field4",
+"nTotalNum",
 "int32"
 ]
 }
@@ -4844,11 +4844,11 @@
 "cls": "_-0qi",
 "fields": {
 "1": [
-"countryid",
+"field1",
 "message"
 ],
 "2": [
-"field2",
+"countryid",
 "int32"
 ]
 }
@@ -4910,19 +4910,19 @@
 "int32"
 ],
 "4": [
-"hasGet",
+"field4",
 "bool"
 ],
 "5": [
-"todayValue",
+"hasGet",
 "bool"
 ],
 "6": [
-"msgType",
+"todayValue",
 "int32"
 ],
 "7": [
-"field7",
+"msgType",
 "int32"
 ]
 }
@@ -4950,7 +4950,7 @@
 "bool"
 ],
 "3": [
-"field3",
+"hasGet",
 "int32"
 ]
 }
@@ -4976,19 +4976,19 @@
 "message"
 ],
 "5": [
-"activeType",
+"field5",
 "message"
 ],
 "6": [
-"equipphotocombineinfo",
+"activeType",
 "int32"
 ],
 "7": [
-"field7",
+"itemnum",
 "int32"
 ],
 "8": [
-"field8",
+"equipphotocombineinfo",
 "message"
 ]
 }
@@ -5008,11 +5008,11 @@
 "cls": "_-44f",
 "fields": {
 "1": [
-"type",
+"field1",
 "message"
 ],
 "2": [
-"field2",
+"type",
 "int32"
 ]
 }
@@ -5022,7 +5022,7 @@
 "cls": "_-6-h",
 "fields": {
 "1": [
-"field1",
+"dropItem",
 "message"
 ]
 }
@@ -5032,7 +5032,7 @@
 "cls": "_-3fh",
 "fields": {
 "1": [
-"type",
+"field1",
 "message"
 ],
 "2": [
@@ -5040,7 +5040,7 @@
 "message"
 ],
 "3": [
-"field3",
+"type",
 "int32"
 ],
 "4": [
@@ -5126,43 +5126,43 @@
 "int32"
 ],
 "2": [
-"rankSelf",
+"arenareportSelf",
 "message"
 ],
 "3": [
-"rankSelfLast",
+"arenareportFight",
 "message"
 ],
 "4": [
-"lastRankGet",
+"rankSelf",
 "int32"
 ],
 "5": [
-"canFightTimes",
+"rankSelfLast",
 "int32"
 ],
 "6": [
-"buyFightTimes",
+"lastRankGet",
 "bool"
 ],
 "7": [
-"lastfightRecord",
+"canFightTimes",
 "int32"
 ],
 "8": [
-"nowScore",
+"buyFightTimes",
 "int32"
 ],
 "9": [
-"rankSelfYesterday",
+"lastfightRecord",
 "message"
 ],
 "10": [
-"field10",
+"nowScore",
 "int32"
 ],
 "11": [
-"field11",
+"rankSelfYesterday",
 "int32"
 ]
 }
@@ -5214,35 +5214,35 @@
 "int32"
 ],
 "2": [
-"arenaRanklist",
+"field2",
 "message"
 ],
 "3": [
-"arenalastToplist",
+"arenaRanklist",
 "message"
 ],
 "4": [
-"arenaAttacklist",
+"arenalastToplist",
 "message"
 ],
 "5": [
-"ranklast",
+"arenaAttacklist",
 "message"
 ],
 "6": [
-"lastRankGet",
+"field6",
 "message"
 ],
 "7": [
-"lastshow",
+"ranklast",
 "int32"
 ],
 "8": [
-"field8",
+"lastRankGet",
 "bool"
 ],
 "9": [
-"field9",
+"lastshow",
 "bool"
 ]
 }
@@ -5268,11 +5268,11 @@
 "int32"
 ],
 "5": [
-"hasGetCredit",
+"field5",
 "message"
 ],
 "6": [
-"field6",
+"hasGetCredit",
 "bool"
 ],
 "7": [
@@ -5302,23 +5302,23 @@
 "int32"
 ],
 "5": [
-"type",
+"buycnt",
 "int32"
 ],
 "6": [
-"isGetAwd",
+"type",
 "int32"
 ],
 "7": [
-"nRoundID",
+"field7",
 "int32"
 ],
 "8": [
-"field8",
+"isGetAwd",
 "bool"
 ],
 "9": [
-"field9",
+"nRoundID",
 "int32"
 ]
 }
@@ -5336,183 +5336,183 @@
 "int32"
 ],
 "3": [
-"userGuild",
+"field3",
 "message"
 ],
 "5": [
-"page",
+"userGuild",
 "message"
 ],
 "6": [
-"userCnt",
+"page",
 "int32"
 ],
 "7": [
-"totalGuildCnt",
+"userCnt",
 "int32"
 ],
 "8": [
-"guildBuidlID",
+"totalGuildCnt",
 "int32"
 ],
 "10": [
-"stake",
+"guildBuidlID",
 "int32"
 ],
 "11": [
-"shop",
+"stake",
 "message"
 ],
 "12": [
-"tarUserID",
+"log",
 "message"
 ],
 "13": [
-"tarUserPosition",
+"shop",
 "message"
 ],
 "14": [
-"bltRet",
+"tarUserID",
 "string"
 ],
 "15": [
-"pkGuild",
+"tarUserPosition",
 "int32"
 ],
 "16": [
-"retTotal",
+"userWay0",
 "string"
 ],
 "17": [
-"storage",
+"userWay1",
 "string"
 ],
 "18": [
-"dayHasPK",
+"userWay2",
 "string"
 ],
 "22": [
-"lastBtlRank",
+"bltRet",
 "message"
 ],
 "23": [
-"curSesionBtlOver",
+"pkGuild",
 "message"
 ],
 "24": [
-"nowMsg",
+"retTotal",
 "message"
 ],
 "25": [
-"lastMsg",
+"storage",
 "message"
 ],
 "26": [
-"HighestMsg",
+"dayHasPK",
 "bool"
 ],
 "27": [
-"nowPersonMsg",
+"lastBtlRank",
 "int32"
 ],
 "28": [
-"lastPersonMsg",
+"curSesionBtlOver",
 "bool"
 ],
 "30": [
-"HighestPersonMsg",
+"npcList",
 "message"
 ],
 "31": [
-"morale",
+"field31",
 "message"
 ],
 "32": [
-"thew",
+"field32",
 "message"
 ],
 "33": [
-"syptype",
+"field33",
 "message"
 ],
 "34": [
-"finishskytm",
+"field34",
 "int32"
 ],
 "35": [
-"thewtm",
+"nowMsg",
 "message"
 ],
 "36": [
-"bRankGet",
+"lastMsg",
 "message"
 ],
 "37": [
-"thewBuyTime",
+"HighestMsg",
 "message"
 ],
 "40": [
-"cityCnt",
+"nowPersonMsg",
 "message"
 ],
 "41": [
-"admiral",
+"lastPersonMsg",
 "message"
 ],
 "42": [
-"getZhangong",
+"HighestPersonMsg",
 "message"
 ],
 "43": [
-"cityZhangong",
+"morale",
 "int32"
 ],
 "44": [
-"allNpcCnt",
+"thew",
 "int32"
 ],
 "45": [
-"listCountryID",
+"syptype",
 "int32"
 ],
 "46": [
-"lastMsgNew",
+"finishskytm",
 "int32"
 ],
 "47": [
-"HighestMsgNew",
+"thewtm",
 "int32"
 ],
 "48": [
-"guildtaskid",
+"bRankGet",
 "bool"
 ],
 "49": [
-"lastAllCountryRank",
+"thewBuyTime",
 "int32"
 ],
 "50": [
-"bAllRankGet",
+"cityCnt",
 "int32"
 ],
 "51": [
-"atvQstMsg",
+"field51",
 "message"
 ],
 "52": [
-"bCanClickRush",
+"admiral",
 "message"
 ],
 "53": [
-"nAnonymous",
+"getZhangong",
 "int32"
 ],
 "54": [
-"field54",
+"cityZhangong",
 "int32"
 ],
 "55": [
-"field55",
+"allNpcCnt",
 "int32"
 ],
 "56": [
@@ -5524,35 +5524,35 @@
 "message"
 ],
 "58": [
-"field58",
+"listCountryID",
 "int32"
 ],
 "59": [
-"field59",
+"lastMsgNew",
 "message"
 ],
 "60": [
-"field60",
+"HighestMsgNew",
 "message"
 ],
 "62": [
-"field62",
+"guildtaskid",
 "int32"
 ],
 "63": [
-"field63",
+"lastAllCountryRank",
 "int32"
 ],
 "64": [
-"field64",
+"bAllRankGet",
 "bool"
 ],
 "65": [
-"field65",
+"atvQstMsg",
 "message"
 ],
 "66": [
-"field66",
+"bCanClickRush",
 "bool"
 ],
 "67": [
@@ -5572,7 +5572,7 @@
 "message"
 ],
 "71": [
-"field71",
+"nAnonymous",
 "int32"
 ]
 }
@@ -5642,23 +5642,23 @@
 "int32"
 ],
 "3": [
-"success",
+"field3",
 "bool"
 ],
 "4": [
-"hasbuyOne",
+"success",
 "int32"
 ],
 "5": [
-"hasbuyTwo",
+"field5",
 "int32"
 ],
 "6": [
-"nQpointID",
+"hasbuyOne",
 "bool"
 ],
 "7": [
-"getallbuycnt",
+"hasbuyTwo",
 "bool"
 ],
 "8": [
@@ -5670,7 +5670,7 @@
 "bool"
 ],
 "10": [
-"field10",
+"nQpointID",
 "int32"
 ],
 "11": [
@@ -5678,7 +5678,7 @@
 "message"
 ],
 "12": [
-"field12",
+"getallbuycnt",
 "int32"
 ]
 }
@@ -5710,7 +5710,7 @@
 "bool"
 ],
 "2": [
-"field2",
+"army",
 "message"
 ]
 }
@@ -5756,7 +5756,7 @@
 "int32"
 ],
 "5": [
-"errorType",
+"field5",
 "int32"
 ],
 "6": [
@@ -5764,11 +5764,11 @@
 "int32"
 ],
 "7": [
-"field7",
+"costs",
 "int32"
 ],
 "8": [
-"field8",
+"errorType",
 "int32"
 ]
 }
@@ -5816,23 +5816,23 @@
 "int32"
 ],
 "3": [
-"rightUseFlag",
+"field3",
 "message"
 ],
 "4": [
-"specialUseFlag",
+"field4",
 "message"
 ],
 "5": [
-"lastCountryRank",
+"rightUseFlag",
 "int32"
 ],
 "6": [
-"field6",
+"specialUseFlag",
 "int32"
 ],
 "7": [
-"field7",
+"lastCountryRank",
 "int32"
 ]
 }
@@ -5898,43 +5898,43 @@
 "cls": "_-1KT",
 "fields": {
 "1": [
-"ntype",
+"flag",
 "int32"
 ],
 "2": [
-"nopt",
+"isNew",
 "bool"
 ],
 "3": [
-"noptvalue",
+"ntype",
 "int32"
 ],
 "4": [
-"optret",
+"nopt",
 "int32"
 ],
 "5": [
-"giftcouponnum",
+"noptvalue",
 "int32"
 ],
 "6": [
-"totalrecharge",
+"optret",
 "int32"
 ],
 "7": [
-"bdaylybless",
+"giftcouponnum",
 "int32"
 ],
 "8": [
-"bdaylybox",
+"totalrecharge",
 "int32"
 ],
 "9": [
-"blesstype",
+"bdaylybless",
 "bool"
 ],
 "10": [
-"field10",
+"bdaylybox",
 "bool"
 ],
 "11": [
@@ -5942,7 +5942,7 @@
 "bool"
 ],
 "12": [
-"field12",
+"blesstype",
 "int32"
 ],
 "13": [
@@ -5978,11 +5978,11 @@
 "cls": "_-1L5",
 "fields": {
 "1": [
-"field1",
+"itemID",
 "int32"
 ],
 "2": [
-"field2",
+"itemCnt",
 "int32"
 ]
 }
@@ -6036,7 +6036,7 @@
 "int32"
 ],
 "3": [
-"ActiveType",
+"rewardItem",
 "message"
 ],
 "4": [
@@ -6044,7 +6044,7 @@
 "message"
 ],
 "5": [
-"field5",
+"ActiveType",
 "int32"
 ]
 }
@@ -6070,23 +6070,23 @@
 "int32"
 ],
 "5": [
-"lastPassID",
+"battlevalues",
 "message"
 ],
 "6": [
-"firstDown",
+"lastPassID",
 "int32"
 ],
 "7": [
-"fightRecord",
+"firstDown",
 "bool"
 ],
 "8": [
-"buyCnt",
+"fightRecord",
 "message"
 ],
 "9": [
-"field9",
+"buyCnt",
 "int32"
 ]
 }
@@ -6126,47 +6126,47 @@
 "int32"
 ],
 "2": [
-"rankSelf",
+"arenareportSelf",
 "message"
 ],
 "3": [
-"rankSelfLast",
+"arenareportFight",
 "message"
 ],
 "4": [
-"lastRankGet",
+"rankSelf",
 "int32"
 ],
 "5": [
-"canFightTimes",
+"rankSelfLast",
 "int32"
 ],
 "6": [
-"buyFightTimes",
+"lastRankGet",
 "bool"
 ],
 "7": [
-"lastfightRecord",
+"canFightTimes",
 "int32"
 ],
 "8": [
-"nowScore",
+"buyFightTimes",
 "int32"
 ],
 "9": [
-"rankSelfYesterday",
+"lastfightRecord",
 "message"
 ],
 "10": [
-"bApply",
+"nowScore",
 "int32"
 ],
 "11": [
-"nPanelType",
+"rankSelfYesterday",
 "int32"
 ],
 "12": [
-"field12",
+"bApply",
 "bool"
 ],
 "13": [
@@ -6174,7 +6174,7 @@
 "message"
 ],
 "14": [
-"field14",
+"nPanelType",
 "int32"
 ]
 }
@@ -6234,35 +6234,35 @@
 "int32"
 ],
 "2": [
-"arenaRanklist",
+"field2",
 "message"
 ],
 "3": [
-"arenalastToplist",
+"arenaRanklist",
 "message"
 ],
 "4": [
-"arenaAttacklist",
+"arenalastToplist",
 "message"
 ],
 "5": [
-"ranklast",
+"arenaAttacklist",
 "message"
 ],
 "6": [
-"lastRankGet",
+"field6",
 "message"
 ],
 "7": [
-"lastshow",
+"ranklast",
 "int32"
 ],
 "8": [
-"field8",
+"lastRankGet",
 "bool"
 ],
 "9": [
-"field9",
+"lastshow",
 "bool"
 ]
 }
@@ -6276,11 +6276,11 @@
 "int32"
 ],
 "2": [
-"reqchanle",
+"data",
 "message"
 ],
 "3": [
-"field3",
+"reqchanle",
 "string"
 ]
 }
@@ -6344,51 +6344,51 @@
 "int32"
 ],
 "4": [
-"userPokerType",
+"field4",
 "message"
 ],
 "5": [
-"NPCPokerType",
+"field5",
 "message"
 ],
 "6": [
-"nPokerNum",
+"userPokerType",
 "int32"
 ],
 "7": [
-"nChangeCordNum",
+"NPCPokerType",
 "int32"
 ],
 "8": [
-"getItemID",
+"nPokerNum",
 "int32"
 ],
 "9": [
-"nPoints",
+"nChangeCordNum",
 "int32"
 ],
 "10": [
-"nGetPoints",
+"itemList",
 "int32"
 ],
 "11": [
-"nPos",
+"getItemID",
 "int32"
 ],
 "12": [
-"relacePoker",
+"nPoints",
 "int32"
 ],
 "13": [
-"field13",
+"nGetPoints",
 "int32"
 ],
 "14": [
-"field14",
+"nPos",
 "int32"
 ],
 "15": [
-"field15",
+"relacePoker",
 "message"
 ]
 }
@@ -6542,71 +6542,71 @@
 "int32"
 ],
 "3": [
-"letter",
+"hero",
 "message"
 ],
 "4": [
-"hasCreditVisit",
+"letter",
 "message"
 ],
 "5": [
-"upgradeherolst",
+"field5",
 "int32"
 ],
 "6": [
-"fusionstep",
+"freeVisitCnt",
 "int32"
 ],
 "7": [
-"hasHalfPrice",
+"finishVisitTime",
 "int32"
 ],
 "8": [
-"optimusPrimescore",
+"hasCreditVisit",
 "bool"
 ],
 "9": [
-"boozepartycnt",
+"field9",
 "int32"
 ],
 "10": [
-"bRareResolve",
+"upgradeherolst",
 "message"
 ],
 "11": [
-"newfusionstep",
+"field11",
 "message"
 ],
 "12": [
-"nChrismasVisitTimes",
+"fusionstep",
 "int32"
 ],
 "13": [
-"nMonthCardVisitTimes",
+"hasHalfPrice",
 "bool"
 ],
 "14": [
-"field14",
+"optimusPrimescore",
 "int32"
 ],
 "15": [
-"field15",
+"boozepartycnt",
 "int32"
 ],
 "16": [
-"field16",
+"bRareResolve",
 "bool"
 ],
 "17": [
-"field17",
+"newfusionstep",
 "int32"
 ],
 "18": [
-"field18",
+"nChrismasVisitTimes",
 "int32"
 ],
 "19": [
-"field19",
+"nMonthCardVisitTimes",
 "int32"
 ]
 }
@@ -6624,43 +6624,43 @@
 "int32"
 ],
 "3": [
-"heroInuse",
+"hero",
 "message"
 ],
 "4": [
-"itemID",
+"field4",
 "int32"
 ],
 "5": [
-"itemCnt",
+"heroInuse",
 "message"
 ],
 "6": [
-"letter",
+"itemID",
 "int32"
 ],
 "7": [
-"fusionid",
+"itemCnt",
 "int32"
 ],
 "8": [
-"fusionlv",
+"letter",
 "message"
 ],
 "9": [
-"fusionstep",
+"fusionid",
 "int32"
 ],
 "10": [
-"Newfusionstep",
+"fusionlv",
 "int32"
 ],
 "11": [
-"field11",
+"fusionstep",
 "int32"
 ],
 "12": [
-"field12",
+"Newfusionstep",
 "int32"
 ]
 }
@@ -6678,67 +6678,67 @@
 "int32"
 ],
 "3": [
-"hasCreditVisit",
+"freeVisitCnt",
 "int32"
 ],
 "4": [
-"getType",
+"finishVisitTime",
 "int32"
 ],
 "5": [
-"hero",
+"hasCreditVisit",
 "bool"
 ],
 "6": [
-"letter",
+"getType",
 "int32"
 ],
 "7": [
-"itemID",
+"hero",
 "message"
 ],
 "8": [
-"itemCnt",
+"letter",
 "message"
 ],
 "9": [
-"heroLetterID",
+"itemID",
 "int32"
 ],
 "10": [
-"heroLetterCnt",
+"itemCnt",
 "int32"
 ],
 "11": [
-"optimusPrimescore",
+"heroLetterID",
 "int32"
 ],
 "12": [
-"nAddRes",
+"heroLetterCnt",
 "int32"
 ],
 "13": [
-"precisestrikepart",
+"optimusPrimescore",
 "int32"
 ],
 "14": [
-"boozePartyCnt",
+"nAddRes",
 "int32"
 ],
 "15": [
-"nChrismasVisitTimes",
+"precisestrikepart",
 "int32"
 ],
 "16": [
-"nMonthCardVisitTimes",
+"boozePartyCnt",
 "int32"
 ],
 "17": [
-"field17",
+"nChrismasVisitTimes",
 "int32"
 ],
 "18": [
-"field18",
+"nMonthCardVisitTimes",
 "int32"
 ]
 }
@@ -6748,11 +6748,11 @@
 "cls": "_-7XJ",
 "fields": {
 "1": [
-"type",
+"field1",
 "message"
 ],
 "2": [
-"field2",
+"type",
 "int32"
 ]
 }
@@ -6792,71 +6792,71 @@
 "message"
 ],
 "6": [
-"pageInx",
+"field6",
 "message"
 ],
 "7": [
-"userCnt",
+"report",
 "message"
 ],
 "8": [
-"captureCity",
+"field8",
 "message"
 ],
 "9": [
-"admiral",
+"pageInx",
 "int32"
 ],
 "10": [
-"ememyBack",
+"userCnt",
 "int32"
 ],
 "11": [
-"cityTarget",
+"captureCity",
 "message"
 ],
 "13": [
-"bApply",
+"admiral",
 "message"
 ],
 "14": [
-"winCountryID",
+"ememyBack",
 "message"
 ],
 "15": [
-"zhangong",
+"cityTarget",
 "message"
 ],
 "16": [
-"rank",
+"bApply",
 "bool"
 ],
 "17": [
-"idex",
+"winCountryID",
 "int32"
 ],
 "18": [
-"winType",
+"rankList",
 "message"
 ],
 "19": [
-"field19",
+"zhangong",
 "int32"
 ],
 "20": [
-"field20",
+"rank",
 "int32"
 ],
 "21": [
-"field21",
+"idex",
 "int32"
 ],
 "22": [
-"field22",
+"winType",
 "int32"
 ],
 "25": [
-"field25",
+"chest",
 "int32"
 ],
 "26": [
@@ -6874,11 +6874,11 @@
 "int32"
 ],
 "2": [
-"NoDataCnt",
+"user",
 "message"
 ],
 "3": [
-"field3",
+"NoDataCnt",
 "int32"
 ]
 }
@@ -6908,19 +6908,19 @@
 "string"
 ],
 "6": [
-"usetype",
+"hero",
 "message"
 ],
 "7": [
-"nLvl",
+"usetype",
 "int32"
 ],
 "9": [
-"nFightPow",
+"nLvl",
 "int32"
 ],
 "10": [
-"field10",
+"nFightPow",
 "uint32"
 ],
 "11": [
@@ -7022,11 +7022,11 @@
 "bool"
 ],
 "10": [
-"isGetAll",
+"field10",
 "int32"
 ],
 "11": [
-"field11",
+"isGetAll",
 "bool"
 ],
 "12": [
@@ -7048,19 +7048,19 @@
 "int32"
 ],
 "2": [
-"qitemid",
+"hasGet",
 "int32"
 ],
 "3": [
-"bHasGetTankBoxAllBuyReward",
+"qitemid",
 "int32"
 ],
 "4": [
-"bisGetsecondAwd",
+"bHasGetTankBoxAllBuyReward",
 "bool"
 ],
 "5": [
-"field5",
+"bisGetsecondAwd",
 "bool"
 ]
 }
@@ -7169,11 +7169,11 @@
 "int32"
 ],
 "4": [
-"ngetfreeAwd",
+"field4",
 "bool"
 ],
 "5": [
-"nstardtime",
+"ngetfreeAwd",
 "bool"
 ],
 "6": [
@@ -7185,7 +7185,7 @@
 "int32"
 ],
 "8": [
-"field8",
+"nstardtime",
 "int32"
 ]
 }
@@ -7199,47 +7199,47 @@
 "int32"
 ],
 "2": [
-"rankSelf",
+"arenareportSelf",
 "message"
 ],
 "3": [
-"rankSelfLast",
+"arenareportFight",
 "message"
 ],
 "4": [
-"lastRankGet",
+"rankSelf",
 "int32"
 ],
 "5": [
-"canFightTimes",
+"rankSelfLast",
 "int32"
 ],
 "6": [
-"buyFightTimes",
+"lastRankGet",
 "bool"
 ],
 "7": [
-"lastfightRecord",
+"canFightTimes",
 "int32"
 ],
 "8": [
-"nowScore",
+"buyFightTimes",
 "int32"
 ],
 "9": [
-"rankSelfYesterday",
+"lastfightRecord",
 "message"
 ],
 "10": [
-"nIntegralScore",
+"nowScore",
 "int32"
 ],
 "11": [
-"field11",
+"rankSelfYesterday",
 "int32"
 ],
 "12": [
-"field12",
+"nIntegralScore",
 "int32"
 ]
 }
@@ -7291,35 +7291,35 @@
 "int32"
 ],
 "2": [
-"arenaRanklist",
+"field2",
 "message"
 ],
 "3": [
-"arenalastToplist",
+"arenaRanklist",
 "message"
 ],
 "4": [
-"arenaAttacklist",
+"arenalastToplist",
 "message"
 ],
 "5": [
-"ranklast",
+"arenaAttacklist",
 "message"
 ],
 "6": [
-"lastRankGet",
+"field6",
 "message"
 ],
 "7": [
-"lastshow",
+"ranklast",
 "int32"
 ],
 "8": [
-"field8",
+"lastRankGet",
 "bool"
 ],
 "9": [
-"field9",
+"lastshow",
 "bool"
 ]
 }
@@ -7403,59 +7403,59 @@
 "int32"
 ],
 "5": [
-"resourceEndTime",
+"field5",
 "message"
 ],
 "6": [
-"searchTimes",
+"resourceEndTime",
 "int32"
 ],
 "7": [
-"getTimes",
+"searchTimes",
 "int32"
 ],
 "8": [
-"fightReoprt",
+"getTimes",
 "int32"
 ],
 "9": [
-"admiral",
+"fightReoprt",
 "message"
 ],
 "10": [
-"addmetal",
+"admiral",
 "message"
 ],
 "11": [
-"addoil",
+"field11",
 "message"
 ],
 "12": [
-"captureTime",
+"addmetal",
 "int32"
 ],
 "13": [
-"dayFightTime",
+"addoil",
 "int32"
 ],
 "14": [
-"searchTimesMid",
+"captureTime",
 "int32"
 ],
 "15": [
-"atkUserID",
+"dayFightTime",
 "int32"
 ],
 "16": [
-"addsoul",
+"searchTimesMid",
 "int32"
 ],
 "17": [
-"field17",
+"atkUserID",
 "string"
 ],
 "18": [
-"field18",
+"addsoul",
 "int32"
 ]
 }
@@ -7485,23 +7485,23 @@
 "bool"
 ],
 "6": [
-"bCanBuy",
+"field6",
 "int32"
 ],
 "7": [
-"hasgetwish",
+"bCanBuy",
 "bool"
 ],
 "8": [
-"activetype",
+"hasgetwish",
 "bool"
 ],
 "9": [
-"endtime",
+"activetype",
 "int32"
 ],
 "10": [
-"isGetAll",
+"endtime",
 "int32"
 ],
 "11": [
@@ -7509,7 +7509,7 @@
 "int32"
 ],
 "12": [
-"field12",
+"isGetAll",
 "bool"
 ]
 }
@@ -7549,67 +7549,67 @@
 "int32"
 ],
 "4": [
-"controlCityID",
+"field4",
 "message"
 ],
 "5": [
-"cityPoint",
+"field5",
 "message"
 ],
 "6": [
-"guildData",
+"field6",
 "message"
 ],
 "7": [
-"addAtkPct",
+"field7",
 "message"
 ],
 "8": [
-"addBloodPct",
+"controlCityID",
 "int32"
 ],
 "9": [
-"winCount",
+"field9",
 "int32"
 ],
 "10": [
-"fightReoprt",
+"cityPoint",
 "int32"
 ],
 "11": [
-"HasGetReward",
+"guildData",
 "message"
 ],
 "12": [
-"admiral",
+"addAtkPct",
 "int32"
 ],
 "13": [
-"fightCD",
+"addBloodPct",
 "int32"
 ],
 "14": [
-"offLineCityID",
+"winCount",
 "int32"
 ],
 "15": [
-"canGetCityReward",
+"field15",
 "message"
 ],
 "16": [
-"field16",
+"fightReoprt",
 "message"
 ],
 "17": [
-"field17",
+"HasGetReward",
 "bool"
 ],
 "18": [
-"field18",
+"admiral",
 "message"
 ],
 "19": [
-"field19",
+"fightCD",
 "int32"
 ],
 "20": [
@@ -7621,11 +7621,11 @@
 "int32"
 ],
 "22": [
-"field22",
+"offLineCityID",
 "int32"
 ],
 "23": [
-"field23",
+"canGetCityReward",
 "bool"
 ]
 }
@@ -7669,31 +7669,31 @@
 "int32"
 ],
 "7": [
-"nExploreType",
+"field7",
 "int32"
 ],
 "8": [
-"nExplorePoint",
+"nExploreType",
 "int32"
 ],
 "9": [
-"nExchangeID",
+"nExplorePoint",
 "int32"
 ],
 "10": [
-"nChouJiangRank",
+"nExchangeID",
 "int32"
 ],
 "11": [
-"strName",
+"field11",
 "int32"
 ],
 "12": [
-"specRewardMsg",
+"nChouJiangRank",
 "int32"
 ],
 "13": [
-"field13",
+"strName",
 "string"
 ],
 "14": [
@@ -7709,7 +7709,7 @@
 "message"
 ],
 "17": [
-"field17",
+"specRewardMsg",
 "message"
 ]
 }
@@ -7799,7 +7799,7 @@
 "bool"
 ],
 "2": [
-"field2",
+"book",
 "message"
 ]
 }
@@ -7813,15 +7813,15 @@
 "int32"
 ],
 "2": [
-"ret",
+"field2",
 "message"
 ],
 "3": [
-"field3",
+"mask",
 "message"
 ],
 "4": [
-"field4",
+"ret",
 "int32"
 ]
 }
@@ -7847,7 +7847,7 @@
 "int32"
 ],
 "5": [
-"field5",
+"buyed",
 "bool"
 ],
 "6": [
@@ -7869,35 +7869,35 @@
 "int32"
 ],
 "3": [
-"canbuy",
+"day",
 "int32"
 ],
 "4": [
-"success",
+"canbuy",
 "bool"
 ],
 "5": [
-"starttime",
+"success",
 "bool"
 ],
 "6": [
-"activetype",
+"starttime",
 "int32"
 ],
 "7": [
-"ngetdailyawd",
+"activetype",
 "int32"
 ],
 "8": [
-"ncangetCnt",
+"field8",
 "int32"
 ],
 "9": [
-"field9",
+"ngetdailyawd",
 "bool"
 ],
 "10": [
-"field10",
+"ncangetCnt",
 "int32"
 ]
 }
@@ -7919,111 +7919,111 @@
 "int32"
 ],
 "4": [
-"killerUnit",
+"field4",
 "message"
 ],
 "5": [
-"bossID",
+"killerUnit",
 "message"
 ],
 "6": [
-"bossDamage",
+"field6",
 "message"
 ],
 "7": [
-"selfRank",
+"bossID",
 "int32"
 ],
 "8": [
-"bossPoint",
+"bossDamage",
 "string"
 ],
 "9": [
-"bGetReward",
+"selfRank",
 "int32"
 ],
 "10": [
-"bossHp",
+"bossPoint",
 "string"
 ],
 "11": [
-"addatk",
+"bGetReward",
 "bool"
 ],
 "12": [
-"creditAddTime",
+"field12",
 "message"
 ],
 "13": [
-"fightReoprt",
+"bossHp",
 "string"
 ],
 "14": [
-"admiral",
+"addatk",
 "int32"
 ],
 "15": [
-"atkDmg",
+"creditAddTime",
 "int32"
 ],
 "16": [
-"OldHp",
+"fightReoprt",
 "message"
 ],
 "17": [
-"bossLevel",
+"admiral",
 "message"
 ],
 "18": [
-"maxSp",
+"field18",
 "string"
 ],
 "19": [
-"perHp",
+"atkDmg",
 "string"
 ],
 "20": [
-"cdTime",
+"OldHp",
 "string"
 ],
 "21": [
-"bKill",
+"bossLevel",
 "int32"
 ],
 "22": [
-"bOpen",
+"maxSp",
 "string"
 ],
 "23": [
-"nRewardID",
+"perHp",
 "int32"
 ],
 "24": [
-"nTotalStartNum",
+"cdTime",
 "int32"
 ],
 "25": [
-"nTotalFinishNum",
+"bKill",
 "bool"
 ],
 "26": [
-"nAtkReward",
+"bOpen",
 "bool"
 ],
 "27": [
-"field27",
+"nRewardID",
 "int32"
 ],
 "28": [
-"field28",
+"nTotalStartNum",
 "int32"
 ],
 "29": [
-"field29",
+"nTotalFinishNum",
 "int32"
 ],
 "30": [
-"field30",
+"nAtkReward",
 "int32"
 ]
 }
@@ -8069,11 +8069,11 @@
 "int32"
 ],
 "10": [
-"nGuildID",
+"field10",
 "message"
 ],
 "11": [
-"nAdjType",
+"field11",
 "message"
 ],
 "12": [
@@ -8101,11 +8101,11 @@
 "message"
 ],
 "18": [
-"field18",
+"nGuildID",
 "int32"
 ],
 "19": [
-"field19",
+"nAdjType",
 "int32"
 ],
 "20": [
@@ -8127,15 +8127,15 @@
 "int32"
 ],
 "2": [
-"ngetFreeGift",
+"buyid",
 "int32"
 ],
 "3": [
-"activType",
+"ngetFreeGift",
 "bool"
 ],
 "4": [
-"field4",
+"activType",
 "int32"
 ]
 }
@@ -8149,7 +8149,7 @@
 "int32"
 ],
 "2": [
-"discount",
+"field2",
 "int32"
 ],
 "3": [
@@ -8157,7 +8157,7 @@
 "int32"
 ],
 "4": [
-"field4",
+"discount",
 "int32"
 ]
 }
@@ -8233,11 +8233,11 @@
 "int32"
 ],
 "2": [
-"itemRewardid",
+"rewardid",
 "int32"
 ],
 "3": [
-"field3",
+"itemRewardid",
 "int32"
 ]
 }
@@ -8265,7 +8265,7 @@
 "int32"
 ],
 "3": [
-"field3",
+"list",
 "message"
 ]
 }
@@ -8355,11 +8355,11 @@
 "int32"
 ],
 "3": [
-"ret",
+"field3",
 "int32"
 ],
 "4": [
-"field4",
+"ret",
 "int32"
 ]
 }
@@ -8377,11 +8377,11 @@
 "int32"
 ],
 "3": [
-"state",
+"field3",
 "message"
 ],
 "4": [
-"field4",
+"state",
 "int32"
 ]
 }
@@ -8421,15 +8421,15 @@
 "bool"
 ],
 "4": [
-"bCanFetchHallGift",
+"field4",
 "int32"
 ],
 "5": [
-"ret",
+"bCanFetchHallGift",
 "bool"
 ],
 "6": [
-"field6",
+"ret",
 "int32"
 ]
 }
@@ -8455,31 +8455,31 @@
 "int32"
 ],
 "5": [
-"bBaoMing",
+"field5",
 "int32"
 ],
 "6": [
-"nAwdID",
+"bBaoMing",
 "bool"
 ],
 "7": [
-"actType",
+"nAwdID",
 "int32"
 ],
 "8": [
-"chiqingtuanTotal",
+"field8",
 "bool"
 ],
 "9": [
-"nTotalQpoint",
+"field9",
 "int32"
 ],
 "10": [
-"nbuySpecial",
+"actType",
 "int32"
 ],
 "11": [
-"field11",
+"chiqingtuanTotal",
 "int32"
 ],
 "12": [
@@ -8491,7 +8491,7 @@
 "int32"
 ],
 "14": [
-"field14",
+"nTotalQpoint",
 "int32"
 ],
 "15": [
@@ -8507,7 +8507,7 @@
 "message"
 ],
 "18": [
-"field18",
+"nbuySpecial",
 "bool"
 ],
 "19": [
@@ -8569,31 +8569,31 @@
 "message"
 ],
 "5": [
-"credit",
+"resources",
 "string"
 ],
 "6": [
-"level",
+"credit",
 "string"
 ],
 "7": [
-"basevalue",
+"level",
 "string"
 ],
 "8": [
-"basepoints",
+"basevalue",
 "string"
 ],
 "9": [
-"recycleFlag",
+"basepoints",
 "string"
 ],
 "10": [
-"trapType",
+"recycleFlag",
 "bool"
 ],
 "11": [
-"field11",
+"trapType",
 "int32"
 ]
 }
@@ -8689,35 +8689,35 @@
 "int32"
 ],
 "13": [
-"nActDecoratTime",
+"field13",
 "int32"
 ],
 "14": [
-"nRebateTime",
+"field14",
 "int32"
 ],
 "15": [
-"nStrongTokenNum",
+"field15",
 "int32"
 ],
 "16": [
-"nStrongCastNum",
+"admiralList",
 "message"
 ],
 "17": [
-"field17",
+"nActDecoratTime",
 "int32"
 ],
 "18": [
-"field18",
+"nRebateTime",
 "int32"
 ],
 "19": [
-"field19",
+"nStrongTokenNum",
 "int32"
 ],
 "20": [
-"field20",
+"nStrongCastNum",
 "int32"
 ]
 }
@@ -8785,11 +8785,11 @@
 "string"
 ],
 "6": [
-"name",
+"field6",
 "message"
 ],
 "7": [
-"field7",
+"name",
 "string"
 ]
 }
@@ -8811,7 +8811,7 @@
 "int32"
 ],
 "4": [
-"field4",
+"admirals",
 "int32"
 ],
 "5": [
@@ -8861,31 +8861,31 @@
 "int32"
 ],
 "3": [
-"lastresult",
+"field3",
 "message"
 ],
 "4": [
-"buycnt",
+"lastresult",
 "message"
 ],
 "5": [
-"buyflag",
+"buycnt",
 "int32"
 ],
 "6": [
-"name",
+"buyflag",
 "message"
 ],
 "7": [
-"record",
+"field7",
 "int32"
 ],
 "8": [
-"field8",
+"name",
 "string"
 ],
 "9": [
-"field9",
+"record",
 "message"
 ]
 }
@@ -8953,31 +8953,31 @@
 "int32"
 ],
 "3": [
-"selfrank",
+"field3",
 "message"
 ],
 "4": [
-"selfscore",
+"selfrank",
 "int32"
 ],
 "5": [
-"bcanfetch",
+"selfscore",
 "int32"
 ],
 "6": [
-"challengetimes",
+"bcanfetch",
 "bool"
 ],
 "7": [
-"buycnt",
+"challengetimes",
 "int32"
 ],
 "8": [
-"totalPage",
+"buycnt",
 "int32"
 ],
 "9": [
-"field9",
+"totalPage",
 "int32"
 ]
 }
@@ -9019,7 +9019,7 @@
 "int32"
 ],
 "3": [
-"field3",
+"canbuy",
 "bool"
 ]
 }
@@ -9073,23 +9073,23 @@
 "int32"
 ],
 "3": [
-"leftpacket",
+"field3",
 "string"
 ],
 "4": [
-"canbuy",
+"leftpacket",
 "int32"
 ],
 "5": [
-"name",
+"canbuy",
 "bool"
 ],
 "6": [
-"buytype",
+"name",
 "string"
 ],
 "7": [
-"field7",
+"buytype",
 "int32"
 ]
 }
@@ -9103,7 +9103,7 @@
 "int32"
 ],
 "2": [
-"field2",
+"args",
 "string"
 ],
 "3": [
@@ -9125,11 +9125,11 @@
 "int32"
 ],
 "3": [
-"totalexchange",
+"field3",
 "message"
 ],
 "4": [
-"field4",
+"totalexchange",
 "int32"
 ],
 "5": [
@@ -9159,23 +9159,23 @@
 "int32"
 ],
 "5": [
-"drawtype",
+"box",
 "message"
 ],
 "6": [
-"nGetRedPackageNum",
+"field6",
 "int32"
 ],
 "7": [
-"nWholeRedPackageNum",
+"drawtype",
 "int32"
 ],
 "8": [
-"field8",
+"nGetRedPackageNum",
 "int32"
 ],
 "9": [
-"field9",
+"nWholeRedPackageNum",
 "int32"
 ]
 }
@@ -9235,7 +9235,7 @@
 "int32"
 ],
 "8": [
-"field8",
+"rewardList",
 "message"
 ]
 }
@@ -9297,7 +9297,7 @@
 "int32"
 ],
 "3": [
-"field3",
+"tanks",
 "message"
 ],
 "4": [
@@ -9381,7 +9381,7 @@
 "string"
 ],
 "6": [
-"field6",
+"rankList",
 "message"
 ]
 }
@@ -9423,11 +9423,11 @@
 "message"
 ],
 "9": [
-"nFlag",
+"field9",
 "int32"
 ],
 "10": [
-"field10",
+"nFlag",
 "int32"
 ]
 }
@@ -9461,31 +9461,31 @@
 "int32"
 ],
 "7": [
-"curMortar",
+"freeVisitCnt",
 "int32"
 ],
 "8": [
-"curGunner",
+"finishVisitTime",
 "int32"
 ],
 "9": [
-"bNeedGuide",
+"curMortar",
 "message"
 ],
 "10": [
-"thanksgivingCnt",
+"curGunner",
 "message"
 ],
 "11": [
-"suipianEndTime",
+"field11",
 "message"
 ],
 "12": [
-"WishTreeVisitCnt",
+"field12",
 "message"
 ],
 "13": [
-"drawFreeEndTime",
+"field13",
 "message"
 ],
 "14": [
@@ -9497,23 +9497,23 @@
 "message"
 ],
 "16": [
-"field16",
+"bNeedGuide",
 "bool"
 ],
 "17": [
-"field17",
+"thanksgivingCnt",
 "int32"
 ],
 "18": [
-"field18",
+"suipianEndTime",
 "int32"
 ],
 "19": [
-"field19",
+"WishTreeVisitCnt",
 "int32"
 ],
 "20": [
-"field20",
+"drawFreeEndTime",
 "int32"
 ],
 "21": [
@@ -9547,23 +9547,23 @@
 "int32"
 ],
 "6": [
-"nusestorey",
+"field6",
 "int32"
 ],
 "7": [
-"nBuyQpoint",
+"field7",
 "int32"
 ],
 "8": [
-"ntotaldonate",
+"nusestorey",
 "int32"
 ],
 "9": [
-"strName",
+"field9",
 "int32"
 ],
 "10": [
-"field10",
+"nBuyQpoint",
 "bool"
 ],
 "11": [
@@ -9583,11 +9583,11 @@
 "message"
 ],
 "15": [
-"field15",
+"ntotaldonate",
 "int32"
 ],
 "16": [
-"field16",
+"strName",
 "string"
 ],
 "17": [
@@ -9685,51 +9685,51 @@
 "int32"
 ],
 "3": [
-"sVisitData",
+"field3",
 "message"
 ],
 "4": [
-"nDeleteAdviserCnt",
+"field4",
 "message"
 ],
 "5": [
-"nGetAdviserSoul",
+"field5",
 "int32"
 ],
 "6": [
-"nVistAdvCnt",
+"sVisitData",
 "message"
 ],
 "7": [
-"suipianxianshigouEndTime",
+"nDeleteAdviserCnt",
 "int32"
 ],
 "8": [
-"suipianxianshigouvisitCnt",
+"nGetAdviserSoul",
 "int32"
 ],
 "9": [
-"advcombineinfo",
+"field9",
 "int32"
 ],
 "10": [
-"bend",
+"nVistAdvCnt",
 "int32"
 ],
 "11": [
-"field11",
+"suipianxianshigouEndTime",
 "int32"
 ],
 "12": [
-"field12",
+"suipianxianshigouvisitCnt",
 "int32"
 ],
 "13": [
-"field13",
+"advcombineinfo",
 "message"
 ],
 "14": [
-"field14",
+"bend",
 "bool"
 ],
 "15": [
@@ -9767,55 +9767,55 @@
 "int32"
 ],
 "7": [
-"guildBindState",
+"field7",
 "bool"
 ],
 "8": [
-"bbinded",
+"guildBindState",
 "int32"
 ],
 "9": [
-"tokencnt",
+"bbinded",
 "bool"
 ],
 "10": [
-"nGetRedAward",
+"tokencnt",
 "int32"
 ],
 "11": [
-"nAwardId",
+"nGetRedAward",
 "int32"
 ],
 "12": [
-"nAwardNum",
+"field12",
 "int32"
 ],
 "13": [
-"activeType",
+"nAwardId",
 "int32"
 ],
 "14": [
-"nItemID",
+"nAwardNum",
 "int32"
 ],
 "15": [
-"nhasFreeSet",
+"log",
 "message"
 ],
 "16": [
-"isfirstfinish",
+"activeType",
 "int32"
 ],
 "17": [
-"nlevel",
+"field17",
 "bool"
 ],
 "18": [
-"nyestadaylev",
+"field18",
 "int32"
 ],
 "19": [
-"nGuildAllExp",
+"field19",
 "int64"
 ],
 "20": [
@@ -9827,11 +9827,11 @@
 "int32"
 ],
 "22": [
-"field22",
+"nItemID",
 "int32"
 ],
 "23": [
-"field23",
+"nhasFreeSet",
 "int32"
 ],
 "24": [
@@ -9839,19 +9839,19 @@
 "string"
 ],
 "25": [
-"field25",
+"isfirstfinish",
 "bool"
 ],
 "26": [
-"field26",
+"nlevel",
 "int32"
 ],
 "27": [
-"field27",
+"nyestadaylev",
 "int32"
 ],
 "28": [
-"field28",
+"nGuildAllExp",
 "int32"
 ],
 "29": [
@@ -9867,7 +9867,7 @@
 "int32"
 ],
 "32": [
-"field32",
+"buildskinlst",
 "message"
 ]
 }
@@ -9885,47 +9885,47 @@
 "int32"
 ],
 "3": [
-"nfreeTimes",
+"field3",
 "int32"
 ],
 "4": [
-"nfreshTimes",
+"field4",
 "int32"
 ],
 "5": [
-"nDayBuyTimes",
+"nfreeTimes",
 "int32"
 ],
 "6": [
-"nRecord",
+"nfreshTimes",
 "int32"
 ],
 "7": [
-"nCoolDown",
+"field7",
 "int32"
 ],
 "8": [
-"nResetTime",
+"nDayBuyTimes",
 "int32"
 ],
 "9": [
-"nDefeatMax",
+"nExp",
 "int32"
 ],
 "10": [
-"field10",
+"nRecord",
 "message"
 ],
 "11": [
-"field11",
+"nCoolDown",
 "int32"
 ],
 "12": [
-"field12",
+"nResetTime",
 "int32"
 ],
 "13": [
-"field13",
+"nDefeatMax",
 "int32"
 ],
 "14": [
@@ -9967,19 +9967,19 @@
 "bool"
 ],
 "7": [
-"bGetSpcAwd",
+"field7",
 "bool"
 ],
 "8": [
-"nAdviserSoulNow",
+"bGetSpcAwd",
 "bool"
 ],
 "9": [
-"bnewadviser",
+"nAdviserSoulNow",
 "int32"
 ],
 "10": [
-"field10",
+"bnewadviser",
 "bool"
 ]
 }
@@ -10001,15 +10001,15 @@
 "int32"
 ],
 "4": [
-"nquestid",
+"field4",
 "int32"
 ],
 "5": [
-"nquestfinish",
+"nquestid",
 "int32"
 ],
 "6": [
-"tfinish",
+"nquestfinish",
 "int32"
 ],
 "7": [
@@ -10017,7 +10017,7 @@
 "int32"
 ],
 "8": [
-"field8",
+"tfinish",
 "int32"
 ]
 }
@@ -10039,35 +10039,35 @@
 "int32"
 ],
 "4": [
-"nround",
+"field4",
 "int32"
 ],
 "5": [
-"nrandawd",
+"nround",
 "int32"
 ],
 "6": [
-"nDayround",
+"nrandawd",
 "int32"
 ],
 "8": [
-"broudAwdGet",
+"nDayround",
 "int32"
 ],
 "9": [
-"nstate",
+"broudAwdGet",
 "bool"
 ],
 "10": [
-"bFirstCreditDraw",
+"nstate",
 "int32"
 ],
 "11": [
-"nActivtype",
+"field11",
 "int32"
 ],
 "12": [
-"field12",
+"bFirstCreditDraw",
 "bool"
 ],
 "13": [
@@ -10083,7 +10083,7 @@
 "bool"
 ],
 "16": [
-"field16",
+"nActivtype",
 "int32"
 ],
 "17": [
@@ -10125,35 +10125,35 @@
 "int32"
 ],
 "5": [
-"nselfmorale",
+"field5",
 "int32"
 ],
 "6": [
-"nselfhealth",
+"nselfmorale",
 "int32"
 ],
 "7": [
-"ntype",
+"nselfhealth",
 "int32"
 ],
 "8": [
-"ntotaladviser",
+"field8",
 "int32"
 ],
 "9": [
-"isGetSnowBuff",
+"field9",
 "string"
 ],
 "10": [
-"nSnowmanLevel",
+"field10",
 "int32"
 ],
 "11": [
-"nSnowmanGiftTime",
+"ntype",
 "int32"
 ],
 "12": [
-"nSnowmangiftNum",
+"ntotaladviser",
 "int32"
 ],
 "13": [
@@ -10165,19 +10165,19 @@
 "int32"
 ],
 "15": [
-"field15",
+"isGetSnowBuff",
 "bool"
 ],
 "16": [
-"field16",
+"nSnowmanLevel",
 "int32"
 ],
 "17": [
-"field17",
+"nSnowmanGiftTime",
 "int32"
 ],
 "18": [
-"field18",
+"nSnowmangiftNum",
 "int32"
 ]
 }
@@ -10229,63 +10229,63 @@
 "int32"
 ],
 "5": [
-"dayatktimes",
+"field5",
 "int32"
 ],
 "6": [
-"cdTime",
+"field6",
 "message"
 ],
 "7": [
-"bTurnOn",
+"field7",
 "message"
 ],
 "8": [
-"nJunBeiID",
+"field8",
 "message"
 ],
 "9": [
-"fightreoprt",
+"lstLetter",
 "message"
 ],
 "10": [
-"nSkillPoint",
+"field10",
 "message"
 ],
 "11": [
-"nDayExpNum",
+"field11",
 "message"
 ],
 "12": [
-"bend",
+"dayatktimes",
 "int32"
 ],
 "13": [
-"wishtreeExploreCnt",
+"cdTime",
 "int32"
 ],
 "14": [
-"nCenterJunbeiPoint",
+"field14",
 "message"
 ],
 "16": [
-"field16",
+"bTurnOn",
 "bool"
 ],
 "17": [
-"field17",
+"nJunBeiID",
 "int32"
 ],
 "18": [
-"field18",
+"fightreoprt",
 "message"
 ],
 "19": [
-"field19",
+"nSkillPoint",
 "int32"
 ],
 "20": [
-"field20",
+"nDayExpNum",
 "int32"
 ],
 "21": [
@@ -10293,15 +10293,15 @@
 "int32"
 ],
 "22": [
-"field22",
+"bend",
 "bool"
 ],
 "23": [
-"field23",
+"wishtreeExploreCnt",
 "int32"
 ],
 "24": [
-"field24",
+"nCenterJunbeiPoint",
 "int32"
 ]
 }
@@ -10323,23 +10323,23 @@
 "bool"
 ],
 "4": [
-"nbuyitem",
+"field4",
 "message"
 ],
 "5": [
-"bgetfreereward",
+"nbuyitem",
 "int32"
 ],
 "6": [
-"bgetmonthfreeCnt",
+"field6",
 "int32"
 ],
 "7": [
-"field7",
+"bgetfreereward",
 "bool"
 ],
 "8": [
-"field8",
+"bgetmonthfreeCnt",
 "int32"
 ],
 "9": [
@@ -10383,19 +10383,19 @@
 "cls": "_-16p",
 "fields": {
 "1": [
-"ntype",
+"field1",
 "bool"
 ],
 "2": [
-"nAtvtype",
+"ntype",
 "int32"
 ],
 "3": [
-"nTotalQpointCnt",
+"nAtvtype",
 "int32"
 ],
 "4": [
-"nGetQpointAwd",
+"field4",
 "bool"
 ],
 "5": [
@@ -10403,11 +10403,11 @@
 "bool"
 ],
 "6": [
-"field6",
+"nTotalQpointCnt",
 "int32"
 ],
 "7": [
-"field7",
+"nGetQpointAwd",
 "bool"
 ]
 }
@@ -10455,31 +10455,31 @@
 "int32"
 ],
 "10": [
-"nBuyRewardNum",
+"field10",
 "message"
 ],
 "11": [
-"nTotalPoint",
+"field11",
 "message"
 ],
 "12": [
-"nActivType",
+"field12",
 "message"
 ],
 "13": [
-"nFinishGame",
+"nBuyRewardNum",
 "int32"
 ],
 "14": [
-"nGetGiftIndex",
+"nTotalPoint",
 "int32"
 ],
 "15": [
-"nGetDailyQpointAwd",
+"field15",
 "message"
 ],
 "16": [
-"field16",
+"nActivType",
 "int32"
 ],
 "17": [
@@ -10487,11 +10487,11 @@
 "message"
 ],
 "18": [
-"field18",
+"nFinishGame",
 "int32"
 ],
 "19": [
-"field19",
+"nGetGiftIndex",
 "int32"
 ],
 "20": [
@@ -10499,7 +10499,7 @@
 "bool"
 ],
 "21": [
-"field21",
+"nGetDailyQpointAwd",
 "bool"
 ]
 }
@@ -10517,7 +10517,7 @@
 "int32"
 ],
 "3": [
-"ntimes",
+"field3",
 "bool"
 ],
 "4": [
@@ -10525,7 +10525,7 @@
 "int32"
 ],
 "5": [
-"field5",
+"ntimes",
 "int32"
 ]
 }
@@ -10571,7 +10571,7 @@
 "string"
 ],
 "10": [
-"buyType",
+"field10",
 "message"
 ],
 "11": [
@@ -10579,7 +10579,7 @@
 "message"
 ],
 "12": [
-"field12",
+"buyType",
 "int32"
 ]
 }
@@ -10597,15 +10597,15 @@
 "int32"
 ],
 "3": [
-"nCanBuQian",
+"field3",
 "int32"
 ],
 "4": [
-"nRandRwd",
+"field4",
 "bool"
 ],
 "5": [
-"field5",
+"nCanBuQian",
 "int32"
 ],
 "6": [
@@ -10613,7 +10613,7 @@
 "int32"
 ],
 "7": [
-"field7",
+"nRandRwd",
 "int32"
 ]
 }
@@ -10639,43 +10639,43 @@
 "bool"
 ],
 "5": [
-"nCardhasBuy",
+"field5",
 "bool"
 ],
 "6": [
-"nActiveDay",
+"nCardhasBuy",
 "bool"
 ],
 "7": [
-"nActiveType",
+"nActiveDay",
 "int32"
 ],
 "8": [
-"nLevel",
+"nActiveType",
 "int32"
 ],
 "9": [
-"nTimes",
+"field9",
 "bool"
 ],
 "10": [
-"nGetValue",
+"field10",
 "int32"
 ],
 "11": [
-"nFirstValue",
+"nLevel",
 "int32"
 ],
 "12": [
-"field12",
+"nTimes",
 "int32"
 ],
 "13": [
-"field13",
+"nGetValue",
 "int32"
 ],
 "14": [
-"field14",
+"nFirstValue",
 "int32"
 ],
 "15": [
@@ -10717,23 +10717,23 @@
 "int32"
 ],
 "3": [
-"nGetFinishAwd",
+"field3",
 "bool"
 ],
 "4": [
-"nGetBuyAwd",
+"nGetFinishAwd",
 "bool"
 ],
 "5": [
-"nFinishCnt",
+"nGetBuyAwd",
 "bool"
 ],
 "6": [
-"nGetAllBuycnt",
+"field6",
 "bool"
 ],
 "7": [
-"field7",
+"nFinishCnt",
 "int32"
 ],
 "8": [
@@ -10741,7 +10741,7 @@
 "int32"
 ],
 "9": [
-"field9",
+"nGetAllBuycnt",
 "int32"
 ],
 "10": [
@@ -10763,47 +10763,47 @@
 "int32"
 ],
 "3": [
-"nTotalFinish",
+"field3",
 "bool"
 ],
 "4": [
-"nBuyType",
+"field4",
 "int32"
 ],
 "5": [
-"nGetOnline",
+"field5",
 "message"
 ],
 "6": [
-"nTotalOnline",
+"field6",
 "bool"
 ],
 "7": [
-"nOnlineTime",
+"nTotalFinish",
 "int32"
 ],
 "8": [
-"nTaskCnt",
+"nBuyType",
 "int32"
 ],
 "9": [
-"nPosition",
+"nGetOnline",
 "bool"
 ],
 "10": [
-"nactivetype",
+"nTotalOnline",
 "bool"
 ],
 "11": [
-"nSnowmaninfo",
+"nOnlineTime",
 "int32"
 ],
 "12": [
-"field12",
+"nTaskCnt",
 "int32"
 ],
 "13": [
-"field13",
+"nPosition",
 "int32"
 ],
 "14": [
@@ -10815,7 +10815,7 @@
 "int32"
 ],
 "16": [
-"field16",
+"nactivetype",
 "int32"
 ],
 "17": [
@@ -10827,7 +10827,7 @@
 "message"
 ],
 "19": [
-"field19",
+"nSnowmaninfo",
 "message"
 ]
 }
@@ -10849,31 +10849,31 @@
 "int32"
 ],
 "4": [
-"nGetCredit",
+"field4",
 "bool"
 ],
 "5": [
-"nGetwish",
+"field5",
 "int32"
 ],
 "6": [
-"nGetTime",
+"nGetCredit",
 "bool"
 ],
 "7": [
-"activetype",
+"nGetwish",
 "bool"
 ],
 "8": [
-"nExchangeNum",
+"nGetTime",
 "int32"
 ],
 "9": [
-"field9",
+"activetype",
 "int32"
 ],
 "10": [
-"field10",
+"nExchangeNum",
 "int32"
 ],
 "11": [
@@ -10907,23 +10907,23 @@
 "int32"
 ],
 "6": [
-"bGetRankReward",
+"lstRankUser",
 "message"
 ],
 "7": [
-"nActivetype",
+"bGetRankReward",
 "bool"
 ],
 "8": [
-"strName",
+"nActivetype",
 "int32"
 ],
 "11": [
-"strHead",
+"strName",
 "string"
 ],
 "12": [
-"field12",
+"strHead",
 "string"
 ]
 }
@@ -10967,35 +10967,35 @@
 "int32"
 ],
 "5": [
-"equipInfo",
+"field5",
 "int32"
 ],
 "6": [
-"bEnd",
+"field6",
 "int32"
 ],
 "7": [
-"heroInfo",
+"equipInfo",
 "message"
 ],
 "8": [
-"lstHeroLetter",
+"field8",
 "message"
 ],
 "9": [
-"ngetstrengthstone",
+"bEnd",
 "bool"
 ],
 "10": [
-"field10",
+"heroInfo",
 "message"
 ],
 "11": [
-"field11",
+"lstHeroLetter",
 "message"
 ],
 "12": [
-"field12",
+"ngetstrengthstone",
 "int32"
 ]
 }
@@ -11097,35 +11097,35 @@
 "string"
 ],
 "20": [
-"nTaskProcess",
+"field20",
 "message"
 ],
 "21": [
-"nNormalPoint",
+"field21",
 "message"
 ],
 "22": [
-"nHighPoint",
+"field22",
 "message"
 ],
 "23": [
-"nGuildPoint",
+"field23",
 "message"
 ],
 "30": [
-"field30",
+"nTaskProcess",
 "int32"
 ],
 "31": [
-"field31",
+"nNormalPoint",
 "int32"
 ],
 "32": [
-"field32",
+"nHighPoint",
 "int32"
 ],
 "33": [
-"field33",
+"nGuildPoint",
 "int32"
 ],
 "34": [
@@ -11147,27 +11147,27 @@
 "int32"
 ],
 "3": [
-"ngetsecond",
+"field3",
 "int32"
 ],
 "4": [
-"ngetthrird",
+"ngetsecond",
 "bool"
 ],
 "5": [
-"nLoginday",
+"ngetthrird",
 "bool"
 ],
 "6": [
-"nAllcredit",
+"nLoginday",
 "int32"
 ],
 "7": [
-"ngetcredit",
+"nAllcredit",
 "int32"
 ],
 "8": [
-"field8",
+"ngetcredit",
 "int32"
 ]
 }
@@ -11217,7 +11217,7 @@
 "bool"
 ],
 "11": [
-"ndonatenum",
+"field11",
 "int32"
 ],
 "12": [
@@ -11225,11 +11225,11 @@
 "int32"
 ],
 "13": [
-"field13",
+"ndonatenum",
 "int32"
 ],
 "14": [
-"field14",
+"log",
 "message"
 ]
 }
@@ -11247,19 +11247,19 @@
 "int32"
 ],
 "3": [
-"refreshCnt",
+"field3",
 "message"
 ],
 "4": [
-"hastehuiItem",
+"refreshCnt",
 "int32"
 ],
 "5": [
-"freefreshcnt",
+"hastehuiItem",
 "bool"
 ],
 "6": [
-"field6",
+"freefreshcnt",
 "int32"
 ]
 }
@@ -11273,15 +11273,15 @@
 "int32"
 ],
 "2": [
-"nTotalDonate",
+"field2",
 "int32"
 ],
 "3": [
-"ngetallbuyawd",
+"field3",
 "bool"
 ],
 "4": [
-"field4",
+"nTotalDonate",
 "int32"
 ],
 "5": [
@@ -11293,7 +11293,7 @@
 "message"
 ],
 "7": [
-"field7",
+"ngetallbuyawd",
 "int32"
 ],
 "8": [
@@ -11311,51 +11311,51 @@
 "int32"
 ],
 "2": [
-"nTotalDonate",
+"field2",
 "int32"
 ],
 "3": [
-"nBuyCredit",
+"field3",
 "bool"
 ],
 "4": [
-"nBuyQpoint",
+"nTotalDonate",
 "int32"
 ],
 "5": [
-"strName",
+"field5",
 "int32"
 ],
 "6": [
-"usephoto",
+"nBuyCredit",
 "bool"
 ],
 "7": [
-"activetype",
+"nBuyQpoint",
 "bool"
 ],
 "8": [
-"nlevel",
+"field8",
 "int32"
 ],
 "9": [
-"nwishitem",
+"field9",
 "message"
 ],
 "10": [
-"nGetwishitem",
+"strName",
 "string"
 ],
 "11": [
-"headui",
+"usephoto",
 "int32"
 ],
 "12": [
-"nGetallbuyawdCnt",
+"field12",
 "int32"
 ],
 "13": [
-"field13",
+"activetype",
 "int32"
 ],
 "14": [
@@ -11367,15 +11367,15 @@
 "bool"
 ],
 "16": [
-"field16",
+"nlevel",
 "int32"
 ],
 "17": [
-"field17",
+"nwishitem",
 "int32"
 ],
 "18": [
-"field18",
+"nGetwishitem",
 "bool"
 ],
 "19": [
@@ -11391,11 +11391,11 @@
 "int32"
 ],
 "22": [
-"field22",
+"cakeinfo",
 "message"
 ],
 "23": [
-"field23",
+"headui",
 "string"
 ],
 "24": [
@@ -11403,7 +11403,7 @@
 "int32"
 ],
 "25": [
-"field25",
+"nGetallbuyawdCnt",
 "int32"
 ],
 "26": [
@@ -11441,27 +11441,27 @@
 "int32"
 ],
 "7": [
-"guildBindState",
+"field7",
 "bool"
 ],
 "8": [
-"activeType",
+"guildBindState",
 "int32"
 ],
 "9": [
-"countryId",
+"activeType",
 "int32"
 ],
 "10": [
-"ngetAllbuyAwd",
+"field10",
 "int32"
 ],
 "11": [
-"level",
+"field11",
 "int32"
 ],
 "12": [
-"isbindGuild",
+"field12",
 "message"
 ],
 "13": [
@@ -11469,15 +11469,15 @@
 "message"
 ],
 "14": [
-"field14",
+"countryId",
 "int32"
 ],
 "15": [
-"field15",
+"ngetAllbuyAwd",
 "int32"
 ],
 "16": [
-"field16",
+"level",
 "int32"
 ],
 "17": [
@@ -11485,7 +11485,7 @@
 "int32"
 ],
 "18": [
-"field18",
+"isbindGuild",
 "bool"
 ]
 }
@@ -11507,43 +11507,43 @@
 "int32"
 ],
 "4": [
-"nFlag",
+"field4",
 "int32"
 ],
 "5": [
-"nModuleType",
+"nFlag",
 "int32"
 ],
 "6": [
-"nModulePoint",
+"nModuleType",
 "int32"
 ],
 "7": [
-"strName",
+"nModulePoint",
 "int32"
 ],
 "8": [
-"cGuildDuelInfo",
+"field8",
 "message"
 ],
 "9": [
-"nDay",
+"field9",
 "message"
 ],
 "10": [
-"cBaseInfo",
+"strName",
 "string"
 ],
 "11": [
-"nGuildID",
+"cGuildDuelInfo",
 "message"
 ],
 "12": [
-"nCurDayPoint",
+"lstRankUser",
 "message"
 ],
 "13": [
-"field13",
+"nDay",
 "int32"
 ],
 "14": [
@@ -11559,15 +11559,15 @@
 "message"
 ],
 "32": [
-"field32",
+"cBaseInfo",
 "message"
 ],
 "33": [
-"field33",
+"nGuildID",
 "int32"
 ],
 "34": [
-"field34",
+"nCurDayPoint",
 "int64"
 ]
 }
@@ -11593,31 +11593,31 @@
 "int32"
 ],
 "5": [
-"nguildid",
+"field5",
 "message"
 ],
 "6": [
-"result",
+"field6",
 "message"
 ],
 "7": [
-"fightReoprt",
+"field7",
 "message"
 ],
 "8": [
-"admiralInuse",
+"nguildid",
 "int32"
 ],
 "9": [
-"carIteminfo",
+"result",
 "int32"
 ],
 "10": [
-"field10",
+"fightReoprt",
 "message"
 ],
 "11": [
-"field11",
+"admiralInuse",
 "message"
 ],
 "12": [
@@ -11625,7 +11625,7 @@
 "int32"
 ],
 "13": [
-"field13",
+"carIteminfo",
 "message"
 ]
 }
@@ -11655,15 +11655,15 @@
 "int32"
 ],
 "6": [
-"myrank",
+"field6",
 "message"
 ],
 "7": [
-"field7",
+"tasks",
 "message"
 ],
 "8": [
-"field8",
+"progress",
 "message"
 ],
 "9": [
@@ -11679,7 +11679,7 @@
 "message"
 ],
 "12": [
-"field12",
+"myrank",
 "int32"
 ],
 "13": [
@@ -11715,55 +11715,55 @@
 "int32"
 ],
 "3": [
-"otherID",
+"field3",
 "int32"
 ],
 "4": [
-"itemCnt",
+"otherID",
 "int32"
 ],
 "5": [
-"itemID",
+"itemCnt",
 "int32"
 ],
 "6": [
-"usetype",
+"itemID",
 "int32"
 ],
 "7": [
-"heroIndex",
+"usetype",
 "int32"
 ],
 "8": [
-"letternum",
+"heroIndex",
 "int32"
 ],
 "9": [
-"otherheroIndex",
+"letter",
 "message"
 ],
 "10": [
-"nChangeType",
+"letternum",
 "int32"
 ],
 "11": [
-"beyondid",
+"otherheroIndex",
 "int32"
 ],
 "12": [
-"beyondnum",
+"nChangeType",
 "int32"
 ],
 "13": [
-"fusionid",
+"beyondid",
 "int32"
 ],
 "14": [
-"field14",
+"beyondnum",
 "int32"
 ],
 "15": [
-"field15",
+"fusionid",
 "int32"
 ]
 }
@@ -11996,7 +11996,7 @@
 "cls": "_-6DL",
 "fields": {
 "1": [
-"field1",
+"build",
 "message"
 ]
 }
@@ -12029,7 +12029,7 @@
 "int32"
 ],
 "2": [
-"field2",
+"army",
 "message"
 ]
 }
@@ -12141,43 +12141,43 @@
 "int32"
 ],
 "32": [
-"bForward",
+"field32",
 "message"
 ],
 "33": [
-"nCurrentHP",
+"bForward",
 "bool"
 ],
 "34": [
-"nTotalHp",
+"nCurrentHP",
 "int64"
 ],
 "35": [
-"armyStep",
+"nTotalHp",
 "int64"
 ],
 "36": [
-"armyGroup",
+"armyStep",
 "int32"
 ],
 "37": [
-"pveBattlePassID",
+"armyGroup",
 "int32"
 ],
 "38": [
-"usedsuperweaponnum",
+"pveBattlePassID",
 "int32"
 ],
 "40": [
-"usedsuperweapontime",
+"usedsuperweaponnum",
 "int32"
 ],
 "41": [
-"bSuperStorm",
+"usedsuperweapontime",
 "int32"
 ],
 "42": [
-"field42",
+"bSuperStorm",
 "bool"
 ],
 "43": [
@@ -12212,87 +12212,87 @@
 "message"
 ],
 "4": [
-"damage",
+"field4",
 "int32"
 ],
 "5": [
-"ElectricPct",
+"damage",
 "int32"
 ],
 "6": [
-"heroSkill",
+"ElectricPct",
 "int32"
 ],
 "8": [
-"r1",
+"heroSkill",
 "message"
 ],
 "20": [
-"r2",
+"r1",
 "string"
 ],
 "21": [
-"legal",
+"r2",
 "string"
 ],
 "22": [
-"armydirect",
+"legal",
 "bool"
 ],
 "23": [
-"btlType",
+"armydirect",
 "int32"
 ],
 "24": [
-"honor",
+"btlType",
 "int32"
 ],
 "25": [
-"feats",
+"honor",
 "int32"
 ],
 "26": [
-"adimralExp",
+"feats",
 "int32"
 ],
 "27": [
-"checkIdx",
+"adimralExp",
 "int32"
 ],
 "28": [
-"slevel",
+"checkIdx",
 "int32"
 ],
 "29": [
-"defAdimralExp",
+"slevel",
 "int32"
 ],
 "30": [
-"superwpn",
+"defAdimralExp",
 "int32"
 ],
 "31": [
-"attackedname",
+"superwpn",
 "message"
 ],
 "32": [
-"nJammerMedalPer",
+"attackedname",
 "string"
 ],
 "33": [
-"nJammerOilPer",
+"nJammerMedalPer",
 "int32"
 ],
 "34": [
-"timestamp",
+"nJammerOilPer",
 "int32"
 ],
 "35": [
-"selfArmyopt",
+"timestamp",
 "int32"
 ],
 "36": [
-"field36",
+"selfArmyopt",
 "message"
 ]
 }
@@ -12314,99 +12314,99 @@
 "int32"
 ],
 "4": [
-"armyID",
+"field4",
 "int32"
 ],
 "5": [
-"armyType",
+"armyID",
 "int32"
 ],
 "6": [
-"x",
+"armyType",
 "int32"
 ],
 "7": [
-"y",
+"x",
 "int32"
 ],
 "8": [
-"loot",
+"y",
 "int32"
 ],
 "9": [
-"credit",
+"loot",
 "message"
 ],
 "10": [
-"time",
+"credit",
 "int32"
 ],
 "11": [
-"monster",
+"time",
 "int32"
 ],
 "12": [
-"usehonorcredit",
+"monster",
 "message"
 ],
 "13": [
-"captureBaseID",
+"usehonorcredit",
 "int32"
 ],
 "14": [
-"heroType",
+"captureBaseID",
 "string"
 ],
 "15": [
-"heroupgradeIndex",
+"heroType",
 "int32"
 ],
 "16": [
-"itemID",
+"heroupgradeIndex",
 "int32"
 ],
 "17": [
-"itemCount",
+"itemID",
 "int32"
 ],
 "18": [
-"towerenhancetype",
+"itemCount",
 "int32"
 ],
 "19": [
-"zhuziAll",
+"towerenhancetype",
 "int32"
 ],
 "25": [
-"addMedal",
+"zhuziAll",
 "int32"
 ],
 "26": [
-"addOil",
+"addMedal",
 "int32"
 ],
 "27": [
-"strName",
+"addOil",
 "bool"
 ],
 "28": [
-"nAtkScienceLevel",
+"strName",
 "string"
 ],
 "29": [
-"nLv",
+"nAtkScienceLevel",
 "int32"
 ],
 "30": [
-"nJammerMedal",
+"nLv",
 "int32"
 ],
 "31": [
-"nJammerOil",
+"nJammerMedal",
 "int32"
 ],
 "32": [
-"field32",
+"nJammerOil",
 "int32"
 ]
 }
@@ -12524,19 +12524,19 @@
 "int32"
 ],
 "10": [
-"wtype",
+"field10",
 "int64"
 ],
 "11": [
-"region",
+"wtype",
 "int32"
 ],
 "12": [
-"nCountryID",
+"region",
 "int32"
 ],
 "13": [
-"field13",
+"nCountryID",
 "int32"
 ]
 }
@@ -12792,7 +12792,7 @@
 "int32"
 ],
 "2": [
-"field2",
+"army",
 "message"
 ],
 "3": [
@@ -12856,35 +12856,35 @@
 "cls": "_-ZD",
 "fields": {
 "10": [
-"dayGetGift2BagCnt",
+"field10",
 "string"
 ],
 "11": [
-"dayAskGift2BagCnt",
+"dayGetGift2BagCnt",
 "int32"
 ],
 "12": [
-"dayGetGiftCnt",
+"dayAskGift2BagCnt",
 "int32"
 ],
 "13": [
-"dayResendGiftCnt",
+"dayGetGiftCnt",
 "int32"
 ],
 "14": [
-"msgIdx",
+"dayResendGiftCnt",
 "int32"
 ],
 "15": [
-"lastLoginTime",
+"msgIdx",
 "int32"
 ],
 "16": [
-"daySendGiftCnt",
+"lastLoginTime",
 "int64"
 ],
 "17": [
-"field17",
+"daySendGiftCnt",
 "int32"
 ],
 "18": [
@@ -12900,7 +12900,7 @@
 "string"
 ],
 "21": [
-"field21",
+"getTime",
 "int32"
 ],
 "22": [
@@ -12908,7 +12908,7 @@
 "int32"
 ],
 "23": [
-"field23",
+"hasDone",
 "int32"
 ]
 }
@@ -13139,15 +13139,15 @@
 "int32"
 ],
 "8": [
-"ischose",
+"field8",
 "int32"
 ],
 "9": [
-"ischoseStrength",
+"ischose",
 "bool"
 ],
 "10": [
-"field10",
+"ischoseStrength",
 "bool"
 ]
 }
@@ -13275,19 +13275,19 @@
 "bool"
 ],
 "35": [
-"nTotalHp",
+"field35",
 "message"
 ],
 "36": [
-"nCurrentHP",
+"nTotalHp",
 "int64"
 ],
 "37": [
-"lossUser",
+"nCurrentHP",
 "int64"
 ],
 "38": [
-"field38",
+"lossUser",
 "bool"
 ],
 "43": [
@@ -13608,35 +13608,35 @@
 "int32"
 ],
 "6": [
-"costSoul",
+"field6",
 "int32"
 ],
 "7": [
-"addProp",
+"costSoul",
 "int32"
 ],
 "8": [
-"letterid",
+"addProp",
 "int32"
 ],
 "9": [
-"lettercnt",
+"itemID1",
 "int32"
 ],
 "10": [
-"itemID2",
+"letterid",
 "int32"
 ],
 "11": [
-"itemID3",
+"lettercnt",
 "int32"
 ],
 "12": [
-"field12",
+"itemID2",
 "int32"
 ],
 "13": [
-"field13",
+"itemID3",
 "int32"
 ]
 }
@@ -13698,19 +13698,19 @@
 "int32"
 ],
 "3": [
-"npcID",
+"field3",
 "message"
 ],
 "4": [
-"balance",
+"npcID",
 "int32"
 ],
 "5": [
-"stakeIdx",
+"balance",
 "bool"
 ],
 "6": [
-"field6",
+"stakeIdx",
 "int32"
 ]
 }
@@ -13776,7 +13776,7 @@
 "int32"
 ],
 "2": [
-"field2",
+"info",
 "string"
 ]
 }
@@ -13825,15 +13825,15 @@
 "int32"
 ],
 "7": [
-"ischose",
+"field7",
 "int32"
 ],
 "8": [
-"ischoseStrength",
+"ischose",
 "bool"
 ],
 "9": [
-"field9",
+"ischoseStrength",
 "bool"
 ]
 }
@@ -13890,27 +13890,27 @@
 "int32"
 ],
 "2": [
-"optarmytype",
+"field2",
 "int32"
 ],
 "3": [
-"optarmycnt",
+"optarmytype",
 "int32"
 ],
 "4": [
-"generalindex",
+"optarmycnt",
 "int32"
 ],
 "5": [
-"choseplan",
+"field5",
 "message"
 ],
 "6": [
-"field6",
+"generalindex",
 "int32"
 ],
 "7": [
-"field7",
+"choseplan",
 "int32"
 ]
 }
@@ -14234,7 +14234,7 @@
 "cls": "_-6Yn",
 "fields": {
 "1": [
-"field1",
+"type",
 "int32"
 ]
 }
@@ -14309,35 +14309,35 @@
 "int32"
 ],
 "5": [
-"itemID2",
+"field5",
 "int32"
 ],
 "6": [
-"itemID3",
+"itemID1",
 "int32"
 ],
 "7": [
-"strengthenitemID",
+"itemID2",
 "int32"
 ],
 "8": [
-"strengthenitemcount",
+"itemID3",
 "int32"
 ],
 "9": [
-"credit",
+"strengthenitemID",
 "int32"
 ],
 "10": [
-"admiralId",
+"strengthenitemcount",
 "int32"
 ],
 "11": [
-"field11",
+"credit",
 "int32"
 ],
 "12": [
-"field12",
+"admiralId",
 "int32"
 ]
 }
@@ -14528,63 +14528,63 @@
 "int32"
 ],
 "16": [
-"shopID",
+"field16",
 "int32"
 ],
 "17": [
-"guildSetFlag",
+"shopID",
 "int32"
 ],
 "18": [
-"turns",
+"guildSetFlag",
 "int32"
 ],
 "19": [
-"session",
+"userWay0",
 "string"
 ],
 "20": [
-"sendItem",
+"userWay1",
 "string"
 ],
 "21": [
-"npcID",
+"userWay2",
 "string"
 ],
 "22": [
-"boxID",
+"turns",
 "int32"
 ],
 "23": [
-"buffID",
+"session",
 "int32"
 ],
 "24": [
-"listCountryID",
+"sendItem",
 "message"
 ],
 "25": [
-"taskidx",
+"npcID",
 "string"
 ],
 "26": [
-"atvQstGetReward",
+"boxID",
 "int32"
 ],
 "27": [
-"field27",
+"buffID",
 "int32"
 ],
 "28": [
-"field28",
+"listCountryID",
 "int32"
 ],
 "29": [
-"field29",
+"taskidx",
 "int32"
 ],
 "30": [
-"field30",
+"atvQstGetReward",
 "int32"
 ]
 }
@@ -15116,11 +15116,11 @@
 "string"
 ],
 "5": [
-"playerID",
+"getId",
 "int32"
 ],
 "6": [
-"field6",
+"playerID",
 "int32"
 ]
 }
@@ -15624,15 +15624,15 @@
 "int32"
 ],
 "6": [
-"ischose",
+"field6",
 "int32"
 ],
 "7": [
-"ischoseStrength",
+"ischose",
 "bool"
 ],
 "8": [
-"field8",
+"ischoseStrength",
 "bool"
 ]
 }
@@ -15785,7 +15785,7 @@
 "int32"
 ],
 "4": [
-"field4",
+"items",
 "message"
 ]
 }
@@ -16202,23 +16202,23 @@
 "int32"
 ],
 "5": [
-"itemID",
+"field5",
 "int32"
 ],
 "6": [
-"itemCnt",
+"itemID",
 "int32"
 ],
 "7": [
-"bInstall",
+"itemCnt",
 "int32"
 ],
 "8": [
-"strUid",
+"bInstall",
 "bool"
 ],
 "9": [
-"field9",
+"strUid",
 "string"
 ]
 }
@@ -16240,11 +16240,11 @@
 "int32"
 ],
 "4": [
-"nNum",
+"wishlist",
 "int32"
 ],
 "5": [
-"field5",
+"nNum",
 "int32"
 ]
 }
@@ -16314,35 +16314,35 @@
 "int32"
 ],
 "7": [
-"nitemCnt",
+"field7",
 "int32"
 ],
 "8": [
-"ndbcomid",
+"nitemCnt",
 "int32"
 ],
 "9": [
-"ndbcomidplus",
+"ndbcomid",
 "int32"
 ],
 "10": [
-"nskillid",
+"ndbcomidplus",
 "int32"
 ],
 "11": [
-"dstUid",
+"nskillid",
 "int32"
 ],
 "12": [
-"nMedalDbid",
+"dstUid",
 "string"
 ],
 "13": [
-"nMedalDbidPlus",
+"nMedalDbid",
 "int32"
 ],
 "14": [
-"field14",
+"nMedalDbidPlus",
 "int32"
 ],
 "15": [
@@ -16496,11 +16496,11 @@
 "int32"
 ],
 "11": [
-"robLetterID",
+"lstLetter",
 "message"
 ],
 "12": [
-"ischose",
+"robLetterID",
 "int32"
 ],
 "13": [
@@ -16508,7 +16508,7 @@
 "int32"
 ],
 "14": [
-"field14",
+"ischose",
 "bool"
 ]
 }
@@ -16718,11 +16718,11 @@
 "int32"
 ],
 "3": [
-"nactivetype",
+"iteminfo",
 "message"
 ],
 "4": [
-"field4",
+"nactivetype",
 "int32"
 ]
 }
@@ -16740,11 +16740,11 @@
 "int32"
 ],
 "3": [
-"activetype",
+"field3",
 "message"
 ],
 "4": [
-"field4",
+"activetype",
 "int32"
 ]
 }
@@ -16798,15 +16798,15 @@
 "int32"
 ],
 "4": [
-"luckyItem",
+"field4",
 "int32"
 ],
 "5": [
-"protectItem",
+"luckyItem",
 "int32"
 ],
 "6": [
-"field6",
+"protectItem",
 "int32"
 ],
 "7": [
@@ -16994,19 +16994,19 @@
 "int32"
 ],
 "3": [
-"nFlag",
+"field3",
 "int32"
 ],
 "4": [
-"nModule",
+"nFlag",
 "int32"
 ],
 "5": [
-"nDay",
+"nModule",
 "int32"
 ],
 "6": [
-"field6",
+"nDay",
 "int32"
 ]
 }

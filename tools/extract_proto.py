@@ -18,12 +18,34 @@ import json
 import os
 import re
 import sys
-from collections import defaultdict
 
-from disasm import load, disasm
+from disasm import load, disasm, _s24, _u30
 
 BAD = re.compile(r"Bad data format: ([A-Za-z_]\w*)\.(\w+) cannot be set twice\.")
 NUMPUSH = ("pushbyte", "pushshort", "pushint", "pushuint")
+
+
+def _switch_cases(abc, code, lines):
+    """取 readExternal 里 lookupswitch 的**非 default** 分支偏移，按 case 序排列。
+
+    AVM2 的 lookupswitch 是 default 偏移 + case_count + (case_count+1) 个目标。
+    编译器会把 switch 的取值归一化到 0 起始，所以 case 序号和字段号之间差多少
+    取决于该消息最小的字段号 —— 不能假定差 1（RceAdmiralVisit 的字段从 2 开始）。
+    字段号有空洞时，那些 case 直接指向 default。
+    因此这里只把"真正的分支"按序取出，交给调用方和升序字段号逐个配对。
+    """
+    for addr, txt, _ in lines:
+        if not txt.startswith("lookupswitch"):
+            continue
+        p = addr + 1
+        dflt, p = _s24(code, p)
+        cnt, p = _u30(code, p)
+        out = []
+        for _ in range(cnt + 1):
+            t, p = _s24(code, p)
+            out.append(addr + t)
+        return [t for t in out if t != addr + dflt], sorted(set(out))
+    return [], []
 
 
 def num_of(t):
@@ -78,7 +100,7 @@ def main():
     print(f"1) opcode 表: {len(reg)} 条")
 
     # ---------- 2. 混淆类名 -> 真实消息名 ----------
-    real, fields_seen = {}, defaultdict(list)
+    real = {}
     for q, (inst, cls) in by_q.items():
         if "protocol:" not in q and ":Message" not in q:
             pass
@@ -94,7 +116,6 @@ def main():
                     m = BAD.match(s)
                     if m:
                         names.add(m.group(1))
-                        fields_seen[q].append(m.group(2))
         if len(names) == 1:
             real[q] = names.pop()
         elif names:                      # 内嵌类共用方法体时可能出现多个
@@ -116,17 +137,25 @@ def main():
         "write_TYPE_SINT32": "sint32", "write_TYPE_SINT64": "sint64",
     }
     CALL = re.compile(r"^([A-Za-z_][\w-]*|_-[\w-]+)\(")
-    schema = {}
+    schema, slots = {}, {}
     for q, (inst, cls) in by_q.items():
         we = next((mi for n, k, mi in inst["traits"]
                    if n in ("writeToBuffer", "writeExternal") and mi is not None), None)
         if we is None or we not in abc.bodies:
             continue
         flds, last_num, cur_tag = [], None, None
+        slot, want_slot = {}, False
         for a, t, c in disasm(abc, abc.bodies[we]):
             v = num_of(t)
             if v is not None:
                 last_num = v
+                continue
+            # writeTag 之后紧跟的第一个 getproperty 就是这个字段的存储槽，
+            # 形如 write(output, this._type)。repeated 字段没有报错模板，
+            # 只能靠这个槽名兜底。
+            if want_slot and t.startswith("getproperty"):
+                slot[cur_tag] = c
+                want_slot = False
                 continue
             m = CALL.match(c or "")
             if not m:
@@ -134,31 +163,63 @@ def main():
             fn = m.group(1)
             if fn == "_-9g":                     # writeTag(output, wiretype, tag)
                 cur_tag, last_num = last_num, None
+                want_slot = True
             elif cur_tag is not None and fn in TYPES:
                 flds.append((cur_tag, TYPES[fn]))
-                cur_tag = None
+                cur_tag, want_slot = None, False
         if flds:
             schema[q] = sorted(set(flds))
+            slots[q] = slot
 
-    # 字段名：readExternal 的报错模板按 tag 顺序出现；数量对不上就退回 setter 名
-    fieldnames = {}
+    # 字段名：readExternal 里每个字段对应 lookupswitch 的一个分支，
+    # 分支内的报错模板就是该字段的真名。
+    #
+    # 早先这里是把模板名按出现顺序和 tag 顺序**位置对齐**的，那是错的：
+    # repeated 字段不会生成 "cannot be set twice" 模板（它本来就允许设置多次），
+    # 于是每有一个 repeated 字段，后面所有名字就整体前移一位。
+    # RseHeroVisit 的 3~18 号字段因此全部错位两格 —— freeVisitCnt 被叫成
+    # hasCreditVisit，finishVisitTime 被叫成 getType。
+    #
+    # 现在按分支配对：分支数必须和字段数一一相等才采用，对不上就整条放弃，
+    # 宁可留 fieldN 也不要再产出错位的名字。repeated 字段的分支没有模板，
+    # 留空后由 writeToBuffer 的存储槽名兜底。
+    fieldnames, skipped = {}, 0
     for q, (inst, cls) in by_q.items():
         if q not in schema:
             continue
-        bad = []
+        tags = sorted(t for t, _ in schema[q])
+        names = {}
         rx = next((mi for n, k, mi in inst["traits"]
                    if n == "readExternal" and mi is not None), None)
         if rx and rx in abc.bodies:
-            for a, t, c in disasm(abc, abc.bodies[rx]):
-                if t.startswith("pushstring"):
-                    m = BAD.match(abc.strings[int(t.split()[1])])
-                    if m:
-                        bad.append(m.group(2))
-        setters = [n for n, k, mi in inst["traits"] if k == "setter"]
-        n_f = len(schema[q])
-        fieldnames[q] = bad if len(bad) == n_f else (setters if len(setters) == n_f else bad)
-    ok = sum(1 for q in schema if len(fieldnames.get(q, [])) == len(schema[q]))
-    print(f"3) 提到字段号的类 {len(schema)} 个，字段名完全对齐 {ok} 个")
+            code = abc.bodies[rx]
+            lines = disasm(abc, code)
+            cases, bounds = _switch_cases(abc, code, lines)
+            if len(cases) == len(tags):
+                for tag, start in zip(tags, cases):
+                    end = next((b for b in bounds if b > start), 1 << 30)
+                    for a, t, c in lines:
+                        if not start <= a < end:
+                            continue
+                        if t.startswith("pushstring"):
+                            m = BAD.match(abc.strings[int(t.split()[1])])
+                            if m:
+                                names[tag] = m.group(2)
+                                break
+            elif cases:
+                skipped += 1
+        # repeated 字段没有模板，退回 writeToBuffer 里的存储槽名。
+        # 槽名要么是可读的真名（freeVisitCnt），要么还是混淆名，后者当没有。
+        for tag in tags:
+            if tag in names:
+                continue
+            s = slots.get(q, {}).get(tag, "")
+            if s and not s.startswith("_-"):
+                names[tag] = s[1:] if s.startswith("_") else s
+        fieldnames[q] = names
+    ok = sum(1 for q in schema if len(fieldnames.get(q, {})) == len(schema[q]))
+    print(f"3) 提到字段号的类 {len(schema)} 个，字段名完全还原 {ok} 个"
+          f"（{skipped} 个分支数对不上，已放弃猜名）")
 
     # ---------- 输出 ----------
     opmap = {}
@@ -168,19 +229,20 @@ def main():
               ensure_ascii=False, indent=1)
 
     lines = ['syntax = "proto2";', "", "// 由 extract_proto.py 从 RedWar SWF 还原",
-             "// 字段号/类型来自 writeExternal 的立即数，字段名来自 protobuf-as3 的报错模板", ""]
+             "// 字段号/类型来自 writeExternal 的立即数，",
+             "// 字段名来自 readExternal 中该字段 case 分支里的报错模板", ""]
     named = 0
     for q, flds in sorted(schema.items(), key=lambda kv: real.get(kv[0], kv[0])):
         name = real.get(q)
         if not name:
             continue
         named += 1
-        fnames = fieldnames.get(q) or fields_seen.get(q, [])
+        fnames = fieldnames.get(q, {})
         op = next((f"{o:04x}" for o, k in reg.items() if k == q), None)
         lines.append(f"// {q}" + (f"   opcode 0x{op}" if op else ""))
         lines.append(f"message {name} {{")
-        for i, (tag, ty) in enumerate(sorted(set(flds))):
-            fn = fnames[i] if i < len(fnames) else f"field{tag}"
+        for tag, ty in sorted(set(flds)):
+            fn = fnames.get(tag) or f"field{tag}"
             lines.append(f"  optional {ty.replace('TYPE_', '').lower():<10} {fn} = {tag};")
         lines.append("}")
         lines.append("")
@@ -190,10 +252,10 @@ def main():
     compact = {}
     for op, q in sorted(reg.items()):
         flds = schema.get(q, [])
-        names = fieldnames.get(q, [])
+        names = fieldnames.get(q, {})
         fmap = {}
-        for i, (tag, ty) in enumerate(flds):
-            fmap[str(tag)] = [names[i] if i < len(names) else f"field{tag}", ty]
+        for tag, ty in flds:
+            fmap[str(tag)] = [names.get(tag) or f"field{tag}", ty]
         compact[f"{op:04x}"] = {"name": real.get(q) or q.split(":")[-1],
                                 "cls": q.split(":")[-1], "fields": fmap}
     json.dump(compact, open(os.path.join(outdir, "schema.json"), "w",

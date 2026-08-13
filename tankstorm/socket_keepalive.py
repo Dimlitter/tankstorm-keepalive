@@ -19,7 +19,7 @@
 import socket
 import time
 
-from . import notify, protocol, sender
+from . import daily, notify, protocol, sender
 from .log import get_logger
 from .qzone import get_game_context
 from .recorder import Recorder
@@ -49,7 +49,8 @@ def _http_warmup(qq, ctx: dict) -> None:
         log.debug("warmup 失败(忽略): %s", exc)
 
 
-def _one_session(qq, spec: dict, conf: dict, config: dict, rec=None) -> str:
+def _one_session(qq, spec: dict, conf: dict, config: dict, rec=None,
+                 with_daily: bool = False) -> str:
     """跑一次完整连接，直到断开。返回断开原因（字符串）。"""
     ctx = get_game_context(qq)
     host = ctx.get("server") or spec.get("default_host", "tankstorm-proxy.sincetimes.com")
@@ -117,6 +118,18 @@ def _one_session(qq, spec: dict, conf: dict, config: dict, rec=None) -> str:
             # sid 是加密载荷分析时的头号候选密钥材料，记进会话元信息
             rec.note("login_ok", sid=ctx.get("sid"), uid=ctx.get("uid"))
 
+        # 每日任务默认**不在这里跑**。保活和每日任务是两件事：
+        #   · 保活是常驻的、唯一的职责就是别掉线，必须尽可能不出错
+        #   · 每日任务是一次性的批处理，跑完就该结束
+        # 混在一起的坏处是每次重连都会重跑一轮任务，而且任务出问题会牵连保活。
+        # 需要"连上顺便领一轮"时显式传 with_daily=True（或 --keepalive --daily）。
+        if with_daily:
+            try:
+                res, det = daily.run(rec, sock, config)
+                _push_daily_summary(config, res, det)
+            except Exception as exc:
+                log.error("每日任务执行异常（不影响保活）: %s", exc)
+
         hb = protocol.build_heartbeat(spec, ctx)
         last_beat = 0.0
         beats = 0
@@ -154,24 +167,157 @@ def _one_session(qq, spec: dict, conf: dict, config: dict, rec=None) -> str:
             pass
 
 
+def _push_daily_summary(config: dict, results: dict, details: dict) -> None:
+    """把每日任务成果推到 PushPlus，并在日志里打一份对照表。
+
+    只有真正执行过的才推 —— 全是"未开启/冷却中"的轮次不值得打扰。
+    """
+    # "跳过"不是失败 —— 今日额度已用完、冷却中、未开启，这些都不该算进成败统计，
+    # 否则一份"全是跳过"的日志会显示成"未成 14"，看着像全崩了。
+    acted = {k: v for k, v in results.items()
+             if v and not any(s in v for s in
+                              ("未开启", "冷却中", "未实测", "跳过"))}
+    if not acted:
+        return
+
+    okn = sum(1 for v in acted.values() if v.startswith("成功"))
+    bad = len(acted) - okn
+
+    log.info("―― 每日任务成果 ―― 成功 %d，未成 %d", okn, bad)
+    rows = []
+    for k, v in acted.items():
+        icon = "✅" if v.startswith("成功") else "❌"
+        log.info("  %s %-12s %s", icon, k, v)
+        extra = ""
+        d = details.get(k)
+        if isinstance(d, dict):
+            kv = [f"{a}={d[a]}" for a in daily.REWARD_HINT if a in d]
+            if kv:
+                extra = f"<br><span style='color:#888'>{' '.join(kv)}</span>"
+        rows.append(f"<tr><td>{icon}</td><td><b>{k}</b></td>"
+                    f"<td>{v}{extra}</td></tr>")
+
+    title = f"坦克风暴每日任务：成功 {okn}" + (f"，未成 {bad}" if bad else "")
+    html = ("<p>本轮共执行 %d 项</p><table border='1' cellpadding='6' "
+            "style='border-collapse:collapse;font-size:14px'>%s</table>"
+            % (len(acted), "".join(rows)))
+    notify.send(config, title, html, template="html")
+
+
+def run_daily_once(qq, config: dict) -> int:
+    """连一次游戏、跑一轮每日任务、断开退出。供 `main.py --daily` 测试用。
+
+    与 --keepalive 的区别：不常驻、不发心跳循环，任务跑完就走。
+    登录、建 RC4、实时解密这些前置步骤完全一致，所以测出来的行为可信。
+    """
+    try:
+        spec = protocol.load_spec()
+    except protocol.ProtocolNotConfigured as exc:
+        log.error("%s", exc)
+        return 2
+
+    if not qq.is_valid() and not relogin_with_push(qq, config):
+        return 1
+
+    ctx = get_game_context(qq)
+    host = ctx.get("server") or spec.get("default_host", "tankstorm-proxy.sincetimes.com")
+    port = int(ctx.get("port") or spec.get("default_port", 8001))
+    if not ctx.get("openkey"):
+        log.error("未取得 openkey，登录态可能失效")
+        return 1
+
+    rec = Recorder(config, on_alert=None)
+    try:
+        sock = _connect(host, port)
+    except OSError as exc:
+        log.error("连接失败: %s", exc)
+        return 1
+
+    try:
+        rec.on_connect()
+        sock = rec.wrap(sock, host=host, port=port,
+                        uid=ctx.get("uid"), sid=ctx.get("sid"))
+        rec.enable_crypto(ctx)
+        for data, delay in protocol.build_login_sequence(spec, ctx):
+            sock.sendall(data)
+            if delay:
+                time.sleep(delay)
+        log.info("已登录，uid=%s sid=%s", ctx.get("uid"), ctx.get("sid"))
+
+        # 先收一会儿，让服务器把登录后的状态推完 —— guard 要靠这些判断免费次数
+        sock.settimeout(1.0)
+        deadline = time.time() + 6
+        while time.time() < deadline:
+            try:
+                if not sock.recv(8192):
+                    break
+            except socket.timeout:
+                continue
+        log.info("登录态数据接收完毕，开始执行任务")
+
+        results, details = daily.run(rec, sock, config)
+        _push_daily_summary(config, results, details)
+        failed = sum(1 for v in results.values()
+                     if "失败" in v or "拦截" in v)
+        return 1 if failed else 0
+    except OSError as exc:
+        log.error("连接中断: %s", exc)
+        return 1
+    finally:
+        try:
+            sock.close()
+        except OSError:
+            pass
+        rec.close()
+
+
 def relogin_with_push(qq, config: dict) -> bool:
     """需要重新扫码时：生成二维码并通过 PushPlus 推送给用户，等待扫码。
     二维码过期/超时则自动重发新码，一直重试直到扫码成功（守护进程不能自己退场）。"""
-    def on_qr(path):
-        notify.send_qrcode(config, "坦克风暴：需要重新扫码登录", path)
+    # 先试静默续期：skey 只活约 24 小时，但 superkey/RK/ptcz 是长效的，
+    # 能换发新 skey 而不必惊动你。成功就不用你动手了。
+    if qq.silent_renew():
+        log.info("已用长效凭据静默续期，无需人工介入")
+        return True
+
+    # 推送登录：直接往手机QQ推确认，免去扫码。
+    # 这解决了"二维码图存本地、同一台手机相册扫码"被腾讯拒（限制本地扫码登录）的问题。
+    push_uin = (config.get("登录", {}) or {}).get("推送登录QQ号") or qq.uin or None
+
+    def on_qr(path, pushed=False):
+        if pushed:
+            notify.send_qrcode(
+                config, "坦克风暴：请在手机QQ点「确认登录」", path,
+                note=f"已向 QQ {push_uin} 推送登录确认，<b>打开手机QQ点确认即可，"
+                     f"不用扫码</b>。<br>若没收到推送，可用<b>另一台设备</b>打开本条消息，"
+                     f"再用手机QQ扫下面的码（同一台手机存图后扫会被拒）。")
+        else:
+            notify.send_qrcode(
+                config, "坦克风暴：需要扫码登录", path,
+                note="请用<b>另一台设备</b>打开本条消息，再用手机QQ扫码。"
+                     "<br>把图存到手机再用同一台手机相册扫，腾讯会提示"
+                     "「限制本地扫码登录」。")
 
     attempt = 0
     while True:
         attempt += 1
-        log.info("登录态失效，已把二维码推送到 PushPlus，等待扫码（第 %d 次尝试）", attempt)
-        if qq.qr_login(on_qr=on_qr):
-            notify.send(config, "坦克风暴：已重新登录", "扫码成功，保活已恢复在线。")
+        # 注意：这里只说"正在尝试"，别在请求发出前就宣称已推送 —— 之前那样写，
+        # 推送其实失败了日志却显示"已推送"，很误导。
+        log.info("登录态失效，正在%s（第 %d 次尝试）",
+                 f"向 QQ {push_uin} 发起推送登录" if push_uin else "生成二维码", attempt)
+        if qq.qr_login(on_qr=on_qr, push_uin=push_uin):
+            notify.send(config, "坦克风暴：已重新登录", "登录成功，保活已恢复在线。")
             return True
-        log.warning("本轮扫码未完成（超时/过期），15 秒后重发新二维码")
+        log.warning("本轮登录未完成（超时/过期），15 秒后重试", )
         time.sleep(15)
 
 
-def run(qq, config: dict) -> int:
+def run(qq, config: dict, with_daily: bool = False) -> int:
+    """保活守护进程。只负责别掉线。
+
+    with_daily=True 时，每次连上后顺带跑一轮每日任务（`--keepalive --daily`）。
+    默认不跑 —— 保活和每日任务是两件独立的事，见 _one_session 里的说明。
+    """
     conf = config.get("保持活跃", {})
     if not conf.get("启用", False):
         log.info("保持活跃未启用（config.json 保持活跃.启用=false）")
@@ -213,7 +359,8 @@ def run(qq, config: dict) -> int:
             if not qq.is_valid():
                 relogin_with_push(qq, config)
 
-            reason = _one_session(qq, spec, conf, config, rec)
+            reason = _one_session(qq, spec, conf, config, rec,
+                                  with_daily=with_daily)
             log.warning("本次连接结束：%s", reason)
             # 断开后退避重连
             wait = min(backoff, max_backoff)

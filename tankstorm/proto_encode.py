@@ -52,13 +52,31 @@ def encode_bytes(field_number: int, value: bytes) -> bytes:
     return encode_tag(field_number, 2) + encode_varint(len(value)) + value
 
 
-def encode_message(fields: dict) -> bytes:
+def encode_message(fields: dict, omit_zero: bool = True) -> bytes:
     """按字段号升序编码一组字段。
 
     fields: {字段号: (类型名, 值), ...}
     类型名支持: "int32", "bool", "string", "bytes"
 
-    值为 None / 空字符串 / 0（且类型非 bool）的字段会被跳过（optional 语义）。
+    omit_zero=True（默认，保持老调用方的行为）
+        值为 None / 空串 / 0（非 bool）的字段跳过不写。
+    omit_zero=False
+        除 None 外一律写出，**0 也要写**。
+
+    为什么每日任务必须用 omit_zero=False
+    ------------------------------------
+    proto2 里"写了 0"和"根本没写"是两回事：前者 has_x() 为真，后者为假。
+    8/10 抓包实测，真实客户端是**显式写 0** 的：
+        RceHeroVisit  {free:1, type:0}
+        RceHeroOpen   {type:0}
+        RceDailySignIn{nType:0, nActivetype:0}
+        RceWPCExplore {sceneID:10001, expType:0, exploreCnt:0, credit:0, ...}
+    而按老行为，{3:("int32",1), 4:("int32",0)} 会编成只有 free 的包，type 整个丢掉；
+    {3:("int32",0)} 更是编出一个**空 body** —— 空 body 连加密都不走
+    （帧的加密判定是 real_frame and bool(body)），等于发了个空壳请求。
+    2026-08-12 实盘就是这样：开面板的前置发出去了，动作却石沉大海。
+
+    任务表里列出的字段 = "这次要赋值的字段"，所以一个都不能省。
     """
     parts = []
     for fn in sorted(fields):
@@ -66,17 +84,17 @@ def encode_message(fields: dict) -> bytes:
         if val is None:
             continue
         if ftype in ("int32", "int64"):
-            if val == 0:
-                continue  # optional int32 = 0 等于默认值，可以不写
+            if omit_zero and val == 0:
+                continue
             parts.append(encode_int32(fn, int(val)))
         elif ftype == "bool":
             parts.append(encode_int32(fn, 1 if val else 0))
         elif ftype == "string":
-            if not val:
+            if omit_zero and not val:
                 continue
             parts.append(encode_string(fn, str(val)))
         elif ftype == "bytes":
-            if not val:
+            if omit_zero and not val:
                 continue
             parts.append(encode_bytes(fn, val))
         else:
