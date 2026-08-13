@@ -169,6 +169,22 @@ def _left_count(data):
     return None
 
 
+_U64_MAX = 2 ** 64 - 1
+
+
+def _show(v):
+    """给人看的值。服务端用无符号 64 位表示 -1（"没有/未上榜"），
+    直接打出 18446744073709551615 只会让人以为是天文数字。"""
+    if isinstance(v, int) and not isinstance(v, bool) and v >= _U64_MAX - 8:
+        return "无"
+    return v
+
+
+# 这些响应不带 ret，成败看 result（1=成功），语义与 ret 相反
+RESULT_IS_STATUS = {"RseArenaOpt", "RseWorldArenaOpt", "RseRegionArenaOpt",
+                    "RseHeroArenaOpt"}
+
+
 def judge(rse_msg: str, data, ignore_left=False):
     """判断一次任务的结果。返回 (是否成功, 说明, 是否应停止今日重试)。
 
@@ -186,6 +202,18 @@ def judge(rse_msg: str, data, ignore_left=False):
         return False, "未收到响应（这一轮不算数，稍后再试）", False
     if not isinstance(data, dict):
         return True, str(data)[:80], False
+    # 争霸战这一族（RseArenaOpt 等）没有 ret，用的是 **result，而且 1 才是成功**
+    # ——语义和 ret 正好相反。不特判的话 judge() 找不到 ret 就直接判"成功"，
+    # 又是一个假成功。2026-08-10 真客户端抓包实测：领取上期排名奖励回
+    # {type:3, result:1}，随后 RseArenaInfo.bLastRankGet 由 false 翻 true。
+    if rse_msg in RESULT_IS_STATUS:
+        r = data.get("result")
+        if not isinstance(r, int) or isinstance(r, bool):
+            return False, "响应里没有 result，认不出成败", False
+        if r == 1:
+            return True, "成功：result=1", False
+        return False, f"服务器返回 result={r}（1 才是成功）", True
+
     # 多数响应用 ret，少数用别的名字：RseBuildingModify（英雄培养）用 error，
     # 有的用 nret。取第一个存在的整数字段当状态码。
     ret = next((data[k] for k in ("ret", "error", "nret")
@@ -484,13 +512,16 @@ class Gate:
     field    读哪个字段（如 freeVisitCnt）
     index    该字段是分档数组时取第几档，要和任务发的 type/subType/sceneID 对上；
              响应给的是标量时忽略此项
+    claimed_flag  该字段是"领过了吗"的布尔标记而不是次数：False 放行、True 拦下
     """
 
-    def __init__(self, rse_msg, field, index=0, timeout=6.0):
+    def __init__(self, rse_msg, field, index=0, timeout=6.0,
+                 claimed_flag=False):
         self.rse_msg = rse_msg
         self.field = field
         self.index = index
         self.timeout = timeout
+        self.claimed_flag = claimed_flag
 
 
 class Tiers:
@@ -532,7 +563,11 @@ class Task:
 
     def __init__(self, key, name, opcode, msg, fields, confidence,
                  note="", max_per_day=1, gate=None, cooldown_sec=0,
-                 prelude=(), followup=None, tiers=None, cooldown_until=None):
+                 prelude=(), followup=None, tiers=None, cooldown_until=None,
+                 report=()):
+        # report：前置响应里值得报给用户看的字段（排名、积分、剩余挑战次数…）。
+        # 闸门数据本来就读到了，顺手带进结果里，推送时就能看到"现在排第几"。
+        self.report = tuple(report)
         # cooldown_until：从响应里读"下次可用时刻"（unix 秒）的字段路径。
         # 比写死一个 cooldown_sec 靠谱得多 —— 占矿的时长随矿的等级变，
         # 演习场占领时长也是服务端定的，猜一个数必然是错的。
@@ -705,6 +740,28 @@ TASKS = [
        prelude=[("04da", {1: ("int32", 1)})],
        gate=Gate("RseAdviserOpt", "sVisitData.field4"),
        tiers=Tiers(1, [11, 12])),
+
+    # 争霸战·领取上期排名奖励。2026-08-10 真客户端抓包（全过程-低级英雄招募）实证：
+    #   开面板 RceArenaInfo{type:1} → RseArenaInfo{..., bLastRankGet:false,
+    #                                 nRankSelf:633, nRankSelfLast:870,
+    #                                 nCanFightTimes:10, nIntegralScore:14798}
+    #   领奖   RceArenaOpt{type:3, indexself:0} → RseArenaOpt{type:3, result:1}
+    #   领完再开面板 → bLastRankGet **翻成 true**，nIntegralScore 14798→15015
+    # 所以闸门就是 bLastRankGet：false 才领，true 说明领过了。
+    # ⚠️ RseArenaOpt 没有 ret，成败看 result（1=成功），见 RESULT_IS_STATUS。
+    # 抓包里客户端还发过 RceArenaOpt{type:5}，那只是取/刷自己的排名（回包把
+    # indexself 填成 633，633 就是排名本身），不是领奖，故不做。
+    # RseArenaInfo.bScoreGiftGain（积分礼包是否已领）和 RceArenaOpt.nGainScoreGift
+    # 看着就是"领积分"那一档，但抓包里客户端从没领过，**没有实测参数，先不做**。
+    _t("争霸战领奖", "争霸战·领取上期排名奖励", "0469", "RceArenaOpt",
+       {1: ("int32", 3), 4: ("int32", 0)},
+       "实测", "8/10 真客户端抓包：RceArenaInfo{type:1} 开面板 → "
+               "RceArenaOpt{type:3,indexself:0} 领奖，回包 result=1，"
+               "随后 bLastRankGet 由 false 翻 true",
+       prelude=[("0468", {1: ("int32", 1)})],
+       gate=Gate("RseArenaInfo", "bLastRankGet", claimed_flag=True),
+       report=("nRankSelf", "nRankSelfLast", "nIntegralScore",
+               "nCanFightTimes", "nJoinPlayers", "bScoreGiftGain")),
 
     _t("特工派遣", "远程火炮·特工派遣", "04d6", "RceTrenchMortarOpt",
        {1: ("int32", 1), 2: ("int32", 1001)},
@@ -1000,6 +1057,17 @@ def _check_gate(gate, data, tiers=None):
         return (True, f"第 {gate.index} 档还有 {cnt} 次（{gate.field}={whole}）",
                 False, None)
 
+    if gate.claimed_flag:
+        # 布尔型闸门："领过了吗"。False=还没领→放行，True=领过了→今天别再来。
+        # 争霸战上期排名奖励就是这种：RseArenaInfo.bLastRankGet，
+        # 2026-08-10 真客户端抓包里它在领奖前后由 false 翻 true。
+        if not isinstance(raw, bool):
+            return (False, f"{gate.field}={raw!r} 不是布尔标记，这一轮不做",
+                    False, None)
+        if raw:
+            return (False, f"已经领过了（{gate.field}=True）", True, None)
+        return True, f"还没领（{gate.field}=False）", False, None
+
     if isinstance(raw, bool) or not isinstance(raw, int):
         return (False, f"{gate.field}={raw!r} 不是次数，这一轮不做", False, None)
     if raw <= 0:
@@ -1132,6 +1200,7 @@ def _do_once(task, sock, rec, st, results, details, field_names,
         # 服务器回得快时会和发送时刻落在同一个 tick，导致收到了也判成超时。
         gate_before = rec.seq_mark() if rec else 0
         tier = None
+        panel_note = ""
         for pop, pfields in task.prelude:
             try:
                 sender.send_frame(sock, pop,
@@ -1176,6 +1245,13 @@ def _do_once(task, sock, rec, st, results, details, field_names,
                     _save_state(st)
                 return False
             log.info("[%s] 闸门放行：%s", task.key, why)
+            # 前置响应里的看点（排名/积分/剩余次数）记下来，最后并进结果一起推送
+            if task.report and isinstance(gdata, dict):
+                bits = [f"{f}={_show(gdata[f])}"
+                        for f in task.report if f in gdata]
+                if bits:
+                    panel_note = " ".join(bits)
+                    log.info("[%s] 面板：%s", task.key, panel_note)
 
         # 占位符现在才解析：像"挑一个空演习场""七天乐第几天"这类值，
         # 必须等前置请求的响应回来才算得出。解析在安全检查之前，
@@ -1239,6 +1315,8 @@ def _do_once(task, sock, rec, st, results, details, field_names,
         # 标量 —— 它只说当前这一档没了（配件探索打完 10001 就报 leftFreeCnt=0，
         # 而 10002/10003 其实各还有一次）。换档交给闸门。
         ok, why, stop = judge(rse, data, ignore_left=bool(task.tiers))
+        if panel_note:
+            why = f"{why}（面板：{panel_note}）"
         results[task.key] = why
         if ok:
             # 只有**确认成功**才算用掉一次每日额度
