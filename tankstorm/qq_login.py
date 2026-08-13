@@ -62,6 +62,7 @@ import time
 import requests
 
 from . import GAME_URL
+from . import paths
 from .log import get_logger
 
 log = get_logger()
@@ -92,9 +93,11 @@ DEVICE_BOOTSTRAP = ("dev_mid_sig", "pt_guid_sig", "pt_recent_uins",
                     "pt-ev-token", "dlock", "it_c", "eas_sid")
 PTLOGIN_DOMAIN = ".ptlogin2.qq.com"
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-COOKIE_FILE = os.path.join(BASE_DIR, "cookies.json")
-QRCODE_FILE = os.path.join(BASE_DIR, "qrcode.png")
+# cookie 和二维码是用户数据，必须落在 exe 旁边而不是打包的临时解压目录 ——
+# 落错地方的后果是每次启动都要重新扫码，而且不报错。见 paths.py。
+BASE_DIR = paths.app_dir()
+COOKIE_FILE = paths.user_path("cookies.json")
+QRCODE_FILE = paths.user_path("qrcode.png")
 
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36")

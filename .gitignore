@@ -15,6 +15,10 @@ capture.json
 socket_capture*.json
 endpoints-candidates.json
 
+# ===== 打包产物（本地试打包时生成，CI 里由 Actions 产出）=====
+build/
+dist/
+
 # ===== 运行时生成 =====
 debug/
 logs/

@@ -133,6 +133,51 @@ python main.py --keepalive --daily
 
 ## 安装
 
+有两种用法，功能完全一致，选一种即可：
+
+| | 下载现成的可执行文件 | 用源码跑 |
+|---|---|---|
+| 要不要装 Python | 不用 | 要 3.10+ |
+| 命令长什么样 | `tankstorm --daily` | `python main.py --daily` |
+| 适合 | 只想用，不想折腾环境 | 要改代码、或介意杀软误报 |
+
+> **本项目是命令行工具，没有图形界面。** 所有操作都通过命令行参数完成，
+> 见[命令一览](#命令一览)。
+
+### 用法一：下载可执行文件
+
+到 [Releases](https://github.com/Dimlitter/tankstorm-keepalive/releases)
+下载对应平台的压缩包：
+
+| 系统 | 文件 |
+|---|---|
+| Windows（普通 64 位）| `tankstorm-windows-x64.zip` |
+| Windows（ARM 机型）| `tankstorm-windows-arm64.zip` |
+| macOS（M 系列）| `tankstorm-macos-arm64.tar.gz` |
+| macOS（Intel）| `tankstorm-macos-x64.tar.gz` |
+| Linux x86_64 / ARM64 | `tankstorm-linux-x64.tar.gz` / `-arm64.tar.gz` |
+
+解压后目录里有可执行文件和 `config.json`。运行时产生的 `cookies.json`、`logs/`
+都落在**可执行文件所在目录**，整个目录拷走就能迁移。
+
+```bash
+# Windows
+tankstorm.exe --login
+
+# macOS / Linux
+chmod +x tankstorm
+./tankstorm --login
+```
+
+两个平台特有的问题：
+
+- **macOS 会拦。** 二进制没有 Apple 开发者签名，Gatekeeper 会提示"无法验证开发者"。
+  放行：`xattr -dr com.apple.quarantine ./tankstorm`
+- **Windows 可能报毒。** PyInstaller 单文件程序被杀软误报很常见，
+  游戏自动化工具更容易触发。介意就用源码跑，没有任何编译步骤。
+
+### 用法二：源码运行
+
 **第一步，先确认当前 Python 的版本**：
 
 ```bash
@@ -197,7 +242,10 @@ pip install -r requirements.txt
 
 ## 第一次运行
 
-按顺序走一遍，每步都能看到结果，出问题也好定位：
+按顺序走一遍，每步都能看到结果，出问题也好定位。
+
+> 下文一律写成 `python main.py`。用可执行文件的话，把这部分换成
+> `tankstorm.exe`（Windows）或 `./tankstorm`（macOS / Linux），参数完全一样。
 
 **1️⃣ 登录** —— 手机 QQ 扫码，只有第一次要做
 
@@ -524,8 +572,10 @@ PushPlus 的 token 填在 `config.local.json`：
 | `--daily` | 跑一轮每日任务后退出 |
 | `--list` | 列出每日任务及今日进度 |
 | `--reset` | 清空今日任务计数 |
+| `--import-device 文件` | 从浏览器搬一次设备记录以启用推送登录（一次性，见[关于"免扫码"](#关于免扫码)）|
 
-不带参数会打印用法。
+不带参数会打印用法。源码运行前面加 `python main.py`，
+可执行文件直接 `tankstorm.exe` / `./tankstorm`。
 
 ---
 
