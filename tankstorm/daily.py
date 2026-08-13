@@ -1239,13 +1239,17 @@ def _do_once(task, sock, rec, st, results, details, field_names,
                 pop, pfields = task.prelude[-1]
                 pre_want = _echo_want(pfields, _field_names(schema, pop))
 
-            def _gwant(d, _f=gfield, _w=pre_want):
-                return (_read_counts(d, _f) is not None
-                        and (_w is None or _w(d)))
+            def _has_counts(d, _f=gfield):
+                return _read_counts(d, _f) is not None
 
+            def _gwant(d, _w=pre_want):
+                return _has_counts(d) and (_w is None or _w(d))
+
+            # 严格判据挑不到就退回"只要带次数字段就行"：面板回包不一定回显
+            # 请求里的 type，硬要求会把唯一带次数的那条否掉。
             gdata = _await_response(sock, rec, task.gate.rse_msg,
                                     gate_before, task.gate.timeout,
-                                    want=_gwant)
+                                    want=_gwant, relaxed=_has_counts)
             passed, why, exhausted, tier = _check_gate(task.gate, gdata,
                                                        task.tiers)
             if not passed:
@@ -1506,12 +1510,19 @@ def _pick_recent(rec, rse_msg, since_seq, want=None):
     return None
 
 
-def _await_response(sock, rec, rse_msg, since_seq, timeout, want=None):
+def _await_response(sock, rec, rse_msg, since_seq, timeout, want=None,
+                    relaxed=None):
     """发完请求后等对应的服务器响应。
 
     since_seq 是**消息到达序号**（rec.seq_mark()），只认序号更大的，
     这样既能排掉旧数据，又不受时钟粒度影响。
     want 可选，用来在同名的几条里挑出真正有用的那条。
+
+    relaxed 是**退而求其次**的判据：等不到严格匹配时用它再捞一次。
+    闸门要用到 —— 有些面板回包的 type 不是对请求的回显而是"回包种类"
+    （RceWPCBaseOpen 发 type:1，回包却是 type:0 的面板 + type:3 的冠军信息），
+    拿它当区分字段会把唯一带次数的那条否掉。2026-08-13 实盘就这么把配件探索
+    明明还有 3 次免费的一轮跳过了。所以严格判据只用来"优先挑"，挑不到就放宽。
     """
     if rec is None:
         return None
@@ -1526,4 +1537,9 @@ def _await_response(sock, rec, rse_msg, since_seq, timeout, want=None):
                 break
         except Exception:
             pass
+    if relaxed is not None:
+        hit = _pick_recent(rec, rse_msg, since_seq, relaxed)
+        if hit is not None:
+            log.debug("等不到严格匹配的 %s，退回用宽松判据挑到一条", rse_msg)
+            return hit
     return None
