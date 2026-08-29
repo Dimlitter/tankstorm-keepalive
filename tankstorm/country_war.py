@@ -47,6 +47,55 @@ F_CITY = "countryData.field6"       # 当前所在城市
 F_MERIT = "countryData.field17"     # 累计战功
 
 
+BAG_USE_OPCODE = "0440"       # RceBagItemUse
+BAG_LST = "RseBagItemLst"
+CARD_ITEM_ID = 40004          # 国战恢复卡，抓包实测：用掉后行动力与士气全满
+
+
+def _find_bag_item(rec, item_id):
+    """在背包里找某件物品，返回 (槽位ID, 数量)；没有返回 (None, 0)。
+
+    抓包实测背包条目形如
+        {"field1": 1035, "field2": 40004, "field3": 1696834514, "field4": 63}
+    field1 是**槽位 ID**（正是 RceBagItemUse 请求里的 id），field2 是物品 ID，
+    field4 是数量。槽位 ID 跟着这一格走，不能写死。
+    """
+    got = rec.latest.get(BAG_LST) if rec else None
+    if not got or not isinstance(got[1], dict):
+        return None, 0
+    items = (got[1].get("bagItem") or {})
+    if isinstance(items, dict):
+        items = items.get("field1") or items.get("field2") or []
+    if not isinstance(items, list):
+        return None, 0
+    for e in items:
+        if isinstance(e, dict) and e.get("field2") == item_id:
+            return e.get("field1"), int(e.get("field4") or 0)
+    return None, 0
+
+
+def _use_recovery_card(sock, rec, item_id):
+    """用一张国战恢复卡。返回 (是否发出, 说明)。
+
+    ⚠️ 这是全项目**唯一**主动发送 count 非零的地方。count 命中危险字段正则，
+    平时一律钉死为 0；这里 count=1 表示"用一张卡"，消耗的是玩家自己背包里的
+    道具、不花勋章，而且必须在 config 里显式打开开关才会走到。
+    仍然守着铁律：先从背包读到数量 > 0 才发，读不到就不发。
+    """
+    slot, count = _find_bag_item(rec, item_id)
+    if slot is None:
+        return False, f"背包里没读到物品 {item_id}（读不到就不用）"
+    if count <= 0:
+        return False, f"国战恢复卡已用完（背包剩 {count} 张）"
+    # 字段照抓包逐个对齐：真客户端**不发 selectID(1)**，只发 3/4/5/7。
+    # proto2 里"写了 0"和"没写"是两回事，多发一个 selectID=0 就不是同一个包了。
+    body = encode_message({3: ("int32", 1), 4: ("int32", slot),
+                           5: ("int32", item_id), 7: ("int32", 0)},
+                          omit_zero=False)
+    sender.send_frame(sock, BAG_USE_OPCODE, body, rec.rc4_c2s)
+    return True, f"已用掉 1 张国战恢复卡（用前背包有 {count} 张）"
+
+
 def _fields(type_, country=0, city=0, atk=None, check=False):
     """照抓包的字段集构造请求。
 
@@ -206,8 +255,11 @@ def run(rec, sock, config: dict, rounds: int = 0, beat=None,
     npc_city = int(conf.get("摩多驻地城市ID", 32010))
     cooldown = float(conf.get("扫荡间隔秒", 15))
     rounds = int(rounds or conf.get("默认次数", 0))
+    use_card = bool(conf.get("自动使用国战恢复卡", False))
+    card_limit = int(conf.get("单次最多用几张恢复卡", 1))
+    card_item = int(conf.get("国战恢复卡物品ID", CARD_ITEM_ID))
 
-    out = {"扫荡": 0, "攻击": 0, "召唤": 0, "战功": 0, "停止原因": ""}
+    out = {"扫荡": 0, "攻击": 0, "召唤": 0, "战功": 0, "用卡": 0, "停止原因": ""}
     if rounds <= 0:
         out["停止原因"] = "次数为 0，什么都没做"
         return out
@@ -221,13 +273,15 @@ def run(rec, sock, config: dict, rounds: int = 0, beat=None,
         _daily._BEAT = beat
     try:
         return _loop(rec, sock, rounds, country, npc_country, npc_city,
-                     cooldown, out, attack_only)
+                     cooldown, out, attack_only, use_card, card_limit,
+                     card_item)
     finally:
         _daily._BEAT = prev
 
 
 def _loop(rec, sock, rounds, country, npc_country, npc_city, cooldown, out,
-          attack_only=False):
+          attack_only=False, use_card=False, card_limit=1,
+          card_item=CARD_ITEM_ID):
     merit0 = None
     last_act = 0.0
     located = False
@@ -235,6 +289,7 @@ def _loop(rec, sock, rounds, country, npc_country, npc_city, cooldown, out,
     fails = 0                # 连续被拒次数
     target = None            # 当前攻击目标，跨轮保留
     npc_morale = None        # 它剩多少士气
+    cards_used = 0           # 本次用掉几张恢复卡
 
     for i in range(1, rounds + 1):
         power, city, atk_times, panel = _panel(sock, rec, country)
@@ -255,9 +310,27 @@ def _loop(rec, sock, rounds, country, npc_country, npc_city, cooldown, out,
             located = True
 
         if power < COST_ATTACK:
-            out["停止原因"] = (f"行动力只剩 {power}，"
-                               f"连普通攻击都不够（要 {COST_ATTACK}）")
-            break
+            if not use_card or cards_used >= card_limit:
+                why = (f"行动力只剩 {power}，连普通攻击都不够（要 {COST_ATTACK}）")
+                if use_card and cards_used >= card_limit:
+                    why += f"；本次已用掉 {cards_used} 张恢复卡，达到上限"
+                elif not use_card:
+                    why += "；未开启自动使用国战恢复卡"
+                out["停止原因"] = why
+                break
+            sent, msg = _use_recovery_card(sock, rec, card_item)
+            log.info("[国战] 行动力不足，%s", msg)
+            if not sent:
+                out["停止原因"] = f"行动力只剩 {power}，且{msg}"
+                break
+            cards_used += 1
+            out["用卡"] = cards_used
+            _nap(2.0)                    # 等服务端把新的行动力推回来
+            power, city, atk_times, panel = _panel(sock, rec, country)
+            if power is None or power < COST_ATTACK:
+                out["停止原因"] = f"用了恢复卡但行动力仍不足（{power}），停手"
+                break
+            log.info("[国战] 恢复卡生效，行动力回到 %d", power)
 
         # 开摩多驻地的城市面板，看还有没有支援兵
         since = _send(sock, rec, 3, country=npc_country, city=npc_city)
