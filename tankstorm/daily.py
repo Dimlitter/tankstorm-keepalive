@@ -46,6 +46,39 @@ log = get_logger()
 
 STATE_FILE = os.path.join(LOG_DIR, "daily-state.json")
 
+# 每日任务执行期间的心跳回调，由 socket_keepalive 在调用 run() 时传进来。
+#
+# 2026-08-29 实测：跑一轮 --daily 耗时 3 分 50 秒，期间发出的心跳是 **0 次**，
+# 而 protocol.json 里心跳周期是 10 秒、真客户端抓包也是每 10 秒雷打不动一次
+# （484 秒的连接里 48 次）。原先两种模式都有这个洞：--daily 压根没有心跳循环，
+# --keepalive --daily 则是先跑完任务才进心跳循环。
+# 那些查不出原因的"没等到响应"，很可能有它的份。
+#
+# 用单线程的"到点就发"而不是后台线程：心跳虽然走明文豁免、不碰 RC4，
+# 但两个线程同时 sendall 会让帧字节交错，那是另一种更难查的坏法。
+_BEAT = None
+
+
+def _beat() -> None:
+    """该发心跳就发一次；没配回调就是空操作。"""
+    if _BEAT is None:
+        return
+    try:
+        _BEAT()
+    except Exception as exc:                  # 心跳发不出去不该弄挂任务
+        log.debug("心跳发送失败（忽略）: %s", exc)
+
+
+def _nap(seconds: float) -> None:
+    """边等边发心跳。任务之间动辄等好几秒，累计起来早超过心跳周期了。"""
+    end = time.time() + seconds
+    while True:
+        _beat()
+        left = end - time.time()
+        if left <= 0:
+            return
+        time.sleep(min(left, 1.0))
+
 # 字段名命中这些词 = 可能花钱/耗券，值必须为 0
 #
 # credit 就是勋章（RceWPCExplore.credit、RceMineModify.credit、
@@ -636,6 +669,10 @@ TASKS = [
        gate=Gate("RseDailySignIn", "bSignIn", claimed_flag=True),
        report=("bSignIn", "nSignInDays", "nReplenishDays")),
 
+    # ⚠️ 2026-08-29 实测：服务端**不再响应** RceSevenDays(047a)。
+    # 请求 18:55:21 发出，到 18:55:29 收到别的任务的回包为止，整整 7 秒零回应；
+    # 同一轮里其它任务都是请求→回包 1 秒内。活动已下线，config.json 里默认关掉了。
+    # 任务定义保留：万一哪天活动回归，打开开关即可。
     _t("七天乐", "七天乐领奖", "047a", "RceSevenDays",
        {1: ("int32", 1),
         2: ("int32", FromResponse("RseSevenDays", _pick_sevendays_day,
@@ -1131,7 +1168,7 @@ def _check_safety(task, field_names, fields=None):
     return True, ""
 
 
-def run(rec, sock, config: dict, schema=None) -> dict:
+def run(rec, sock, config: dict, schema=None, beat=None) -> dict:
     """执行每日任务。rec 是 Recorder（提供 C→S 的 RC4），sock 是已登录的 socket。
 
     返回 {任务名: 结果字符串}。
@@ -1147,6 +1184,18 @@ def run(rec, sock, config: dict, schema=None) -> dict:
     # 公会战同样，type=14 读到的是前置 type=0 的回包。
     if schema is None:
         schema = _schema
+
+    # 心跳回调挂到模块级，_nap()/_await_response() 沿路都会调它。
+    # 用 try/finally 保证跑完就摘掉，免得下一次调用还拿着上一个连接的 socket。
+    global _BEAT
+    _BEAT = beat
+    try:
+        return _run(rec, sock, config, schema)
+    finally:
+        _BEAT = None
+
+
+def _run(rec, sock, config, schema):
     conf = (config.get("每日任务", {}) or {})
     if not conf.get("启用", False):
         log.info("每日任务未启用（config.json 每日任务.启用=false）")
@@ -1214,7 +1263,15 @@ def run(rec, sock, config: dict, schema=None) -> dict:
             # 服务器说这东西被占用到某时刻（占了演习场/占了矿），就别接着刷了
             if st.get("until", {}).get(task.key, 0) > time.time():
                 break
-            time.sleep(gap)
+            # 靠**固定冷却**限流的任务，成功一次就到此为止。
+            # 冷却只在进任务前查了一次，循环里不再查，于是英雄培养成功之后
+            # 3 秒又发一次，服务端回 error=81（已在培养中）——
+            # 报出来像是任务失败，其实第一次已经成功了。2026-08-29 实盘复现。
+            if task.cooldown_sec:
+                log.info("[%s] 靠 %.0f 小时冷却限流，本轮做完一次即止",
+                         task.key, task.cooldown_sec / 3600)
+                break
+            _nap(gap)
         if ran > 1:
             log.info("[%s] 本轮共成功 %d 次（今日 %d/%d）", task.key, ran,
                      st["done"].get(task.key, 0), task.max_per_day)
@@ -1248,11 +1305,11 @@ def _do_once(task, sock, rec, st, results, details, field_names,
                                   encode_message(pfields, omit_zero=False),
                                   rec.rc4_c2s)
                 log.debug("[%s] 前置 %s", task.key, pop)
-                time.sleep(0.4)
+                _nap(0.4)
             except Exception as exc:
                 log.warning("[%s] 前置请求 %s 失败: %s", task.key, pop, exc)
         if task.prelude:
-            time.sleep(0.6)     # 给服务端一点时间把面板数据推回来
+            _nap(0.6)           # 给服务端一点时间把面板数据推回来
 
         # 闸门：前置请求的响应里就有剩余免费次数，客户端正是读它决定
         # 走免费档还是扣券/扣勋章档。读不到就不发。
@@ -1531,7 +1588,7 @@ def _run_followup(task, sock, rec, data, field_names, resp_timeout, gap):
         except Exception as exc:
             log.warning("[%s] 后续步骤发送失败: %s", task.key, exc)
             break
-        time.sleep(gap)
+        _nap(gap)
         last = _await_response(sock, rec, rse, before, resp_timeout)
         ok, why, _stop = judge(rse, last)
         log.info("[%s] 后续结果：%s %s", task.key, "✅" if ok else "❌", why)
@@ -1582,6 +1639,7 @@ def _await_response(sock, rec, rse_msg, since_seq, timeout, want=None,
         hit = _pick_recent(rec, rse_msg, since_seq, want)
         if hit is not None:
             return hit
+        _beat()          # 等回包是耗时大头，心跳得在这儿续上
         try:
             sock.settimeout(0.5)
             if not sock.recv(8192):

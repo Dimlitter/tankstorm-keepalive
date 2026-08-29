@@ -123,14 +123,18 @@ def _one_session(qq, spec: dict, conf: dict, config: dict, rec=None,
         #   · 每日任务是一次性的批处理，跑完就该结束
         # 混在一起的坏处是每次重连都会重跑一轮任务，而且任务出问题会牵连保活。
         # 需要"连上顺便领一轮"时显式传 with_daily=True（或 --keepalive --daily）。
+        # 心跳包提前构造好：任务执行期间也要发，不能等进了心跳循环才开始
+        hb = protocol.build_heartbeat(spec, ctx)
+
         if with_daily:
             try:
-                res, det = daily.run(rec, sock, config)
+                beater = _Beater(sock, hb, interval)
+                res, det = daily.run(rec, sock, config, beat=beater)
+                log.info("任务执行期间共发心跳 %d 次", beater.count)
                 _push_daily_summary(config, res, det)
             except Exception as exc:
                 log.error("每日任务执行异常（不影响保活）: %s", exc)
 
-        hb = protocol.build_heartbeat(spec, ctx)
         last_beat = 0.0
         beats = 0
         sock.settimeout(1.0)
@@ -204,10 +208,38 @@ def _push_daily_summary(config: dict, results: dict, details: dict) -> None:
     notify.send(config, title, html, template="html")
 
 
+class _Beater:
+    """每日任务执行期间的心跳器：到点才发，没到点就是空操作。
+
+    每日任务一跑就是好几分钟，而心跳周期只有 10 秒。原先任务执行期间一个心跳
+    都不发（2026-08-29 实测：3 分 50 秒里 0 次，本该 23 次），真客户端则是雷打
+    不动每 10 秒一次。
+
+    做成"由任务侧回调、单线程发送"而不是后台线程：心跳走明文豁免、不碰 RC4，
+    但两个线程同时 sendall 会让帧字节交错，那是比掉线更难查的坏法。
+    """
+
+    def __init__(self, sock, hb: bytes, interval: float):
+        self.sock = sock
+        self.hb = hb
+        self.interval = interval
+        self.last = time.time()      # 刚登录完不必立刻补一发
+        self.count = 0
+
+    def __call__(self) -> None:
+        now = time.time()
+        if now - self.last < self.interval:
+            return
+        self.sock.sendall(self.hb)
+        self.last = now
+        self.count += 1
+        log.debug("任务执行中心跳 #%d", self.count)
+
+
 def run_daily_once(qq, config: dict) -> int:
     """连一次游戏、跑一轮每日任务、断开退出。供 `main.py --daily` 测试用。
 
-    与 --keepalive 的区别：不常驻、不发心跳循环，任务跑完就走。
+    与 --keepalive 的区别：不常驻，任务跑完就走；但任务执行期间照样发心跳。
     登录、建 RC4、实时解密这些前置步骤完全一致，所以测出来的行为可信。
     """
     try:
@@ -255,7 +287,11 @@ def run_daily_once(qq, config: dict) -> int:
                 continue
         log.info("登录态数据接收完毕，开始执行任务")
 
-        results, details = daily.run(rec, sock, config)
+        beater = _Beater(sock, protocol.build_heartbeat(spec, ctx),
+                         float(config.get("保持活跃", {}).get("心跳间隔秒")
+                               or protocol.heartbeat_interval(spec)))
+        results, details = daily.run(rec, sock, config, beat=beater)
+        log.info("任务执行期间共发心跳 %d 次", beater.count)
         _push_daily_summary(config, results, details)
         failed = sum(1 for v in results.values()
                      if "失败" in v or "拦截" in v)
