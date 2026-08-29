@@ -608,7 +608,13 @@ class Task:
     def __init__(self, key, name, opcode, msg, fields, confidence,
                  note="", max_per_day=1, gate=None, cooldown_sec=0,
                  prelude=(), followup=None, tiers=None, cooldown_until=None,
-                 report=()):
+                 report=(), runner=None):
+        # runner：自定义执行器，签名 runner(rec, sock, config) -> (是否成功, 说明)。
+        # 给那些"形状不合流水线"的任务用 —— 国战要先召唤支援兵、再从服务端推来的
+        # 列表里读出目标 ID 才能攻击，不是一条静态字段表能表达的。
+        # 有 runner 的任务跳过前置/闸门/安全检查那一整套，由执行器自己负责，
+        # 所以执行器内部必须自己守住"先查询、读到依据才做"这条铁律。
+        self.runner = runner
         # report：前置响应里值得报给用户看的字段（排名、积分、剩余挑战次数…）。
         # 闸门数据本来就读到了，顺手带进结果里，推送时就能看到"现在排第几"。
         self.report = tuple(report)
@@ -819,6 +825,19 @@ TASKS = [
        gate=Gate("RseArenaInfo", "bLastRankGet", claimed_flag=True),
        report=("nRankSelf", "nRankSelfLast", "nIntegralScore",
                "nCanFightTimes", "nJoinPlayers", "bScoreGiftGain")),
+
+    # 国战：世界地图里攻击摩多军团。形状不合流水线（要先召唤支援兵、再从服务端
+    # 推来的 RseCountryUserLst 里读出目标 ID 才能打），所以走 runner。
+    # 延迟导入：country_war 反过来要用 daily 的 _await_response/_nap，
+    # 模块级 import 会成环。
+    _t("国战攻击", "国战·攻击摩多军团 10 次", "0463", "RceCountryOpt",
+       {}, "实测",
+       "8/29 抓包实测：type:3 开驻地面板 → type:45 召唤支援兵 → "
+       "type:14 普通攻击（每次 5 点行动力、dayatktimes+1）。"
+       "五种请求已与真客户端逐字段比对一致",
+       runner=lambda rec, sock, config: __import__(
+           "tankstorm.country_war", fromlist=["daily_attack"]
+       ).daily_attack(rec, sock, config)),
 
     _t("特工派遣", "远程火炮·特工派遣", "04d6", "RceTrenchMortarOpt",
        {1: ("int32", 1), 2: ("int32", 1001)},
@@ -1252,6 +1271,19 @@ def _run(rec, sock, config, schema):
         # freeVisitCnt=[3,1,1] 是三个档位各自的免费次数（低级 3 次、中级 1 次、
         # 高级 1 次），三档都要领；战略训练更是一天 7 次同样的包。
         # 早先每轮只发一次，等于绝大多数次数根本没用上。
+        if task.runner is not None:
+            try:
+                ok, why = task.runner(rec, sock, config)
+            except Exception as exc:
+                ok, why = False, f"执行异常：{exc}"
+                log.exception("[%s] 自定义执行器抛异常", task.key)
+            results[task.key] = why
+            log.info("[%s] %s %s", task.key, "✅" if ok else "❌", why)
+            if ok:
+                st["done"][task.key] = task.max_per_day
+                _save_state(st)
+            continue
+
         ran = 0
         while st["done"].get(task.key, 0) < task.max_per_day:
             done = st["done"].get(task.key, 0)

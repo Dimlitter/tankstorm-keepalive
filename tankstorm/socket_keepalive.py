@@ -236,11 +236,41 @@ class _Beater:
         log.debug("任务执行中心跳 #%d", self.count)
 
 
-def run_daily_once(qq, config: dict) -> int:
-    """连一次游戏、跑一轮每日任务、断开退出。供 `main.py --daily` 测试用。
+def run_country_war_once(qq, config: dict, rounds: int) -> int:
+    """连一次游戏、自动打 N 次摩多军团、断开退出。
 
-    与 --keepalive 的区别：不常驻，任务跑完就走；但任务执行期间照样发心跳。
-    登录、建 RC4、实时解密这些前置步骤完全一致，所以测出来的行为可信。
+    和 run_daily_once 走同一套连接/登录/心跳流程，只是把跑的东西换成国战。
+    打几百次动辄十几分钟，心跳必须全程续着。
+    """
+    from . import country_war
+
+    def _work(rec, sock, spec, ctx):
+        beater = _Beater(sock, protocol.build_heartbeat(spec, ctx),
+                         float(config.get("保持活跃", {}).get("心跳间隔秒")
+                               or protocol.heartbeat_interval(spec)))
+        out = country_war.run(rec, sock, config, rounds=rounds, beat=beater)
+        log.info("―― 国战成果 ―― 扫荡 %d 次，攻击 %d 次，召唤 %d 次，战功 +%s",
+                 out["扫荡"], out["攻击"], out["召唤"], out["战功"])
+        log.info("   剩余行动力 %s，今日攻击次数 %s；结束原因：%s",
+                 out.get("剩余行动力"), out.get("今日攻击次数"),
+                 out["停止原因"])
+        log.info("   任务执行期间共发心跳 %d 次", beater.count)
+        notify.send(config, "坦克风暴：国战自动战斗完成",
+                    f"扫荡 {out['扫荡']} 次，攻击 {out['攻击']} 次，"
+                    f"战功 +{out['战功']}，"
+                    f"剩余行动力 {out.get('剩余行动力')}。<br>"
+                    f"结束原因：{out['停止原因']}")
+        return 0 if (out["扫荡"] + out["攻击"]) else 1
+
+    return _connect_and(qq, config, _work)
+
+
+def _connect_and(qq, config: dict, work) -> int:
+    """连一次游戏、登录、把活交给 work，然后断开退出。
+
+    `--daily` 和 `--country-war` 共用这一套：登录、建 RC4、实时解密、
+    等服务端把登录后的状态推完，一步都不能少 —— 闸门要靠那批推送判断次数。
+    work(rec, sock, spec, ctx) 返回进程退出码。
     """
     try:
         spec = protocol.load_spec()
@@ -276,7 +306,7 @@ def run_daily_once(qq, config: dict) -> int:
                 time.sleep(delay)
         log.info("已登录，uid=%s sid=%s", ctx.get("uid"), ctx.get("sid"))
 
-        # 先收一会儿，让服务器把登录后的状态推完 —— guard 要靠这些判断免费次数
+        # 先收一会儿，让服务器把登录后的状态推完 —— 闸门要靠这些判断免费次数
         sock.settimeout(1.0)
         deadline = time.time() + 6
         while time.time() < deadline:
@@ -285,17 +315,9 @@ def run_daily_once(qq, config: dict) -> int:
                     break
             except socket.timeout:
                 continue
-        log.info("登录态数据接收完毕，开始执行任务")
+        log.info("登录态数据接收完毕，开始执行")
 
-        beater = _Beater(sock, protocol.build_heartbeat(spec, ctx),
-                         float(config.get("保持活跃", {}).get("心跳间隔秒")
-                               or protocol.heartbeat_interval(spec)))
-        results, details = daily.run(rec, sock, config, beat=beater)
-        log.info("任务执行期间共发心跳 %d 次", beater.count)
-        _push_daily_summary(config, results, details)
-        failed = sum(1 for v in results.values()
-                     if "失败" in v or "拦截" in v)
-        return 1 if failed else 0
+        return work(rec, sock, spec, ctx)
     except OSError as exc:
         log.error("连接中断: %s", exc)
         return 1
@@ -305,6 +327,25 @@ def run_daily_once(qq, config: dict) -> int:
         except OSError:
             pass
         rec.close()
+
+
+def run_daily_once(qq, config: dict) -> int:
+    """连一次游戏、跑一轮每日任务、断开退出。供 `main.py --daily` 用。
+
+    与 --keepalive 的区别：不常驻，任务跑完就走；但任务执行期间照样发心跳。
+    """
+    def _work(rec, sock, spec, ctx):
+        beater = _Beater(sock, protocol.build_heartbeat(spec, ctx),
+                         float(config.get("保持活跃", {}).get("心跳间隔秒")
+                               or protocol.heartbeat_interval(spec)))
+        results, details = daily.run(rec, sock, config, beat=beater)
+        log.info("任务执行期间共发心跳 %d 次", beater.count)
+        _push_daily_summary(config, results, details)
+        failed = sum(1 for v in results.values()
+                     if "失败" in v or "拦截" in v)
+        return 1 if failed else 0
+
+    return _connect_and(qq, config, _work)
 
 
 def relogin_with_push(qq, config: dict) -> bool:
