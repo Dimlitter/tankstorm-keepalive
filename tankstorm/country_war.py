@@ -25,7 +25,7 @@ import time
 
 from . import daily as _daily
 from . import sender
-from .daily import _await_response, _nap, _read_path
+from .daily import _await_response, _beat, _nap, _read_path
 from .log import get_logger
 from .proto_encode import encode_message
 
@@ -87,8 +87,14 @@ def _wait(sock, rec, since, type_, timeout=6.0):
                            want=lambda d: d.get("type") == type_)
 
 
-def _target_id(rec):
+def _target_id(rec, since=0):
     """从 RseCountryUserLst 还原攻击目标的 atkUserID 和它的剩余士气。
+
+    since 是"只认这个消息序号之后到达的那份"。**不能省** —— rec.latest 里存的
+    可能是上一轮留下的旧列表。2026-08-29 实盘就栽在这里：召唤请求刚发出去，
+    读到的还是召唤前那份（支援兵只剩 100 士气、下一击就死），拿它去打，
+    服务端回 ret=21。这和"把前置的回包当成动作结果"是同一类错误，
+    只不过这次是把上一次的推送当成了这一次的。
 
     schema 把 user.field3.field6 标成了整数，实际是字符串。抓包实测：
         3472328296278011952 → little-endian 8 字节 → "00030000"
@@ -100,6 +106,8 @@ def _target_id(rec):
     """
     got = rec.latest.get(USER_LST) if rec else None
     if not got or not isinstance(got[1], dict):
+        return None, None
+    if got[0] <= since:          # 是旧的那份，当作没读到
         return None, None
     user = got[1].get("user")
     if isinstance(user, list):          # 城里有真人玩家时会是个列表
@@ -173,11 +181,14 @@ def daily_attack(rec, sock, config):
     want = int(conf.get("每日攻击次数", 10))
     out = run(rec, sock, config, rounds=want, attack_only=True)
     done = out["攻击"] + out["扫荡"]
-    why = (f"攻击 {done}/{want} 次；战功 +{out['战功']}；"
-           f"剩余行动力 {out.get('剩余行动力')}")
-    if out["停止原因"] and done < want:
+    ok = done >= want
+    # 汇总那边是按 v.startswith("成功") 判 ✅/❌ 的（socket_keepalive._push_daily_summary），
+    # 所以成功时开头必须是"成功"两个字，否则 10/10 打满了也会显示成失败。
+    why = (f"{'成功：' if ok else ''}攻击 {done}/{want} 次；"
+           f"战功 +{out['战功']}；剩余行动力 {out.get('剩余行动力')}")
+    if out["停止原因"] and not ok:
         why += f"；{out['停止原因']}"
-    return done >= want, why
+    return ok, why
 
 
 def run(rec, sock, config: dict, rounds: int = 0, beat=None,
@@ -201,19 +212,29 @@ def run(rec, sock, config: dict, rounds: int = 0, beat=None,
         out["停止原因"] = "次数为 0，什么都没做"
         return out
 
-    _daily._BEAT = beat          # 打几百次要很久，全程必须续心跳
+    # 打几百次要很久，全程必须续心跳。
+    # beat 为 None 时**不能动** _daily._BEAT —— 作为每日任务被调用时，
+    # daily.run() 已经装好了心跳器，这里再赋一次 None 就把它废了。
+    # 2026-08-29 实盘：国战跑了两分半，"共发心跳 0 次"，就是这么来的。
+    prev = _daily._BEAT
+    if beat is not None:
+        _daily._BEAT = beat
     try:
         return _loop(rec, sock, rounds, country, npc_country, npc_city,
                      cooldown, out, attack_only)
     finally:
-        _daily._BEAT = None
+        _daily._BEAT = prev
 
 
 def _loop(rec, sock, rounds, country, npc_country, npc_city, cooldown, out,
           attack_only=False):
     merit0 = None
-    last_sweep = 0.0
+    last_act = 0.0
     located = False
+    force_summon = False     # 上一击被拒时置位，下一轮强制换个新目标
+    fails = 0                # 连续被拒次数
+    target = None            # 当前攻击目标，跨轮保留
+    npc_morale = None        # 它剩多少士气
 
     for i in range(1, rounds + 1):
         power, city, atk_times, panel = _panel(sock, rec, country)
@@ -246,48 +267,87 @@ def _loop(rec, sock, rounds, country, npc_country, npc_city, cooldown, out,
             break
         has_npc = _read_path(cd, "cityData.field5")
 
-        target, npc_morale = _target_id(rec)
-        if (not has_npc) or target is None or not npc_morale:
+        # 服务端不是每次开面板都推 RseCountryUserLst，所以**目标要跨轮保留**：
+        # 只在真的没有目标、或上一击被拒时才重新召唤。
+        # 支援兵是功勋买来的消耗品，每轮召唤一次等于打 10 下烧 10 张，
+        # 而实际三张就够 —— 2026-08-29 实盘发现的浪费。
+        fresh, fresh_morale = _target_id(rec, since)
+        if fresh is not None:                 # 有新推送就更新缓存
+            target, npc_morale = fresh, fresh_morale
+        if (not has_npc) or target is None or not npc_morale or force_summon:
+            mark = rec.seq_mark() if rec else 0
             since = _send(sock, rec, 45, country=npc_country, city=npc_city)
             if not isinstance(_wait(sock, rec, since, 45), dict):
                 out["停止原因"] = "召唤支援兵没有回包，停手"
                 break
             out["召唤"] += 1
-            _nap(1.0)                   # 等服务端把 RseCountryUserLst 推过来
-            target, npc_morale = _target_id(rec)
+            # 等**召唤之后**才推来的那份列表，最多等 6 秒
+            target, npc_morale = None, None
+            deadline = time.time() + 6
+            while time.time() < deadline:
+                target, npc_morale = _target_id(rec, mark)
+                if target is not None:
+                    break
+                _beat()
+                try:
+                    sock.settimeout(0.5)
+                    sock.recv(8192)
+                except Exception:
+                    pass
             if target is None:
-                out["停止原因"] = "召唤后仍读不到攻击目标，停手"
+                out["停止原因"] = "召唤后 6 秒内没等到新的目标列表，停手"
                 break
+            force_summon = False
             log.info("[国战] 已召唤支援兵，目标 %s（士气 %s）", target, npc_morale)
 
         # 够 15 点就扫荡，不够就退而求其次用普通攻击。
         # attack_only 是每日任务模式：只要次数不要战功，扫荡太贵。
         if power >= COST_SWEEP and not attack_only:
-            wait = cooldown - (time.time() - last_sweep)
-            if wait > 0:
-                log.info("[国战] 扫荡冷却，等 %.0f 秒", wait)
-                _nap(wait)
             act, name, cost = 19, "扫荡", COST_SWEEP
         else:
             act, name, cost = 14, "攻击", COST_ATTACK
 
+        # 冷却对**扫荡和普通攻击是共用的**，不是扫荡专属。
+        # 2026-08-29 实盘发现：给扫荡等了 15 秒，一次都没被拒；而普通攻击没等，
+        # 成功一次之后隔 1~3 秒再发就固定 ret=21。原先只给扫荡加等待是错的。
+        wait = cooldown - (time.time() - last_act)
+        if wait > 0:
+            log.info("[国战] %s冷却，等 %.0f 秒", name, wait)
+            _nap(wait)
+
         since = _send(sock, rec, act, country=npc_country, city=npc_city,
                       atk=target)
-        if act == 19:
-            last_sweep = time.time()    # 冷却从**发出时刻**起算，玩家实测如此
+        last_act = time.time()          # 冷却从**发出时刻**起算，玩家实测如此
         r = _wait(sock, rec, since, act)
         if not isinstance(r, dict):
             out["停止原因"] = f"{name}没有回包，停手"
             break
         ret = r.get("ret")
         if ret not in (0, None):
-            out["停止原因"] = f"{name}被服务端拒绝 ret={ret}"
-            break
+            # 目标可能刚被打死（士气归零），换一个再试。给一次机会，
+            # 连着两次被拒就停 —— 不拿服务端的拒绝当探针反复撞。
+            fails += 1
+            if fails >= 2:
+                out["停止原因"] = f"{name}连续两次被服务端拒绝 ret={ret}，停手"
+                break
+            log.info("[国战] %s被拒 ret=%s，换个支援兵重试一次", name, ret)
+            force_summon = True
+            _nap(1.0)
+            continue
+        fails = 0
 
         out["扫荡" if act == 19 else "攻击"] += 1
         log.info("[国战] 第 %d/%d 轮：%s 成功，行动力 %d→约 %d，今日攻击次数 %s",
                  i, rounds, name, power, power - cost, atk_times)
         _nap(1.0)
+        # 打完服务端会推新的列表，顺手读一下这个目标还剩多少士气。
+        # 归零就清掉，下一轮自然会召唤新的 —— 比等着被 ret 拒绝再补召唤省一次请求。
+        t2, m2 = _target_id(rec, since)
+        if t2 is not None:
+            target, npc_morale = t2, m2
+        if npc_morale is not None and npc_morale <= 0:
+            log.info("[国战] 目标 %s 士气已归零，下一轮换新的", target)
+            target, npc_morale = None, None
 
     # 收尾再读一次面板，算出这轮总共挣了多少战功
     power, city, atk_times, panel = _panel(sock, rec, country)
