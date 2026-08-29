@@ -119,6 +119,39 @@ def _target_id(rec):
     return "1" + tail, morale
 
 
+def _find_npc_city(sock, rec, npc_country, configured, current_city):
+    """确定摩多驻地的城市 ID。返回 (城市ID, 说明)；找不到返回 (None, 原因)。
+
+    配置里填了就用配置的，只做一次校验。没填就从当前城市推一个候选：
+    抓包里玩家在曼彻斯特(3201)，相邻的摩多驻地是 32010，正好是 ×10。
+    这只有一个数据点，所以**只当候选、不当结论** —— 发一次 type:3 去试，
+    再看回包里 cityData.field2 是不是摩多的国家 ID，验过了才用。
+
+    试探是安全的：type:3 只是开面板，不花行动力，也不会改变任何状态。
+    """
+    cands = []
+    if configured:
+        cands.append(int(configured))
+    elif current_city:
+        cands.append(int(current_city) * 10)
+
+    for city in cands:
+        since = _send(sock, rec, 3, country=npc_country, city=city)
+        cd = _wait(sock, rec, since, 3)
+        if not isinstance(cd, dict):
+            continue
+        owner = _read_path(cd, "cityData.field2")
+        got = _read_path(cd, "cityData.field3")
+        if owner == npc_country and got == city:
+            return city, f"摩多驻地城市 {city}（已校验 owner={owner}）"
+    if configured:
+        return None, (f"配置里的摩多驻地城市ID={configured} 校验不通过，"
+                      f"可能站错位置或该城不属于国家 {npc_country}")
+    return None, ("没配摩多驻地城市ID，按当前城市推算的候选也没验过。"
+                  "请先在游戏里走到能打摩多军团的城市，再把国战面板那条 "
+                  "type:3 请求里的 cityID 填进 config 的「摩多驻地城市ID」")
+
+
 def _panel(sock, rec, country):
     """刷新自己国家的面板。返回 (行动力, 当前城市, 今日攻击次数, 原始响应)。"""
     since = _send(sock, rec, 2, country=country, check=True)
@@ -180,6 +213,7 @@ def _loop(rec, sock, rounds, country, npc_country, npc_city, cooldown, out,
           attack_only=False):
     merit0 = None
     last_sweep = 0.0
+    located = False
 
     for i in range(1, rounds + 1):
         power, city, atk_times, panel = _panel(sock, rec, country)
@@ -188,6 +222,16 @@ def _loop(rec, sock, rounds, country, npc_country, npc_city, cooldown, out,
             break
         if merit0 is None:
             merit0 = _read_path(panel, F_MERIT) or 0
+
+        # 第一轮先把摩多驻地的城市 ID 定下来（配置没填就按当前城市推算并校验）
+        if not located:
+            npc_city, why = _find_npc_city(sock, rec, npc_country,
+                                           npc_city, city)
+            if npc_city is None:
+                out["停止原因"] = why
+                break
+            log.info("[国战] %s；当前所在城市 %s", why, city)
+            located = True
 
         if power < COST_ATTACK:
             out["停止原因"] = (f"行动力只剩 {power}，"
