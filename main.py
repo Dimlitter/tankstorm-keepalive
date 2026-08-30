@@ -17,6 +17,7 @@
   python main.py --daily       跑一轮每日任务
   python main.py --list        列出每日任务及今日进度
   python main.py --reset       清空今日任务计数
+  python main.py --country-war 10   单独跑国战：自动打摩多军团 10 次
 """
 
 import argparse

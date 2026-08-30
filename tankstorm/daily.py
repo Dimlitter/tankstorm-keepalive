@@ -826,6 +826,21 @@ TASKS = [
        report=("nRankSelf", "nRankSelfLast", "nIntegralScore",
                "nCanFightTimes", "nJoinPlayers", "bScoreGiftGain")),
 
+    # 争霸战·挑战。形状不合流水线（每打一场都要重新取一次可挑战名单、
+    # 从里面挑目标，名次还会跟着变），所以走 runner。排在领奖之后：
+    # 先把上期的奖领了，再开打。
+    # 延迟导入：arena 反过来要用 daily 的 _await_response/_nap，
+    # 模块级 import 会成环。
+    _t("争霸战挑战", "争霸战·挑战 10 次", "0469", "RceArenaOpt",
+       {}, "实测",
+       "8/29 抓包实测三场：RceArenaInfo{type:1} 开面板读 nCanFightTimes → "
+       "RceArenaRankInfo{type:2,nIndex,nCountry} 取可挑战名单 → "
+       "RceArenaOpt{type:1,uidself,uidfight,indexself,indexfight,"
+       "countryidself} 挑战。优先打 NPC（短 uid），成败以面板变化为准",
+       runner=lambda rec, sock, config: __import__(
+           "tankstorm.arena", fromlist=["daily_challenge"]
+       ).daily_challenge(rec, sock, config)),
+
     # 国战：世界地图里攻击摩多军团。形状不合流水线（要先召唤支援兵、再从服务端
     # 推来的 RseCountryUserLst 里读出目标 ID 才能打），所以走 runner。
     # 延迟导入：country_war 反过来要用 daily 的 _await_response/_nap，

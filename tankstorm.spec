@@ -30,7 +30,9 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=datas,
-    hiddenimports=[],
+    # 这两个模块 daily.py 是用 __import__("tankstorm.xxx") 动态引的（避免和
+    # daily 成环），PyInstaller 静态分析看不见字符串里的模块名，必须显式列出。
+    hiddenimports=["tankstorm.arena", "tankstorm.country_war"],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

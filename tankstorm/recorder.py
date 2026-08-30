@@ -296,6 +296,9 @@ class Recorder:
         self._fh = None
         # 判断"广播消息是否与我有关"的标识：uid，以及可在配置里补充的游戏昵称
         self.identity = {str(x).strip() for x in conf.get("我的标识", []) if str(x).strip()}
+        # 自己的 uid，由 enable_crypto() 从 FlashVars 上下文里填。
+        # 有些请求（争霸战挑战的 uidself）要显式带自己的 uid，而服务端从不回显它。
+        self.uid = ""
 
         # 刚连上时服务器会一口气推几十条消息（登录爆发期），其中不少 opcode 只在
         # 登录时出现一次。这段时间只"学"不"报"，否则每次连接都被这批消息刷屏。
@@ -393,6 +396,10 @@ class Recorder:
         密钥对不对不能预先知道，所以先进 probing：拿前几条解出来的 body 试
         protobuf 校验，通不过就退回"只录不解"，原始流照样留着供离线解密。
         """
+        # 顺手把 uid 记下来。它是 FlashVars 里的，服务端的回包里一次都没出现过，
+        # 而争霸战挑战（RceArenaOpt.uidself）这类请求必须显式带上自己的 uid。
+        # 放在 live_decrypt 判断**之前**：实时解密关掉时 uid 照样是有效的。
+        self.uid = str((ctx or {}).get("uid") or "")
         if not self.live_decrypt:
             return False
         rc4, why = crypto.from_ctx(ctx or {})
