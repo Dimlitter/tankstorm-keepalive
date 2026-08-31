@@ -229,7 +229,7 @@ RESULT_IS_STATUS = {"RseArenaOpt", "RseWorldArenaOpt", "RseRegionArenaOpt",
                     "RseHeroArenaOpt"}
 
 
-def judge(rse_msg: str, data, ignore_left=False):
+def judge(rse_msg: str, data, ignore_left=False, success_flag=None):
     """判断一次任务的结果。返回 (是否成功, 说明, 是否应停止今日重试)。
 
     "没等到响应"和"服务器明确拒绝"必须区别对待
@@ -246,6 +246,18 @@ def judge(rse_msg: str, data, ignore_left=False):
         return False, "未收到响应（这一轮不算数，稍后再试）", False
     if not isinstance(data, dict):
         return True, str(data)[:80], False
+    # success_flag：动作回包里这个布尔字段翻成 true 才算真做成了。
+    # 给那些**没有 ret 也没有 result** 的消息用 —— judge() 找不到状态码就
+    # 直接判成功，那是踩坑记录第 15 条（"一个请求成功不等于这件事做成了"）。
+    # 锦鲤心愿的 RseDoubleElevenOfficer 就是这样：整条回包里没有任何状态码，
+    # 唯一能说明领到了的就是 ngetdailyawd 由 false 翻成 true。
+    if success_flag:
+        v = data.get(success_flag)
+        if v is True:
+            return True, f"成功：{success_flag}=True", False
+        if v is False:
+            return False, f"{success_flag} 仍为 False，没领到", True
+        return False, f"响应里没有 {success_flag}，认不出成败", False
     # 争霸战这一族（RseArenaOpt 等）没有 ret，用的是 **result，而且 1 才是成功**
     # ——语义和 ret 正好相反。不特判的话 judge() 找不到 ret 就直接判"成功"，
     # 又是一个假成功。2026-08-10 真客户端抓包实测：领取上期排名奖励回
@@ -608,7 +620,10 @@ class Task:
     def __init__(self, key, name, opcode, msg, fields, confidence,
                  note="", max_per_day=1, gate=None, cooldown_sec=0,
                  prelude=(), followup=None, tiers=None, cooldown_until=None,
-                 report=(), runner=None):
+                 report=(), runner=None, success_flag=None):
+        # success_flag：动作回包里哪个布尔字段为 true 才算成功。只给那些
+        # 既没有 ret 也没有 result 的消息用，别的一律走 judge() 的状态码。
+        self.success_flag = success_flag
         # runner：自定义执行器，签名 runner(rec, sock, config) -> (是否成功, 说明)。
         # 给那些"形状不合流水线"的任务用 —— 国战要先召唤支援兵、再从服务端推来的
         # 列表里读出目标 ID 才能攻击，不是一条静态字段表能表达的。
@@ -841,6 +856,35 @@ TASKS = [
            "tankstorm.arena", fromlist=["daily_challenge"]
        ).daily_challenge(rec, sock, config)),
 
+    # 锦鲤心愿宝箱（限时活动）。8/30 抓包实测：
+    #   {optype:0, activetype:1} 查询 → ngetdailyawd=false
+    #   {optype:2, activetype:1} 领取 → ngetdailyawd=true
+    # 消息名叫 RceDoubleElevenOfficer（双十一军官），游戏把同一个 opcode 复用给
+    # 各种限时活动，靠 activetype 区分；activetype=1 就是锦鲤心愿这一档。
+    # ⚠️ 回包里**既没有 ret 也没有 result**，judge() 找不到状态码会直接判成功。
+    # 所以用 success_flag 盯住 ngetdailyawd —— 它翻成 true 才是真领到了。
+    # 真客户端只发 optype(1) 和 activetype(4)，id(2)/recday(3) 一个都不发，照抄。
+    # 限时活动随时可能下线（七天乐就是这么没的），故默认关闭。
+    _t("锦鲤心愿", "限时活动·领锦鲤心愿宝箱", "04af", "RceDoubleElevenOfficer",
+       {1: ("int32", 2), 4: ("int32", 1)},
+       "实测", "8/30 抓包实测：optype:0 查询 → optype:2 领取，"
+               "ngetdailyawd 由 false 翻 true。不消耗任何资源",
+       prelude=[("04af", {1: ("int32", 0), 4: ("int32", 1)})],
+       gate=Gate("RseDoubleElevenOfficer", "ngetdailyawd", claimed_flag=True),
+       success_flag="ngetdailyawd",
+       report=("ngetdailyawd", "ncangetCnt")),
+
+    # 功勋商城补支援兵。形状不合流水线（要先读背包库存、算差额、还要在买完之后
+    # 核对勋章有没有被扣），所以走 runner。**默认关闭**，见 tankstorm/shop.py。
+    _t("补支援兵", "功勋商城·补摩多军团支援兵", "041f", "RcePurchase",
+       {}, "实测",
+       "8/30 抓包实测：RcePurchase{credit:100n, type:SHOP, shopID:1199, "
+       "credittype:2, buynum:n} → 背包 10118 增加 n 个、功勋减少 100n、"
+       "勋章分文未动。这是全项目唯一会主动花钱的请求，默认关闭",
+       runner=lambda rec, sock, config: __import__(
+           "tankstorm.shop", fromlist=["daily_restock"]
+       ).daily_restock(rec, sock, config)),
+
     # 国战：世界地图里攻击摩多军团。形状不合流水线（要先召唤支援兵、再从服务端
     # 推来的 RseCountryUserLst 里读出目标 ID 才能打），所以走 runner。
     # 延迟导入：country_war 反过来要用 daily 的 _await_response/_nap，
@@ -963,28 +1007,36 @@ TASKS = [
        followup=Followup("0463", _next_country_box, max_rounds=3,
                          desc="领取并开箱")),
 
+    # 参加公会战。2026-08-30 抓包定案：**type:70 就是"参加"**，判据是回包里的
+    # userGuild.field17.field1（上次参加时刻）被刷新到"刚刚"。
+    #
+    # 这一项欠了很久，之前两次都判错，原因值得记下来：type:70 的回包顶层只有
+    # type/ret/userGuild，看着就是"查看自己的公会"，于是被归进浏览类放过了。
+    # 真正的状态变化埋在两层嵌套加一个通用字段名里。8/30 抓包按 pcap 包时间还原：
+    #   type:73 发于 …602.4 → 回包 field17.field1 = 1787556135（六天前的旧值）
+    #   type:80 发于 …603.5 → 回包 还是 1787556135
+    #   type:70 发于 …607.7 → 回包 **1788068608**，同一秒
+    # 前后差 0.3 秒，而它前面两条读到的都还是旧值 —— 只可能是 type:70 写的。
+    # 公会战**一天一场**（用户确认），所以按自然日限流：今天参加过就不再发。
+    #
+    # 形状不合流水线（闸门要同时看 dayHasPK 和那个时间戳是不是今天），走 runner。
+    _t("公会战参加", "公会战·参加", "0479", "RceGuildOpt",
+       {}, "实测",
+       "8/30 抓包实测：type:73 读 dayHasPK 和上次参加时刻 → type:70 参加。"
+       "回包里 userGuild.field17.field1 被刷新成请求发出的同一秒。"
+       "公会战一天一场，故按自然日限流",
+       runner=lambda rec, sock, config: __import__(
+           "tankstorm.guild", fromlist=["daily_join"]
+       ).daily_join(rec, sock, config)),
+
     # 顺序按抓包来。抓包里每个 RceGuildOpt 都带着这一串 0，照抄。
-    #
-    # ⚠️ 这一项**没有在"参加"公会战**，只是打开战报面板。
-    # 8/10 真客户端一共发了 9 条 RceGuildOpt：type 73/80/81/78/70/0/2/14/16，
-    # 我们只用了 0、2、14、16。逐条看回包：
-    #   type:14 → userGuild + log（战斗记录），所以它是**看战报**，不是领奖也不是报名
-    #   type:73 → 带 **dayHasPK** + 一份公会列表
-    #   type:70/78/80/81 → 公会信息/排行，没有动作语义
-    #
-    # ⚠️ dayHasPK 是"今天有没有公会战活动"，**不是"我参加了没有"**（用户确认）。
-    # 别拿它当参战依据。真正表示战斗状态的字段（schema 里的 thew 体力、
-    # morale 士气、curSesionBtlOver、bRankGet 等）在**两份数据里一次都没出现过** ——
-    # 8/10 真客户端抓包和本项目实盘都没有。说明公会战的战斗面板在某个我们从没发过
-    # 的 type 后面，那 9 条里也没有它。也就是说**抓包里根本没有参战流程**。
-    # 按铁律不猜 type 值 —— 要补这一项，得请用户在游戏里真点一次"参加公会战"并抓包。
-    # 眼下先把 type:73 加进前置，至少能报出今天有没有公会战活动。
-    _t("公会战", "公会战·看战报（参加尚未实现）", "0479", "RceGuildOpt",
+    # 这一项只打开战报面板（type:14 回包是 userGuild + log），不参战、不领奖。
+    _t("公会战", "公会战·看战报", "0479", "RceGuildOpt",
        {2: ("int32", 14), 4: ("int32", 0), 13: ("int32", 0), 17: ("int32", 0),
         18: ("int32", 0), 22: ("int32", 0), 23: ("int32", 0)},
        "实测", "8/10 抓包：type:0 → type:2 → type:73 → type:14。"
                "type:73 的回包带 dayHasPK＝今天有没有公会战活动。"
-               "⚠️「参加公会战」尚未实现：抓包里没有参战流程，需重新抓一次",
+               "这一项只是看战报；「参加」是单独的『公会战参加』任务（type:70）",
        prelude=[("0479", {2: ("int32", 0), 4: ("int32", 0), 13: ("int32", 0),
                           17: ("int32", 0), 18: ("int32", 0),
                           22: ("int32", 0), 23: ("int32", 0)}),
@@ -1110,6 +1162,42 @@ def _read_path(data, path):
                 cur = [cur]
             return cur                     # 下一段负责从每个元素里挑
     return cur
+
+
+def read_my_country(rec):
+    """读"我是哪个国家"。返回 int；读不到返回 None。
+
+    国战和争霸战的请求都要带这个值（争霸战的名次还是**本国内部**排名），
+    以前写死在 config 里是 3 —— 那只是这个号是英国而已，换个号就错。
+
+    两个来源都由服务端在**登录时主动推来**，不用额外发请求：
+
+      · `RseFightSimpInfo.countryid` —— schema 解出了真名，首选
+      · `RseLoad.countryData.field5` —— 登录响应里的同一份 countryData，兜底
+
+    可信度的旁证：`RseLoad.countryData` 和国战面板 `RseCountryOpt.countryData`
+    是同一个结构，country_war 早就验过的 field6(当前城市 3201)、field13(行动力)、
+    field17(累计战功) 在这里全部对得上，field5 就在它们中间。
+    2026-08-29 和 08-30 两份抓包里两个来源都等于 3，与玩家所述"我是英国"一致。
+
+    读不到就返回 None，由调用方停手 —— 猜一个国家 ID 发出去，轻则请求无效，
+    重则打到别的国家头上。
+    """
+    def _pick(msg, path):
+        got = rec.latest.get(msg) if rec else None
+        if not got or not isinstance(got[1], dict):
+            return None
+        v = _read_path(got[1], path)
+        return v if isinstance(v, int) and not isinstance(v, bool) and v > 0 else None
+
+    named = _pick("RseFightSimpInfo", "countryid")
+    backup = _pick("RseLoad", "countryData.field5")
+    if named and backup and named != backup:
+        # 两个来源打架就以带名字的那个为准，但一定要吼出来 —— 说明其中一个
+        # 字段的含义理解错了，不该悄悄用下去。
+        log.warning("国家ID 两个来源不一致：RseFightSimpInfo.countryid=%s，"
+                    "RseLoad.countryData.field5=%s，取前者", named, backup)
+    return named or backup
 
 
 def _read_counts(data, path):
@@ -1487,7 +1575,8 @@ def _do_once(task, sock, rec, st, results, details, field_names,
         # 分档任务的"剩余次数"要看开面板响应的整个数组，不能信动作回包里那个
         # 标量 —— 它只说当前这一档没了（配件探索打完 10001 就报 leftFreeCnt=0，
         # 而 10002/10003 其实各还有一次）。换档交给闸门。
-        ok, why, stop = judge(rse, data, ignore_left=bool(task.tiers))
+        ok, why, stop = judge(rse, data, ignore_left=bool(task.tiers),
+                              success_flag=task.success_flag)
         # 动作回包里若也带着这些字段，用它 —— 那是**做完之后**的状态。
         # 否则会出现"✅ 成功（面板：bSignIn=False）"这种自相矛盾的话：
         # False 是签到**前**闸门读到的值，签完已经是 True 了。

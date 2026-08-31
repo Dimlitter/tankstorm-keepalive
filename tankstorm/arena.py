@@ -52,6 +52,7 @@ NPC 表来源
 
 import time
 
+from . import daily as _daily
 from . import sender
 from .daily import _await_response, _nap
 from .log import get_logger
@@ -174,11 +175,23 @@ def panel(sock, rec, timeout=6.0):
         relaxed=lambda d: d.get("nCanFightTimes") is not None)
 
 
+def _rank_of(v):
+    """把面板里的名次读成 int；**未上榜返回 None**。
+
+    赛季刚开时服务端把 nRankSelf 填成 -1，protobuf 按无符号读出来就是
+    18446744073709551615 这个天文数字。直接拿它当名次去要名单，服务端只会
+    回一个空壳（2026-08-31 实测，各种 nIndex 试了 11 个值全是空）。
+    """
+    if not isinstance(v, int) or isinstance(v, bool):
+        return None
+    return v if 0 <= v < 1_000_000 else None
+
+
 def _read_panel(data):
-    """从面板响应里取 (本国名次, 剩余挑战次数, 积分)。"""
+    """从面板响应里取 (本国名次, 剩余挑战次数, 积分)。名次未上榜时为 None。"""
     if not isinstance(data, dict):
         return None, None, None
-    return (data.get("nRankSelf"), data.get("nCanFightTimes"),
+    return (_rank_of(data.get("nRankSelf")), data.get("nCanFightTimes"),
             data.get("nIntegralScore"))
 
 
@@ -210,6 +223,15 @@ def rank_window(sock, rec, my_rank, country, timeout=6.0):
             if isinstance(e, dict) and isinstance(e.get("field1"), str):
                 names[e["field1"]] = e.get("field2")
 
+    return _parse_board(board, country), names
+
+
+def _parse_board(board, country):
+    """从榜单回包里抽出本国的 [(名次, uid), …]。
+
+    ⚠️ 只取 field3。同一条回包里的 field4 是**全国前十**，拿它当目标就等于
+    去打榜首。type:1（全服榜）是六个国家一段一段的，所以必须按国家挑对那段。
+    """
     blocks = board.get("field2") or []
     if isinstance(blocks, dict):
         blocks = [blocks]
@@ -217,8 +239,6 @@ def rank_window(sock, rec, my_rank, country, timeout=6.0):
     for b in blocks:
         if not isinstance(b, dict):
             continue
-        # 回包里带着这一段是哪个国家的榜，对不上就丢掉 —— 别把别国的名次
-        # 拿去当自己的挑战对象（type:1 的全服榜就是六个国家一段一段的）。
         if b.get("field1") not in (None, country):
             continue
         rows = b.get("field3") or []
@@ -227,7 +247,35 @@ def rank_window(sock, rec, my_rank, country, timeout=6.0):
                     and isinstance(e.get("field1"), int)
                     and not isinstance(e.get("field1"), bool)):
                 out.append((e["field1"], e["field2"]))
-    return out, names
+    return out
+
+
+def join_board(sock, rec, timeout=8.0):
+    """让服务端把自己排进本期榜单，返回拿到的名次；失败返回 None。
+
+    **赛季刚开时必须先做这一步。** 每周一上午十点开新一期，此前的名次清零，
+    服务端把 nRankSelf 填成 -1（未上榜）；这时 type:2 的"围绕我的名次取
+    十个人"无从算起，只会回一个空壳，硬从全服榜里挑目标发起挑战会被
+    `result:32` 拒掉（不消耗挑战次数）。2026-08-31 实测：
+
+        面板 nRankSelf=-1        type:2 名单 0 条
+        发 RceArenaOpt{type:5} → 回包 indexself=658
+        面板 nRankSelf=658       type:2 名单 10 条   ✅
+
+    ⚠️ **只发字段 1（type）**。同一条请求多带 uidself / countryidself 会被
+    `result:31` 拒掉 —— 实测过。真客户端每次打开争霸战都发这一条，
+    早先把它归成"只是取自己的排名、不要实现"，漏了"没名次时会给你安排一个"
+    这一半。
+    """
+    since = _send(sock, rec, OP_OPT, {1: ("int32", 5)})
+    r = _await_response(
+        sock, rec, RSE_OPT, since, timeout,
+        want=lambda d: (d.get("type") == 5 and d.get("result") == 1
+                        and _rank_of(d.get("indexself"))),
+        relaxed=lambda d: d.get("type") == 5)
+    if not isinstance(r, dict) or r.get("result") != 1:
+        return None
+    return _rank_of(r.get("indexself"))
 
 
 def pick_target(entries, my_rank, prefer="最弱优先", allow_player=True,
@@ -325,10 +373,12 @@ def run(rec, sock, config: dict, rounds: int = 0) -> dict:
     等回包时的心跳由 `daily._await_response` / `_nap` 负责续。
     """
     conf = (config.get("争霸战", {}) or {})
-    # 自己的国家 ID：面板回包里没有这个字段，而请求必须带。国战那边早就需要
-    # 同一个值、且已实盘验证过，所以默认复用它，另留一个覆盖位。
-    country = int(conf.get("自己国家ID")
-                  or (config.get("国战", {}) or {}).get("自己国家ID", 3))
+    # 自己的国家 ID：争霸战的名次是**本国内部**排名，这个值错了整张名单都不对，
+    # 而面板回包里偏偏没有它。改成从服务端读（登录时就推来了），
+    # config 里填了非 0 才覆盖 —— 以前写死 3，那只是这个号是英国。
+    country = (int(conf.get("自己国家ID") or 0)
+               or int((config.get("国战", {}) or {}).get("自己国家ID") or 0)
+               or _daily.read_my_country(rec))
     gap = float(conf.get("挑战间隔秒", 5))
     prefer = str(conf.get("选目标", "最弱优先"))
     allow_player = bool(conf.get("没有NPC时打真人", True))
@@ -336,6 +386,11 @@ def run(rec, sock, config: dict, rounds: int = 0) -> dict:
            "剩余次数": None, "停止原因": ""}
     if rounds <= 0:
         out["停止原因"] = "次数为 0，什么都没做"
+        return out
+    if not country:
+        out["停止原因"] = ("读不到自己的国家ID（RseFightSimpInfo.countryid 和 "
+                        "RseLoad.countryData.field5 都没有），停手；"
+                        "可在 config 的「争霸战.自己国家ID」里手填")
         return out
     return _loop(rec, sock, rounds, country, gap, prefer, allow_player, out)
 
@@ -346,10 +401,28 @@ def _loop(rec, sock, rounds, country, gap, prefer, allow_player, out):
         out["停止原因"] = ("拿不到自己的 uid（rec.uid 为空），"
                         "构造不出 RceArenaOpt.uidself，一枪不发")
         return out
-    my_rank, left, score = _read_panel(panel(sock, rec))
-    if my_rank is None or left is None:
-        out["停止原因"] = "读不到争霸战面板（名次/剩余次数未知），停手"
+    p0 = panel(sock, rec)
+    my_rank, left, score = _read_panel(p0)
+    if left is None:
+        out["停止原因"] = "读不到争霸战面板（剩余次数未知），停手"
         return out
+
+    # 赛季刚开（每周一上午十点）时自己还没上榜，服务端给的名次是 -1，
+    # 这时 type:2 取不到名单。先让它把我们排进去。
+    if my_rank is None:
+        log.info("[争霸战] 本期还没上榜（新赛季），先发 type:5 登记")
+        my_rank = join_board(sock, rec)
+        if my_rank is None:
+            out["停止原因"] = "未上榜，且 RceArenaOpt{type:5} 没能排进榜单，停手"
+            return out
+        log.info("[争霸战] 已登记，本期名次 %s", my_rank)
+        _nap(0.6)
+        p0 = panel(sock, rec) or p0
+        r2, l2, s2 = _read_panel(p0)
+        my_rank = r2 if r2 is not None else my_rank
+        left = l2 if l2 is not None else left
+        score = s2 if s2 is not None else score
+
     out["起始名次"] = out["名次"] = my_rank
     out["剩余次数"] = left
     score0 = score or 0
@@ -359,7 +432,13 @@ def _loop(rec, sock, rounds, country, gap, prefer, allow_player, out):
     fails = 0
     last_act = 0.0
     lost_to = set()          # 打输过的 (名次, uid)，下一轮别再挑同一个
-    for i in range(1, rounds + 1):
+    # ⚠️ 按**实际打成的场数**循环，不是按轮数 —— 一次"没生效"的试探
+    # （比如新赛季在试 indexself）不该吃掉一个名额，否则就打不满十场了。
+    # attempts 只是防死循环的兜底。
+    attempts, max_attempts = 0, rounds * 3 + 10
+    while out["挑战"] < rounds and attempts < max_attempts:
+        attempts += 1
+        i = out["挑战"] + 1
         # 铁律：先查询、没次数就不做。nCanFightTimes 是服务端给的唯一依据，
         # 读不到或已归零就收手 —— 面板里另有 nBuyFightTimes，说明次数用完
         # 之后是可以花钱买的，绝不能撞上去试。
@@ -372,6 +451,13 @@ def _loop(rec, sock, rounds, country, gap, prefer, allow_player, out):
             out["停止原因"] = "取不到可挑战名单，停手"
             break
         target = pick_target(entries, my_rank, prefer, allow_player, lost_to)
+        if target is None and lost_to:
+            # 打输过的都排除完了，说明这一圈名单已经被打了个遍。
+            # **目标是把十次挑战用满**（输赢无所谓，每日任务只认次数），
+            # 所以这里不能收手 —— 清掉排除名单，从头再挑一个。
+            log.info("[争霸战] 名单里的人都打过一轮了，清空排除名单接着打")
+            lost_to.clear()
+            target = pick_target(entries, my_rank, prefer, allow_player)
         if target is None:
             out["停止原因"] = ("名单里没有 NPC，且配置不允许打真人"
                              if not allow_player else "名单里挑不出可打的目标")
@@ -397,12 +483,17 @@ def _loop(rec, sock, rounds, country, gap, prefer, allow_player, out):
             out["停止原因"] = "打完读不到面板，停手"
             break
         if new_left >= left:
+            # 注意：**打输了也会扣次数**，所以次数没少只可能是这一击压根没生效
+            # （被拒、或者面板还没刷新），不是"输了"。输赢在下面按名次判。
+            # 目标是把十次用满，所以给足重试，连着三次没生效才认定是真出问题。
             fails += 1
-            log.info("[争霸战] 第 %d 轮打 %s 没消耗次数（result=%s，仍剩 %s 次）",
-                     i, who(uid, names), r.get("result"), new_left)
-            if fails >= 2:
-                out["停止原因"] = "连续两次挑战没有生效，停手"
+            log.info("[争霸战] 第 %d 轮打 %s 没消耗次数（result=%s，仍剩 %s 次），"
+                     "重试（连续 %d 次）", i, who(uid, names), r.get("result"),
+                     new_left, fails)
+            if fails >= 3:
+                out["停止原因"] = "连续三次挑战没有生效，停手"
                 break
+            lost_to.add(target)      # 换个目标再试，别对着同一个撞
             left = new_left
             if new_rank is not None:
                 my_rank = new_rank
@@ -414,8 +505,9 @@ def _loop(rec, sock, rounds, country, gap, prefer, allow_player, out):
         if won:
             out["胜"] += 1
         else:
-            # 输了名次不动，下一轮的名单会一模一样。不记下来的话就会
-            # 对着同一个对手一直撞，把十次机会全喂给他。
+            # 输了照样算一次挑战（次数已经扣了），每日任务只认次数，不认输赢。
+            # 但名次不动、下一轮名单一模一样，所以把这个对手记下来换一个打，
+            # 免得十次机会全喂给同一个人。名单打完一圈会自动清空重来。
             lost_to.add(target)
         log.info("[争霸战] 第 %d/%d 轮：打 %s（名次 %s）%s，"
                  "自己名次 %s→%s，剩余 %s 次",

@@ -242,12 +242,17 @@ def run_country_war_once(qq, config: dict, rounds: int) -> int:
     和 run_daily_once 走同一套连接/登录/心跳流程，只是把跑的东西换成国战。
     打几百次动辄十几分钟，心跳必须全程续着。
     """
-    from . import country_war
+    from . import country_war, shop
 
     def _work(rec, sock, spec, ctx):
         beater = _Beater(sock, protocol.build_heartbeat(spec, ctx),
                          float(config.get("保持活跃", {}).get("心跳间隔秒")
                                or protocol.heartbeat_interval(spec)))
+        # 支援兵是国战的消耗品，开打之前先按配置补货（默认关闭，开了才买）。
+        # 放在这里而不是打完之后：库存不够的话这一轮就打不动了。
+        if (config.get("功勋商城", {}) or {}).get("自动补支援兵"):
+            ok, why = shop.daily_restock(rec, sock, config)
+            log.info("[国战] 开打前补支援兵：%s %s", "✅" if ok else "❌", why)
         out = country_war.run(rec, sock, config, rounds=rounds, beat=beater)
         log.info("―― 国战成果 ―― 扫荡 %d 次，攻击 %d 次，召唤 %d 次，战功 +%s",
                  out["扫荡"], out["攻击"], out["召唤"], out["战功"])

@@ -250,7 +250,10 @@ def run(rec, sock, config: dict, rounds: int = 0, beat=None,
     抓包之前，宁可读不到就停，也不猜着发移动指令白烧行动力。
     """
     conf = (config.get("国战", {}) or {})
-    country = int(conf.get("自己国家ID", 3))
+    # 自己是哪个国家：优先从服务端读（登录时就推来了），配置里填了非 0 才覆盖。
+    # 以前写死 3，那只是这个号是英国，换个号就错 —— 而且争霸战的名次是本国
+    # 内部排名，这个值错了整张名单都不对。
+    country = int(conf.get("自己国家ID") or 0) or _daily.read_my_country(rec)
     npc_country = int(conf.get("摩多国家ID", 21))
     npc_city = int(conf.get("摩多驻地城市ID", 32010))
     cooldown = float(conf.get("扫荡间隔秒", 15))
@@ -263,6 +266,14 @@ def run(rec, sock, config: dict, rounds: int = 0, beat=None,
     if rounds <= 0:
         out["停止原因"] = "次数为 0，什么都没做"
         return out
+    if not country:
+        # 读不到就停手。猜一个国家 ID 发出去，轻则请求无效，重则打错国家。
+        out["停止原因"] = ("读不到自己的国家ID（RseFightSimpInfo.countryid 和 "
+                        "RseLoad.countryData.field5 都没有），停手；"
+                        "可在 config 的「国战.自己国家ID」里手填")
+        return out
+    log.info("[国战] 自己国家ID=%s（%s）", country,
+             "配置指定" if conf.get("自己国家ID") else "从服务端读到")
 
     # 打几百次要很久，全程必须续心跳。
     # beat 为 None 时**不能动** _daily._BEAT —— 作为每日任务被调用时，
