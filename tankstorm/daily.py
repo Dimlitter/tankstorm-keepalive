@@ -154,9 +154,14 @@ REWARD_HINT = ("ret", "freeVisitCnt", "leftFreeCnt", "getTimes", "leftTime",
 # 是同一个 opcode、都发 OptType:1，**只靠 ActiveType 区分**（0=将领 1=参谋）。
 # 2026-08-13 03:13:06 两条回包同一秒到达，不认 ActiveType 就会互相串。
 # subType/sceneID/nExlType 同理，是特工派遣/配件探索/军备的档位选择字段。
-DISCRIMINATORS = ("type", "noptType", "OptType", "optType", "nType",
-                  "ntype", "nOptType", "ActiveType", "subType", "sceneID",
-                  "nExlType")
+# ⚠️ 这是按**字段名逐条登记**的白名单，不做模糊匹配 —— 和 SAFE_FIELDS 一样，
+# 宁可漏也不整体放宽。代价是新消息容易漏登记：`optype` 就是这么漏的，
+# 它和已在表里的 `optType` 差一个字母（opt+Type vs op+type），小写化也对不上，
+# 结果锦鲤心愿造不出判据被拒发（2026-09-01 实盘）。
+# 漏登记的症状很好认：日志里报"认不出动作回包"，且会把当时的字段名列出来。
+DISCRIMINATORS = ("type", "noptType", "OptType", "optType", "optype", "nType",
+                  "ntype", "nOptType", "ActiveType", "activetype", "subType",
+                  "sceneID", "nExlType")
 
 
 def _field_names(schema, op):
@@ -1547,8 +1552,11 @@ def _do_once(task, sock, rec, st, results, details, field_names,
         # 只会把前置的 ret=0 当成"成功"。2026-08-13 实盘就是这么假成功的。
         if any(pop == task.opcode for pop, _ in task.prelude) \
                 and _echo_want(fields, field_names) is None:
-            results[task.key] = ("认不出动作回包（前置与动作同 opcode 且拿不到"
-                                 "区分字段名），这一轮不做")
+            seen = "、".join(f"{n}={field_names.get(n, '?')}"
+                            for n in sorted(fields)) or "（一个字段都没解出来）"
+            results[task.key] = (f"认不出动作回包（前置与动作同 opcode，而请求里的"
+                                 f"字段 {seen} 没有一个在 DISCRIMINATORS 里），"
+                                 f"这一轮不做")
             log.error("[%s] %s", task.key, results[task.key])
             return False
 
