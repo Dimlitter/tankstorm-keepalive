@@ -1,3 +1,10 @@
+# tankstorm-keepalive  Copyright (C) 2026 Dimlitter
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# 本程序是自由软件：你可以依据自由软件基金会发布的 GNU Affero 通用公共许可证
+# （第 3 版，或你选择的任何更新版本）之条款，再分发和/或修改它。
+# 本程序希望能有用，但不提供任何担保；甚至不含适销性或特定用途适用性的默示担保。
+# 详见随附的 LICENSE 文件，或 <https://www.gnu.org/licenses/>。
 """配置驱动的任务执行引擎：按 endpoints.json 里的请求模板逐个回放。
 
 模板里可用的变量（写成 {openid} 这种形式，仅替换已知变量名，URL 里出现的

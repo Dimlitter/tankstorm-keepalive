@@ -1,3 +1,10 @@
+# tankstorm-keepalive  Copyright (C) 2026 Dimlitter
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# 本程序是自由软件：你可以依据自由软件基金会发布的 GNU Affero 通用公共许可证
+# （第 3 版，或你选择的任何更新版本）之条款，再分发和/或修改它。
+# 本程序希望能有用，但不提供任何担保；甚至不含适销性或特定用途适用性的默示担保。
+# 详见随附的 LICENSE 文件，或 <https://www.gnu.org/licenses/>。
 """功勋商城 —— 目前只做一件事：把国战用的摩多军团支援兵补到目标库存。
 
 ⚠️ **这是全项目唯一会主动花钱的模块。** 别的任务一律把危险字段钉死为 0，

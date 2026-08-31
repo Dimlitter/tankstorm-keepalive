@@ -4,7 +4,7 @@
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white">
-  <img alt="License" src="https://img.shields.io/badge/License-MIT-22C55E?style=flat-square">
+  <img alt="License" src="https://img.shields.io/badge/License-AGPL--3.0-22C55E?style=flat-square">
   <img alt="Protocol" src="https://img.shields.io/badge/opcode-563-8B5CF6?style=flat-square">
   <img alt="Messages" src="https://img.shields.io/badge/消息-873-06B6D4?style=flat-square">
   <img alt="Crypto" src="https://img.shields.io/badge/RC4-已破解-F59E0B?style=flat-square">
@@ -55,6 +55,7 @@ python main.py --country-war 10  # 国战：打魔多军团 10 次，退出
 - [命令一览](#命令一览)
 - [排错](#排错)
 - [开发](#开发)
+- [授权](#授权)
 
 ---
 
@@ -802,3 +803,27 @@ cp out/schema.json tankstorm/ && cp out/redwar.proto out/opcodes.json docs/
 - [docs/protocol-reverse-engineering.md](docs/protocol-reverse-engineering.md) —— TCP 二进制协议逆向入门与踩坑
 - [docs/redwar.proto](docs/redwar.proto) —— 从 SWF 还原的完整协议定义
 - [docs/opcodes.json](docs/opcodes.json) —— opcode ↔ 消息名对照
+
+---
+
+## 授权
+
+本项目自 v1.1.0 起采用 **[GNU AGPL-3.0](LICENSE)**（v1.0.0 及更早的版本按当时的
+MIT 协议发布，不受影响）。
+
+用大白话说：
+
+| 你可以 | 条件 |
+|---|---|
+| 自己用、改、随便折腾 | 无 |
+| 分发（含改过的版本、打包的可执行文件）| 一并给出**完整源码**，且同样用 AGPL-3.0 |
+| **拿它提供网络服务**（代跑、托管、做成网站）| 必须让使用该服务的人能拿到你改过的**源码** |
+| 商业使用 | 允许 —— 但上面两条照样成立，跑不掉 |
+
+第三条是 AGPL 相对 GPL 多出来的那一条（许可证第 13 节）。选它就是因为对这类
+工具来说，"闭源拿去开代跑服务"是最现实的商业化路径，而普通 GPL 恰恰管不住 ——
+只要不对外分发二进制，GPL 不要求公开任何东西。
+
+> 顺带一提：**AGPL 并不禁止商用**，任何开源许可证都不禁止。它要求的是
+> "你要拿去做生意可以，但改动得开源"。如果你需要的是一份不开源的授权，
+> 联系仓库作者另谈。
