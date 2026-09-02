@@ -1,3 +1,10 @@
+# tankstorm-keepalive  Copyright (C) 2026 Dimlitter
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# 本程序是自由软件：你可以依据自由软件基金会发布的 GNU Affero 通用公共许可证
+# （第 3 版，或你选择的任何更新版本）之条款，再分发和/或修改它。
+# 本程序希望能有用，但不提供任何担保；甚至不含适销性或特定用途适用性的默示担保。
+# 详见随附的 LICENSE 文件，或 <https://www.gnu.org/licenses/>。
 """坦克风暴（QQ空间 appid 100616028）—— 命令行入口。
 
 这个脚本干**两件互相独立**的事，别把它们混在一起：
@@ -17,6 +24,7 @@
   python main.py --daily       跑一轮每日任务
   python main.py --list        列出每日任务及今日进度
   python main.py --reset       清空今日任务计数
+  python main.py --country-war 10   单独跑国战：自动打摩多军团 10 次
 """
 
 import argparse
@@ -76,7 +84,10 @@ def load_config() -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="坦克风暴：保活守护 + 每日任务（两件独立的事）")
+        description="坦克风暴：保活守护 + 每日任务 + 国战（三件独立的事）",
+        epilog="本程序是自由软件，依 GNU AGPL-3.0 或更新版本授权，不提供任何担保。"
+               "源码：https://github.com/Dimlitter/tankstorm-keepalive",
+        formatter_class=argparse.RawDescriptionHelpFormatter)
     g1 = parser.add_argument_group("登录")
     g1.add_argument("--login", action="store_true", help="强制重新扫码登录")
     g1.add_argument("--check", action="store_true", help="验证登录态并打印上下文")
@@ -94,6 +105,11 @@ def main() -> int:
     g3.add_argument("--list", action="store_true", help="列出每日任务及今日进度")
     g3.add_argument("--reset", action="store_true", help="清空今日任务计数")
 
+    g5 = parser.add_argument_group("国战")
+    g5.add_argument("--country-war", type=int, metavar="次数", default=0,
+                    help="自动扫荡摩多军团 N 次（行动力够就扫荡，不够改普通攻击，"
+                         "低于 5 点停手）")
+
     g4 = parser.add_argument_group("其它")
     g4.add_argument("--task", help="（旧的 HTTP 接口任务，见 endpoints.json）")
     g4.add_argument("--real", action="store_true",
@@ -103,7 +119,8 @@ def main() -> int:
     # 什么都不给就打印用法。以前默认会去跑 endpoints.json 里那套早已废弃的
     # HTTP 任务，全部失败还把退出码带成 1，看着像登录坏了。
     if not any((args.login, args.check, args.keepalive, args.daily,
-                args.list, args.reset, args.task, args.import_device)):
+                args.list, args.reset, args.task, args.import_device,
+                args.country_war)):
         parser.print_help()
         return 0
 
@@ -177,6 +194,11 @@ def main() -> int:
     # 保活：常驻。--keepalive --daily 时才顺带跑一轮任务
     if args.keepalive:
         return socket_keepalive.run(qq, config, with_daily=args.daily)
+
+    # 国战自动战斗：连一次、打 N 次、退出
+    if args.country_war:
+        return socket_keepalive.run_country_war_once(qq, config,
+                                                     args.country_war)
 
     # 每日任务：连一次、跑一轮、退出
     if args.daily:

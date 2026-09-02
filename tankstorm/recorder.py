@@ -1,3 +1,10 @@
+# tankstorm-keepalive  Copyright (C) 2026 Dimlitter
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# 本程序是自由软件：你可以依据自由软件基金会发布的 GNU Affero 通用公共许可证
+# （第 3 版，或你选择的任何更新版本）之条款，再分发和/或修改它。
+# 本程序希望能有用，但不提供任何担保；甚至不含适销性或特定用途适用性的默示担保。
+# 详见随附的 LICENSE 文件，或 <https://www.gnu.org/licenses/>。
 """服务器消息录制 + 异常事件实时告警 + 加密载荷取证。
 
 用途：像"超级强攻令"这种事件很随机（对方用令后你要在 5 分钟内输验证码，否则基地被强攻），
@@ -83,7 +90,13 @@ LEARNED_FILE = "known-opcodes.json"
 # 的 uid 和昵称；0268 是国家事件通告，实测两者同时出现。
 EVENT_SIGNATURES = {
     "027c": "RseSuperStormOpt —— 超级强攻通知（字段含 atkUid/atkName/deftUid/deftName）",
-    "0268": "RseCountryOpt —— 国家事件通告（实测与超级强攻同时到达）",
+    # 0268 (RseCountryOpt) 曾经也在这里，理由是 2026-08-02 抓到超级强攻时它和
+    # 027c 一起出现。2026-08-29 做国战功能时发现那是**巧合**：0268 是国战的通用
+    # 回包，开面板、召唤、扫荡、攻击全走它，正常打国战时每秒都在刷。
+    # 留着它有两个害处，后一个更严重：
+    #   · --keepalive 模式下 on_alert 接着 PushPlus，打一轮国战就是一轮轰炸
+    #   · 真的超级强攻告警会被淹没在噪声里 —— 而那正是本项目最要紧的功能
+    # 超级强攻有 027c 这个专属信号，字段里直接带攻防双方，不需要 0268 来佐证。
 }
 
 # 高频/大体积消息：只计数不存 body，避免日志爆炸（0283 是玩家列表，单条可达数 KB）
@@ -290,6 +303,9 @@ class Recorder:
         self._fh = None
         # 判断"广播消息是否与我有关"的标识：uid，以及可在配置里补充的游戏昵称
         self.identity = {str(x).strip() for x in conf.get("我的标识", []) if str(x).strip()}
+        # 自己的 uid，由 enable_crypto() 从 FlashVars 上下文里填。
+        # 有些请求（争霸战挑战的 uidself）要显式带自己的 uid，而服务端从不回显它。
+        self.uid = ""
 
         # 刚连上时服务器会一口气推几十条消息（登录爆发期），其中不少 opcode 只在
         # 登录时出现一次。这段时间只"学"不"报"，否则每次连接都被这批消息刷屏。
@@ -387,6 +403,10 @@ class Recorder:
         密钥对不对不能预先知道，所以先进 probing：拿前几条解出来的 body 试
         protobuf 校验，通不过就退回"只录不解"，原始流照样留着供离线解密。
         """
+        # 顺手把 uid 记下来。它是 FlashVars 里的，服务端的回包里一次都没出现过，
+        # 而争霸战挑战（RceArenaOpt.uidself）这类请求必须显式带上自己的 uid。
+        # 放在 live_decrypt 判断**之前**：实时解密关掉时 uid 照样是有效的。
+        self.uid = str((ctx or {}).get("uid") or "")
         if not self.live_decrypt:
             return False
         rc4, why = crypto.from_ctx(ctx or {})

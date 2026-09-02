@@ -18,6 +18,8 @@ import os
 datas = [
     # schema.json 必须放回 tankstorm/ 子目录，schema.py 就是按包内相对路径找它的
     ("tankstorm/schema.json", "tankstorm"),
+    # AGPL 要求分发二进制时随附许可证全文，不带就是违反自己的许可证
+    ("LICENSE", "."),
     # 出厂默认配置，首次运行复制到程序目录
     ("config.json", "."),
     ("endpoints.json", "."),
@@ -30,7 +32,10 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=datas,
-    hiddenimports=[],
+    # 这几个模块 daily.py 是用 __import__("tankstorm.xxx") 动态引的（避免和
+    # daily 成环），PyInstaller 静态分析看不见字符串里的模块名，必须显式列出。
+    hiddenimports=["tankstorm.arena", "tankstorm.country_war",
+                   "tankstorm.guild", "tankstorm.shop"],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
