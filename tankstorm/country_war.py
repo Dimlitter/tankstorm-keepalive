@@ -30,11 +30,8 @@
 
 import time
 
-from . import daily as _daily
-from . import sender
-from .daily import _await_response, _beat, _nap, _read_path
+from . import account, wire
 from .log import get_logger
-from .proto_encode import encode_message
 
 log = get_logger()
 
@@ -55,30 +52,7 @@ F_MERIT = "countryData.field17"     # 累计战功
 
 
 BAG_USE_OPCODE = "0440"       # RceBagItemUse
-BAG_LST = "RseBagItemLst"
 CARD_ITEM_ID = 40004          # 国战恢复卡，抓包实测：用掉后行动力与士气全满
-
-
-def _find_bag_item(rec, item_id):
-    """在背包里找某件物品，返回 (槽位ID, 数量)；没有返回 (None, 0)。
-
-    抓包实测背包条目形如
-        {"field1": 1035, "field2": 40004, "field3": 1696834514, "field4": 63}
-    field1 是**槽位 ID**（正是 RceBagItemUse 请求里的 id），field2 是物品 ID，
-    field4 是数量。槽位 ID 跟着这一格走，不能写死。
-    """
-    got = rec.latest.get(BAG_LST) if rec else None
-    if not got or not isinstance(got[1], dict):
-        return None, 0
-    items = (got[1].get("bagItem") or {})
-    if isinstance(items, dict):
-        items = items.get("field1") or items.get("field2") or []
-    if not isinstance(items, list):
-        return None, 0
-    for e in items:
-        if isinstance(e, dict) and e.get("field2") == item_id:
-            return e.get("field1"), int(e.get("field4") or 0)
-    return None, 0
 
 
 def _use_recovery_card(sock, rec, item_id):
@@ -89,17 +63,16 @@ def _use_recovery_card(sock, rec, item_id):
     道具、不花勋章，而且必须在 config 里显式打开开关才会走到。
     仍然守着铁律：先从背包读到数量 > 0 才发，读不到就不发。
     """
-    slot, count = _find_bag_item(rec, item_id)
+    slot, count = account.bag_item(rec, item_id)
     if slot is None:
         return False, f"背包里没读到物品 {item_id}（读不到就不用）"
     if count <= 0:
         return False, f"国战恢复卡已用完（背包剩 {count} 张）"
     # 字段照抓包逐个对齐：真客户端**不发 selectID(1)**，只发 3/4/5/7。
     # proto2 里"写了 0"和"没写"是两回事，多发一个 selectID=0 就不是同一个包了。
-    body = encode_message({3: ("int32", 1), 4: ("int32", slot),
-                           5: ("int32", item_id), 7: ("int32", 0)},
-                          omit_zero=False)
-    sender.send_frame(sock, BAG_USE_OPCODE, body, rec.rc4_c2s)
+    wire.send(sock, rec, BAG_USE_OPCODE,
+              {3: ("int32", 1), 4: ("int32", slot),
+               5: ("int32", item_id), 7: ("int32", 0)})
     return True, f"已用掉 1 张国战恢复卡（用前背包有 {count} 张）"
 
 
@@ -127,10 +100,7 @@ def _fields(type_, country=0, city=0, atk=None, check=False):
 
 def _send(sock, rec, type_, **kw):
     """发一条 RceCountryOpt，返回发送前的消息序号（用来挑本次的回包）。"""
-    before = rec.seq_mark() if rec else 0
-    body = encode_message(_fields(type_, **kw), omit_zero=False)
-    sender.send_frame(sock, OPCODE, body, rec.rc4_c2s)
-    return before
+    return wire.send(sock, rec, OPCODE, _fields(type_, **kw))
 
 
 def _wait(sock, rec, since, type_, timeout=6.0):
@@ -139,8 +109,8 @@ def _wait(sock, rec, since, type_, timeout=6.0):
     前置和动作是同一个 opcode、回包也同名，不核对 type 就会把上一步的回包
     当成这一步的结果 —— 这个坑项目里已经栽过两次。
     """
-    return _await_response(sock, rec, RSE, since, timeout,
-                           want=lambda d: d.get("type") == type_)
+    return wire.await_response(sock, rec, RSE, since, timeout,
+                               want=lambda d: d.get("type") == type_)
 
 
 def _target_id(rec, since=0):
@@ -172,7 +142,7 @@ def _target_id(rec, since=0):
         return None, None
     morale = user.get("field7")
     raw = (user.get("field3") or {}).get("field6")
-    if not isinstance(raw, int) or isinstance(raw, bool):
+    if not wire.is_int(raw):
         return None, morale
     try:
         tail = raw.to_bytes(8, "little").decode("latin-1")
@@ -204,8 +174,8 @@ def _find_npc_city(sock, rec, npc_country, configured, current_city):
         cd = _wait(sock, rec, since, 3)
         if not isinstance(cd, dict):
             continue
-        owner = _read_path(cd, "cityData.field2")
-        got = _read_path(cd, "cityData.field3")
+        owner = wire.read_path(cd, "cityData.field2")
+        got = wire.read_path(cd, "cityData.field3")
         if owner == npc_country and got == city:
             return city, f"摩多驻地城市 {city}（已校验 owner={owner}）"
     if configured:
@@ -222,7 +192,7 @@ def _panel(sock, rec, country):
     data = _wait(sock, rec, since, 2)
     if not isinstance(data, dict):
         return None, None, None, None
-    return (_read_path(data, F_POWER), _read_path(data, F_CITY),
+    return (wire.read_path(data, F_POWER), wire.read_path(data, F_CITY),
             data.get("dayatktimes"), data)
 
 
@@ -238,7 +208,7 @@ def daily_attack(rec, sock, config):
     out = run(rec, sock, config, rounds=want, attack_only=True)
     done = out["攻击"] + out["扫荡"]
     ok = done >= want
-    # 汇总那边是按 v.startswith("成功") 判 ✅/❌ 的（socket_keepalive._push_daily_summary），
+    # 汇总那边是按 v.startswith("成功") 判 ✅/❌ 的（jobs.push_daily_summary），
     # 所以成功时开头必须是"成功"两个字，否则 10/10 打满了也会显示成失败。
     why = (f"{'成功：' if ok else ''}攻击 {done}/{want} 次；"
            f"战功 +{out['战功']}；剩余行动力 {out.get('剩余行动力')}")
@@ -260,7 +230,7 @@ def run(rec, sock, config: dict, rounds: int = 0, beat=None,
     # 自己是哪个国家：优先从服务端读（登录时就推来了），配置里填了非 0 才覆盖。
     # 以前写死 3，那只是这个号是英国，换个号就错 —— 而且争霸战的名次是本国
     # 内部排名，这个值错了整张名单都不对。
-    country = int(conf.get("自己国家ID") or 0) or _daily.read_my_country(rec)
+    country = int(conf.get("自己国家ID") or 0) or account.read_my_country(rec)
     npc_country = int(conf.get("摩多国家ID", 21))
     npc_city = int(conf.get("摩多驻地城市ID", 32010))
     cooldown = float(conf.get("扫荡间隔秒", 15))
@@ -282,19 +252,12 @@ def run(rec, sock, config: dict, rounds: int = 0, beat=None,
     log.info("[国战] 自己国家ID=%s（%s）", country,
              "配置指定" if conf.get("自己国家ID") else "从服务端读到")
 
-    # 打几百次要很久，全程必须续心跳。
-    # beat 为 None 时**不能动** _daily._BEAT —— 作为每日任务被调用时，
-    # daily.run() 已经装好了心跳器，这里再赋一次 None 就把它废了。
-    # 2026-08-29 实盘：国战跑了两分半，"共发心跳 0 次"，就是这么来的。
-    prev = _daily._BEAT
-    if beat is not None:
-        _daily._BEAT = beat
-    try:
+    # 打几百次要很久，全程必须续心跳。beat 为 None 时沿用外层装好的心跳器：
+    # 作为每日任务被调用时，daily.run() 已经装好了（见 wire.heartbeat）。
+    with wire.heartbeat(beat):
         return _loop(rec, sock, rounds, country, npc_country, npc_city,
                      cooldown, out, attack_only, use_card, card_limit,
                      card_item)
-    finally:
-        _daily._BEAT = prev
 
 
 def _loop(rec, sock, rounds, country, npc_country, npc_city, cooldown, out,
@@ -315,7 +278,7 @@ def _loop(rec, sock, rounds, country, npc_country, npc_city, cooldown, out,
             out["停止原因"] = "读不到国战面板（行动力未知），停手"
             break
         if merit0 is None:
-            merit0 = _read_path(panel, F_MERIT) or 0
+            merit0 = wire.read_path(panel, F_MERIT) or 0
 
         # 第一轮先把摩多驻地的城市 ID 定下来（配置没填就按当前城市推算并校验）
         if not located:
@@ -343,7 +306,7 @@ def _loop(rec, sock, rounds, country, npc_country, npc_city, cooldown, out,
                 break
             cards_used += 1
             out["用卡"] = cards_used
-            _nap(2.0)                    # 等服务端把新的行动力推回来
+            wire.nap(2.0)                # 等服务端把新的行动力推回来
             power, city, atk_times, panel = _panel(sock, rec, country)
             if power is None or power < COST_ATTACK:
                 out["停止原因"] = f"用了恢复卡但行动力仍不足（{power}），停手"
@@ -356,7 +319,7 @@ def _loop(rec, sock, rounds, country, npc_country, npc_city, cooldown, out,
         if not isinstance(cd, dict):
             out["停止原因"] = "打开摩多驻地面板没有回包，停手"
             break
-        has_npc = _read_path(cd, "cityData.field5")
+        has_npc = wire.read_path(cd, "cityData.field5")
 
         # 服务端不是每次开面板都推 RseCountryUserLst，所以**目标要跨轮保留**：
         # 只在真的没有目标、或上一击被拒时才重新召唤。
@@ -379,12 +342,8 @@ def _loop(rec, sock, rounds, country, npc_country, npc_city, cooldown, out,
                 target, npc_morale = _target_id(rec, mark)
                 if target is not None:
                     break
-                _beat()
-                try:
-                    sock.settimeout(0.5)
-                    sock.recv(8192)
-                except Exception:
-                    pass
+                wire.beat()
+                wire.pump(sock)
             if target is None:
                 out["停止原因"] = "召唤后 6 秒内没等到新的目标列表，停手"
                 break
@@ -404,7 +363,7 @@ def _loop(rec, sock, rounds, country, npc_country, npc_city, cooldown, out,
         wait = cooldown - (time.time() - last_act)
         if wait > 0:
             log.info("[国战] %s冷却，等 %.0f 秒", name, wait)
-            _nap(wait)
+            wire.nap(wait)
 
         since = _send(sock, rec, act, country=npc_country, city=npc_city,
                       atk=target)
@@ -423,14 +382,14 @@ def _loop(rec, sock, rounds, country, npc_country, npc_city, cooldown, out,
                 break
             log.info("[国战] %s被拒 ret=%s，换个支援兵重试一次", name, ret)
             force_summon = True
-            _nap(1.0)
+            wire.nap(1.0)
             continue
         fails = 0
 
         out["扫荡" if act == 19 else "攻击"] += 1
         log.info("[国战] 第 %d/%d 轮：%s 成功，行动力 %d→约 %d，今日攻击次数 %s",
                  i, rounds, name, power, power - cost, atk_times)
-        _nap(1.0)
+        wire.nap(1.0)
         # 打完服务端会推新的列表，顺手读一下这个目标还剩多少士气。
         # 归零就清掉，下一轮自然会召唤新的 —— 比等着被 ret 拒绝再补召唤省一次请求。
         t2, m2 = _target_id(rec, since)
@@ -443,7 +402,7 @@ def _loop(rec, sock, rounds, country, npc_country, npc_city, cooldown, out,
     # 收尾再读一次面板，算出这轮总共挣了多少战功
     power, city, atk_times, panel = _panel(sock, rec, country)
     if panel is not None and merit0 is not None:
-        out["战功"] = (_read_path(panel, F_MERIT) or 0) - merit0
+        out["战功"] = (wire.read_path(panel, F_MERIT) or 0) - merit0
     out["剩余行动力"] = power
     out["今日攻击次数"] = atk_times
     if not out["停止原因"]:

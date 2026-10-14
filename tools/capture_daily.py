@@ -60,7 +60,7 @@
        python tools/capture_daily.py --op 04a4       # 只看某个 opcode
        python tools/capture_daily.py --since 14:30   # 只看某时刻之后
 
-输出里的字段值可以直接填进 tankstorm/daily.py 的 TASKS 表，
+输出里的字段值可以直接填进 tankstorm/daily/tasks.py 的 TASKS 表，
 并把该任务的 confidence 改成 "实测"。
 """
 
@@ -76,7 +76,7 @@ sys.path.insert(0, BASE)
 
 LOG_DIR = os.path.join(BASE, "logs")
 
-# 已知与每日任务相关的 opcode（与 tankstorm/daily.py 的 TASKS 对应）
+# 已知与每日任务相关的 opcode（与 tankstorm/daily/tasks.py 的 TASKS 对应）
 INTERESTING = {
     "04a4": "RceDailySignIn 每日签到",
     "047a": "RceSevenDays 七天乐",
@@ -165,7 +165,7 @@ def main():
             print(f"  …… 另外 {len(items) - 6} 次")
 
     print("\n" + "=" * 74)
-    print("把上面的字段值填进 tankstorm/daily.py 的 TASKS 表，")
+    print("把上面的字段值填进 tankstorm/daily/tasks.py 的 TASKS 表，")
     print("并把该任务的 confidence 从 '待确认' 改成 '实测'，它才会被执行。")
     return 0
 

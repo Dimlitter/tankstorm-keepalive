@@ -25,14 +25,11 @@ import os
 import re
 from urllib.parse import parse_qsl, urljoin, urlparse
 
-from . import APPID, GAME_URL
+from . import GAME_URL, paths
 from .log import get_logger
 
 log = get_logger()
 
-from . import paths                               # noqa: E402
-
-BASE_DIR = paths.app_dir()
 DEBUG_DIR = paths.user_path("debug")              # 抓下来的页面，属可写数据
 
 CANVAS_HOST = "tankstorm-qzone.sincetimes.com"

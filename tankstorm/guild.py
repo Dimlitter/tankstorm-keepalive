@@ -49,10 +49,8 @@ RceCountryOpt，两回事。
 
 import time
 
-from . import sender
-from .daily import _await_response, _nap, _read_path
+from . import wire
 from .log import get_logger
-from .proto_encode import encode_message
 
 log = get_logger()
 
@@ -79,11 +77,7 @@ def _fields(type_):
 
 
 def _send(sock, rec, type_):
-    before = rec.seq_mark() if rec else 0
-    sender.send_frame(sock, OPCODE, encode_message(_fields(type_),
-                                                   omit_zero=False),
-                      rec.rc4_c2s)
-    return before
+    return wire.send(sock, rec, OPCODE, _fields(type_))
 
 
 def _wait(sock, rec, since, type_, timeout=6.0):
@@ -92,8 +86,8 @@ def _wait(sock, rec, since, type_, timeout=6.0):
     公会这一族全走同一个 opcode（列表/战报/捐献/参战都是 0479），
     不核对 type 就会把上一步的回包当成这一步的结果。
     """
-    return _await_response(sock, rec, RSE, since, timeout,
-                           want=lambda d: d.get("type") == type_)
+    return wire.await_response(sock, rec, RSE, since, timeout,
+                               want=lambda d: d.get("type") == type_)
 
 
 def _same_day(ts, now=None):
@@ -107,7 +101,7 @@ def _same_day(ts, now=None):
     可能会被当成"今天已经参加过"而跳过。实际影响很小（每天本来也只跑一次），
     真遇到了再按服务端给的时刻去校准。
     """
-    if not isinstance(ts, int) or isinstance(ts, bool) or ts <= 0:
+    if not wire.is_int(ts) or ts <= 0:
         return False
     now = now if now is not None else time.time()
     return time.localtime(ts)[:3] == time.localtime(now)[:3]
@@ -132,7 +126,7 @@ def daily_join(rec, sock, config):
     if has_pk is not True:
         return True, f"成功：今天没有公会战活动（dayHasPK={has_pk}），不用参加"
 
-    joined_at = _read_path(panel, F_JOINED_AT)
+    joined_at = wire.read_path(panel, F_JOINED_AT)
     if joined_at is None:
         # 铁律：读不到依据就不做。这个字段是唯一能说明"参加过没有"的东西。
         return False, (f"读不到上次参加时刻（{F_JOINED_AT}），"
@@ -145,7 +139,7 @@ def daily_join(rec, sock, config):
              time.strftime("%m-%d %H:%M", time.localtime(joined_at))
              if joined_at else "（没有记录）")
 
-    _nap(0.6)
+    wire.nap(0.6)
     sent_at = time.time()
     since = _send(sock, rec, TYPE_JOIN)
     r = _wait(sock, rec, since, TYPE_JOIN)
@@ -157,8 +151,8 @@ def daily_join(rec, sock, config):
 
     # 成败以状态变化为准：时间戳必须被刷新到"刚刚"。type:70 的 ret 恒为 0，
     # 光看它等于没看（踩坑记录第 15 条）。留 5 秒余量给时钟差。
-    now_at = _read_path(r, F_JOINED_AT)
-    if not isinstance(now_at, int) or isinstance(now_at, bool):
+    now_at = wire.read_path(r, F_JOINED_AT)
+    if not wire.is_int(now_at):
         return False, f"回包里读不到 {F_JOINED_AT}，认不出成败"
     if now_at < sent_at - 5:
         return False, (f"参加时刻没有被刷新（还是 "

@@ -4,8 +4,8 @@
 用 .spec 而不是命令行 --add-data，是因为后者的路径分隔符在 Windows 上是 `;`、
 在 macOS/Linux 上是 `:`，同一条命令没法跨平台复用。spec 里用元组，干净。
 
-打包出来的是**单文件**可执行程序。随包带三份出厂数据（config / endpoints /
-protocol）和协议 schema；首次运行时 main.py 会把前三份复制到程序目录，
+打包出来的是**单文件**可执行程序。随包带两份出厂数据（config / protocol）
+和协议 schema；首次运行时 main.py 会把前两份复制到程序目录，
 让用户直接编辑（已存在则不覆盖）。运行期产生的 cookies.json、logs/、debug/
 一律落在程序所在目录，不在临时解压目录里 —— 见 tankstorm/paths.py。
 
@@ -22,7 +22,6 @@ datas = [
     ("LICENSE", "."),
     # 出厂默认配置，首次运行复制到程序目录
     ("config.json", "."),
-    ("endpoints.json", "."),
     ("protocol.json", "."),
 ]
 datas = [(src, dst) for src, dst in datas if os.path.exists(src)]
@@ -32,10 +31,7 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=datas,
-    # 这几个模块 daily.py 是用 __import__("tankstorm.xxx") 动态引的（避免和
-    # daily 成环），PyInstaller 静态分析看不见字符串里的模块名，必须显式列出。
-    hiddenimports=["tankstorm.arena", "tankstorm.country_war",
-                   "tankstorm.guild", "tankstorm.shop"],
+    hiddenimports=[],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

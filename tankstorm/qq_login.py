@@ -102,7 +102,6 @@ PTLOGIN_DOMAIN = ".ptlogin2.qq.com"
 
 # cookie 和二维码是用户数据，必须落在 exe 旁边而不是打包的临时解压目录 ——
 # 落错地方的后果是每次启动都要重新扫码，而且不报错。见 paths.py。
-BASE_DIR = paths.app_dir()
 COOKIE_FILE = paths.user_path("cookies.json")
 QRCODE_FILE = paths.user_path("qrcode.png")
 
@@ -646,7 +645,7 @@ class QQSession:
         if self.is_valid():
             left = self.ticket_status().get("skey")
             log.info("cookie 有效，uin=%s%s", self.uin,
-                     f"（skey 剩余约 %.1f 小时）" % (left / 3600) if left else "")
+                     "（skey 剩余约 %.1f 小时）" % (left / 3600) if left else "")
             # 快到期就提前续，别等失效了才补救
             if self.expires_within(6 * 3600) and self.has_long_term_ticket():
                 log.info("skey 即将到期，提前静默续期…")
