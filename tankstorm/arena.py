@@ -162,7 +162,7 @@ def panel(sock, rec, timeout=6.0):
 
     严格判据是 type==1（就是我们请求的那个）；挑不到时退回"只要带
     nCanFightTimes 就行" —— 面板类回包的 type 未必是对请求的回显，
-    硬要求会把唯一带次数的那条否掉（踩坑记录第 14 条）。
+    硬要求会把唯一带次数的那条否掉（踩坑记录第十五条）。
     """
     since = wire.send(sock, rec, OP_INFO, {1: ("int32", 1)})
     return wire.await_response(
@@ -307,7 +307,7 @@ def _fight(sock, rec, me, my_rank, target, country, timeout=8.0):
     判据要死死咬住**本次目标**：同一条 RceArenaOpt(0469) 还兼着"领上期
     排名奖励"（type:3），而抓包里挑战之后服务端另会推一条只有
     {indexself:-1, result:1} 的裸回包。只认 type==1 且 uidfight/indexfight
-    都对得上的那条，才不会把别的东西当成这一击的结果（踩坑记录第 8 条）。
+    都对得上的那条，才不会把别的东西当成这一击的结果（踩坑记录第七条）。
     """
     rank, uid = target
     since = wire.send(sock, rec, OP_OPT,
@@ -464,7 +464,7 @@ def _loop(rec, sock, rounds, country, gap, prefer, allow_player, out):
 
         # 回包的 result 只说明"服务端受理了"（抓包里同一场先后回过 1 和 2），
         # 成败一律以**面板状态的变化**为准：次数少了才算真打了一场，
-        # 名次前进了才算赢。一个请求"成功"不等于这件事做成了（踩坑记录第 15 条）。
+        # 名次前进了才算赢。一个请求"成功"不等于这件事做成了（踩坑记录第十六条）。
         wire.nap(1.0)
         new_rank, new_left, new_score = _read_panel(panel(sock, rec))
         if new_left is None:

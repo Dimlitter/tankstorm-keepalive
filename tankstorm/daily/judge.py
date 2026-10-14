@@ -105,7 +105,7 @@ def judge(rse_msg: str, data, ignore_left=False, success_flag=None):
         return True, str(data)[:80], False
     # success_flag：动作回包里这个布尔字段翻成 true 才算真做成了。
     # 给那些**没有 ret 也没有 result** 的消息用 —— 找不到状态码就直接判成功，
-    # 那是踩坑记录第 15 条（"一个请求成功不等于这件事做成了"）。
+    # 那是踩坑记录第十六条（"一个请求成功不等于这件事做成了"）。
     # 锦鲤心愿的 RseDoubleElevenOfficer 就是这样：整条回包里没有任何状态码，
     # 唯一能说明领到了的就是 ngetdailyawd 由 false 翻成 true。
     if success_flag:

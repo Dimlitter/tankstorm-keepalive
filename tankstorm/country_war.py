@@ -25,7 +25,7 @@
 ⚠️ 攻击目标 ID（atkUserID）**在任何响应里都不以字符串形式出现**。
 它在 RseCountryUserLst.user.field3.field6，而 schema 把该字段类型标成了整数，
 于是解码器把 "100030000" 这个字符串的后 8 字节当成 int64 读了出来。
-还原方式见 _target_id()。这属于踩坑记录第三条那一类：值是对的，类型错了。
+还原方式见 _target_id()。这属于踩坑记录第二条那一类：值是对的，类型错了。
 """
 
 import time
