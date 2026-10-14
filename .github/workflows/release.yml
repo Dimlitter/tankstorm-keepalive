@@ -44,6 +44,9 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
+      - name: 单元测试
+        run: python -m unittest discover -s tests -v
+
       - name: 打包
         run: pyinstaller --clean --noconfirm tankstorm.spec
 
