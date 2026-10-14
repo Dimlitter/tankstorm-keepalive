@@ -14,7 +14,7 @@
 
 <p align="center">
   <b>QQ 空间 Flash 页游「坦克风暴」的保活守护与每日任务工具</b><br>
-  不开浏览器 · 不跑 Flash · 不截图识图 —— 纯 Python 复刻整条 TCP 链路
+  不开浏览器 · 不跑 Flash · 不截图识图，纯 Python 复刻整条 TCP 链路
 </p>
 
 <p align="center">
@@ -81,7 +81,7 @@ python main.py --country-war 10  # 国战：打魔多军团 10 次，退出
 2. 构造 `RceSuperStormOpt(04ab) type=2` 拒绝包并发回服务端
 3. 通过 PushPlus 把结果推到微信，带上进攻方名字
 
-配置项是 `录制.自动拒绝超级强攻`，默认开启。依赖实时解密——
+配置项是 `录制.自动拒绝超级强攻`，默认开启。依赖实时解密，
 密钥自检没通过时拒绝包发不出去，日志会明确说明原因。
 
 > **两点须知**：其一，若服务端要求先通过验证码才接受拒绝，此包可能被忽略，
@@ -101,14 +101,14 @@ python main.py --country-war 10  # 国战：打魔多军团 10 次，退出
 | **Python 3.10 或更高** | 低于 3.10 起不来，报 `TypeError: unsupported operand type(s) for \|` |
 | **能联网访问 QQ 空间和游戏服务器** | 游戏 socket 在 `tankstorm-proxy.sincetimes.com:8001` |
 
-可选：
+可选的只有一项。
 
-- **PushPlus**（微信推送）。配置后，超级强攻告警、每日任务成果、以及登录态失效时的二维码都会推送到微信。部署到服务器时建议配置，填法见[配置](#配置)。
+- **PushPlus**（微信推送）。配置后，超级强攻告警和每日任务成果会推送到微信，登录态失效时的二维码也会。部署到服务器时建议配置，填法见[配置](#配置)。
 
-不需要：抓包工具、Flash 播放器、浏览器、模拟器。协议已经还原好了，
+抓包工具和 Flash 播放器都不需要，浏览器、模拟器也不用。协议已经还原好了，
 `protocol.json` 和字段定义都在仓库里，开箱即用。
 
-> 只有游戏更新导致 opcode 变化时，才需要重新从 SWF 还原协议——那属于开发工作，
+> 只有游戏更新导致 opcode 变化时，才需要重新从 SWF 还原协议，那属于开发工作，
 > 见 [Wiki](https://github.com/Dimlitter/tankstorm-keepalive/wiki)。
 
 ---
@@ -176,7 +176,7 @@ chmod +x tankstorm
 ./tankstorm --login
 ```
 
-两个平台特有的问题：
+两个平台各有一个特有的问题。
 
 - **macOS 会拦。** 二进制没有 Apple 开发者签名，Gatekeeper 会提示"无法验证开发者"。
   放行：`xattr -dr com.apple.quarantine ./tankstorm`
@@ -192,7 +192,7 @@ python --version
 ```
 
 必须是 **3.10 或更高**。很多机器上 `python` 指向的是系统自带的老版本，
-装了新版也没用 —— 因为 `python` 这个名字还是指向旧的那个。
+装了新版也没用，因为 `python` 这个名字还是指向旧的那个。
 
 ### 拿到一个 3.10+ 的环境
 
@@ -254,13 +254,13 @@ pip install -r requirements.txt
 > 下文一律写成 `python main.py`。用可执行文件的话，把这部分换成
 > `tankstorm.exe`（Windows）或 `./tankstorm`（macOS / Linux），参数完全一样。
 
-**1️⃣ 登录** —— 手机 QQ 扫码，只有第一次要做
+**1️⃣ 登录**：手机 QQ 扫码，只有第一次要做
 
 ```bash
 python main.py --login
 ```
 
-**2️⃣ 确认登录态可用** —— 能打印出 `uid` / `sid` / `level` 就说明通了
+**2️⃣ 确认登录态可用**：能打印出 `uid` / `sid` / `level` 就说明通了
 
 ```bash
 python main.py --check
@@ -308,7 +308,7 @@ python main.py --country-war 10
 python main.py --login
 ```
 
-用手机 QQ 扫码。二维码会同时：终端字符画、存成 `qrcode.png`、推到 PushPlus（若已配）。
+用手机 QQ 扫码。二维码会同时输出成终端字符画、存成 `qrcode.png`，若已配 PushPlus 还会推过去。
 
 > **必须用另一台设备扫。** 存到手机再用同一台手机的相册扫，腾讯会拒，
 > 提示「限制本地扫码登录」。
@@ -326,7 +326,7 @@ python main.py --check
 ### 关于"免扫码"
 
 免扫码的通道有三条，2026-08-13 抓包逐条核过，目前**都还不能用**，
-但原因各不相同 —— 推送登录**只差一步**，另两条是真堵死了。
+原因各不相同：推送登录**只差一步**，另两条是真堵死了。
 
 | 通道 | 状态 |
 |---|---|
@@ -336,7 +336,7 @@ python main.py --check
 
 #### 推送登录卡在哪
 
-推送**不是**另一种取二维码的方式，而是挂在已有二维码会话上的一个动作 ——
+推送是挂在已有二维码会话上的一个动作，
 网页上先加载二维码，点头像才发这一条。完整链路：
 
 ```
@@ -357,7 +357,7 @@ ptqrlogin 轮询                与扫码共用，带 has_onekey=1
 | 0 | 推送已发出，手机上点确认即可 |
 
 现在唯一缺的是最前面那一环：`pt_fetch_dev_uin` 返回
-`{"errcode":22027,"data":[]}` —— 服务端在本项目这个 `pt_guid_sig` 名下
+`{"errcode":22027,"data":[]}`，服务端在本项目这个 `pt_guid_sig` 名下
 **没有"已记住的设备"记录**，因此签发不出 `dev_mid_sig`。浏览器那边同一接口
 返回 `errcode 22028` 并带上账号列表，所以浏览器能推送。`pt_guid_sig` 由登录成功时的
 `ptqrlogin` 下发、有效期约 30 天，且**每次成功登录都会换一个新的**。
@@ -369,7 +369,8 @@ ptqrlogin 轮询                与扫码共用，带 has_onekey=1
 > 但推送这条路并不经过它。
 
 **实际影响**：大约每 1.5 天需要扫一次码。配好 PushPlus 后，保活进程发现登录态
-失效会自动把二维码推到微信，服务器上不至于失联。
+失效会自动把二维码推到微信，服务器上不至于失联。2026-08-29 起不再在免扫码上
+投入，登录以扫码为准。
 
 ---
 
@@ -413,9 +414,9 @@ python main.py --reset      # 清空今日计数
          占下探到的矿、按活跃度逐档领奖、国家宝箱领取+开箱
 ```
 
-一轮里会**把当天的次数做完**，而不是做一次就走。免费次数是**分档**的，
+一轮里会**把当天的次数做完**。免费次数是**分档**的，
 比如英雄开采 `freeVisitCnt=[3,1,1]` 表示低/中/高三档各有 3/1/1 次，
-三档都要领 —— 高档收益高一个数量级（实测 `nAddRes` 5000 / 10000 / 50000）。
+三档都要领，高档收益高一个数量级（实测 `nAddRes` 5000 / 10000 / 50000）。
 
 ### 一天一次，还是按小时计时
 
@@ -427,7 +428,7 @@ python main.py --reset      # 清空今日计数
 | **按时计时** | 其余绝大多数 | 剩余次数字段，或服务端给的"下次可用时刻" |
 
 计时类**不能按自然日算**。技能书是**每 24 小时一轮**，上午被拦下，下午到点还该再领；
-所以闸门拦截时记录的是服务端给的下次可用时刻，而不是把当天次数记满。
+所以闸门拦截时记下服务端给的下次可用时刻，当天次数不记满。
 参谋和配件的高级档间隔约 3 天，更不能按"每天一次"发。
 
 ### 闸门读什么
@@ -450,7 +451,7 @@ python main.py --reset      # 清空今日计数
 | 军事演习 / 矿区争夺 | `tokenNum` / `searchTimes`，冷却读 `siteEndTime` / `resourceEndTime` |
 
 路径支持嵌套（`sVisitData.field4`）、逐元素取值（`field14[].field1`）
-和**按标记选元素**（`field4[field1=1].field2`）。最后一种按字段值挑而不是按下标挑，
+和**按标记选元素**（`field4[field1=1].field2`）。最后一种按字段值挑元素，不按下标，
 免得服务端调整档位顺序时错位。
 
 ### 争霸战、公会战、补支援兵
@@ -459,7 +460,7 @@ python main.py --reset      # 清空今日计数
 
 | 任务 | 默认 | 要点 |
 |---|---|---|
-| 争霸战挑战 | 开 | 每天把服务端给的挑战次数用满（实测 10 次）。目标优先挑 NPC，挑不到 NPC 才打真人。**输赢无所谓**——每日任务只认次数，输了也照样算。每周一上午十点开新一期，新一期会自动先登记再打 |
+| 争霸战挑战 | 开 | 每天把服务端给的挑战次数用满（实测 10 次）。目标优先挑 NPC，挑不到 NPC 才打真人。**输赢无所谓**，每日任务只认次数，输了也照样算。每周一上午十点开新一期，新一期会自动先登记再打 |
 | 公会战参加 | 开 | 今天有公会战、且今天还没参加过，就自动报名。不消耗任何资源 |
 | 补支援兵 | **关** | 国战消耗的支援兵，在功勋商城用**功勋**补货。⚠️ 这是唯一会主动花钱的任务，见下 |
 
@@ -480,7 +481,7 @@ python main.py --reset      # 清空今日计数
 
 `功勋商城.自动补支援兵` 默认是 `false`。打开之后，每日任务会在库存低于
 `补货线`（默认 20）时买到 `目标库存`（默认 50），一次最多买 `单次最多买几个`
-（默认 10）。花的是**功勋**，不是勋章。
+（默认 10）。花的是**功勋**，勋章不动。
 
 ```jsonc
 "功勋商城": {
@@ -492,7 +493,7 @@ python main.py --reset      # 清空今日计数
 ```
 
 它不走[安全机制](#安全机制)那套通用检查（那套要求危险字段必须为 0，而这里
-金额本来就必须非零），而是自带更严的一套：默认关闭 · 读不到背包里的现有数量
+金额本来就必须非零），自带更严的一套：默认关闭 · 读不到背包里的现有数量
 就不买 · 发送前核对总价和付款币种 · 代码里另有一次最多 100 个的硬上限 ·
 **买完比对勋章余额，只要变了就立刻停手并写 ERROR 日志**。
 
@@ -502,10 +503,10 @@ python main.py --reset      # 清空今日计数
 
 ### 任务状态
 
-`--list` 里每项标着：
+`--list` 里每项都标着下面两种状态之一。
 
-- **实测** —— 参数来自真实抓包，可放心开
-- **待确认** —— 默认跳过，需先抓包核对
+- **实测**：参数来自真实抓包，可放心开
+- **待确认**：默认跳过，需先抓包核对
 
 29 个任务都能在 `config.json` 的 `每日任务.任务` 里单独开关。
 
@@ -527,14 +528,14 @@ python main.py --reset      # 清空今日计数
 python main.py --country-war 10
 ```
 
-连一次游戏、打 N 次魔多军团、断开退出。和 `--daily` 一样是一次性批处理，
+连一次游戏，打 N 次魔多军团后断开退出。和 `--daily` 一样是一次性批处理，
 全程发心跳，跑完推 PushPlus。
 
 行动力够 15 点就用**扫荡**（战功高），不够就退回**普通攻击**（5 点），
 低于 5 点停手。每日任务里那项「国战攻击」固定用普通攻击刷次数，
 想刷战功用这个命令。
 
-**位置要自己站好。** 脚本**不会自动移动** —— 需要人在魔多驻地相邻的城市，
+**位置要自己站好。** 脚本**不会自动移动**，需要人在魔多驻地相邻的城市，
 读不到目标就停手，不会瞎发移动指令白烧行动力。摩多驻地的城市 ID 默认按
 当前所在城市自动推算并校验（只开面板、不花行动力），推算不出来会提示手填。
 
@@ -561,15 +562,15 @@ python main.py --country-war 10
 
 ## 部署到服务器
 
-无界面的 Linux 机器完全能跑 —— 整个项目不需要浏览器和图形界面。
+无界面的 Linux 机器完全能跑，整个项目不需要浏览器和图形界面。
 
-只有一件事要注意：**登录得扫码**。三种办法任选：
+只有一件事要注意，**登录得扫码**。三种办法任选一种。
 
 1. 在本地电脑上先 `--login`，把生成的 `cookies.json` 拷到服务器（最省事）
 2. 配置 PushPlus，服务器需要登录时会把二维码推送到微信
 3. 把服务器上的 `qrcode.png` 下载下来看（`scp` 或任何方式）
 
-登录态约 1.5 天过期，届时要再扫一次 —— 免扫码的几条通道目前都还不通，
+登录态约 1.5 天过期，届时要再扫一次。免扫码的几条通道目前都还不通，
 原因见[关于"免扫码"](#关于免扫码)。长期无人值守的机器建议配好第 2 种办法。
 
 保活和每日任务**分开跑**，别塞进一个进程。
@@ -597,7 +598,7 @@ WantedBy=multi-user.target
 30 7 * * * cd /opt/tankstorm && /opt/conda/envs/tank/bin/python main.py --daily >> logs/cron.log 2>&1
 ```
 
-任务有冷却或次数没领完时，多跑几次没有坏处 —— 已完成的会自动跳过。
+任务有冷却或次数没领完时，多跑几次没有坏处，已完成的会自动跳过。
 
 ---
 
@@ -616,7 +617,7 @@ WantedBy=multi-user.target
     "任务": { "每日签到": true, "英雄开采": true }
   },
   "录制": { "启用": true, "实时解密": true, "自动拒绝超级强攻": true },
-  "通知": { "PushPlus": { "token": "放到 config.local.json 里" } }
+  "通知": { "pushplus_token": "放到 config.local.json 里" }
 }
 ```
 
@@ -630,7 +631,7 @@ WantedBy=multi-user.target
 | `录制.原始流.启用` | `true` | 原始字节落盘，是事后离线解密的前提，建议保持开启 |
 | `每日任务.允许未实测参数` | `false` | 打开会把标着「待确认」的任务也发出去，不建议 |
 | `每日任务.响应等待秒` | `6` | 网络慢可调大 |
-| `争霸战.选目标` | `最弱优先` | 改成 `最高名次优先` 则挑名次最靠前的对手，爬得快但风险大，见[目标是怎么挑的](#争霸战挑战目标是怎么挑的)|
+| `争霸战.选目标` | `最弱优先` | 改成 `最高名次优先` 则挑名次最靠前的对手，爬得快但风险大，见[争霸战、公会战、补支援兵](#争霸战公会战补支援兵)|
 | `争霸战.没有NPC时打真人` | `true` | 关掉则名单里没有 NPC 时宁可停手 |
 | `国战.自己国家ID` | `0`（自动读）| 国战和争霸战共用。`0` = 登录时自动从服务端读，一般不用改；读不到会停手并提示，那时才手填 |
 | `功勋商城.自动补支援兵` | `false` | **唯一会花钱的开关**，开之前先读[这段](#补支援兵开之前先看这段) |
@@ -640,7 +641,7 @@ WantedBy=multi-user.target
 PushPlus 的 token 填在 `config.local.json`：
 
 ```json
-{ "通知": { "PushPlus": { "token": "自己的token" } } }
+{ "通知": { "pushplus_token": "自己的token" } }
 ```
 
 > `录制.启用` 别关。整条解码链路都挂在它下面，关掉之后每日任务读不到任何响应。
@@ -663,9 +664,9 @@ PushPlus 的 token 填在 `config.local.json`：
 现在读不到剩余次数的任务一轮只做一次。
 
 唯一的例外是[补支援兵](#补支援兵开之前先看这段)：它必须发出非零金额，
-所以不走上面这套通用检查，而是自带一套更严的。默认关闭。
+所以不走上面这套通用检查，自带一套更严的。默认关闭。
 
-> 游戏里"消耗勋章"会弹确认框，但那是**纯客户端 UI** —— 协议里不存在二次确认消息。
+> 游戏里"消耗勋章"会弹确认框，但那是**纯客户端 UI**，协议里不存在二次确认消息。
 > 脚本直接发包不经过任何对话框，服务器收到就扣。所以确认框对脚本的保护是 0，
 > 必须在脚本这一侧把危险字段拦死。
 
@@ -706,9 +707,9 @@ PushPlus 的 token 填在 `config.local.json`：
 
 日志在 `logs/`：
 
-- `logs/YYYY-MM-DD.log` —— 运行日志
-- `logs/frames-YYYY-MM-DD.jsonl` —— 收发的每一帧（含解码结果），排错主力
-- `logs/streams/<会话>/` —— 原始字节流，供事后离线解密
+- `logs/YYYY-MM-DD.log`：运行日志
+- `logs/frames-YYYY-MM-DD.jsonl`：收发的每一帧（含解码结果），排错主力
+- `logs/streams/<会话>/`：原始字节流，供事后离线解密
 
 > `logs/` 里有真凭据（uid/sid/openkey），已 gitignore，发出去前想清楚。
 
@@ -719,36 +720,49 @@ PushPlus 的 token 填在 `config.local.json`：
 ### 目录结构
 
 ```
-main.py                      命令行入口，参数分组：登录 / 保活 / 每日任务
+main.py                      命令行入口，参数分组：登录 / 保活 / 每日任务 / 国战
 config.json                  配置模板（密钥请放 config.local.json）
 protocol.json                保活协议规格：握手步骤、心跳帧、间隔
 protocol.example.json        上面那份的带注释示例
-endpoints.json               旧的 HTTP 接口任务定义（已废弃，仅 --task 用得到）
 requirements.txt             依赖，只有 requests
 run_keepalive.sh / .bat      保活启动脚本
 run_daily.sh   / .bat        每日任务启动脚本
 
 tankstorm/
-  __init__.py                包定义，游戏 URL 常量
+  __init__.py                包定义，游戏 URL 常量，模块分工一览
   qq_login.py                QQ 扫码登录（ptlogin2）、cookie 持久化与静默续期
   qzone.py                   打开空间游戏页，解析 FlashVars
-  protocol.py                读 protocol.json，构造握手与心跳帧
-  socket_keepalive.py        保活主循环、断线重连、单轮任务入口
-  daily.py                   每日任务表 + 执行引擎（前置/闸门/档位/后续）
+  session.py                 连服务器、登录、收完登录推送；登录态失效时重新登录
+  socket_keepalive.py        保活守护进程：心跳、断线重连
+  jobs.py                    一次性任务（--daily / --country-war）与成果推送
+  daily/                     每日任务
+    tasks.py                 任务表：opcode、字段、前置、闸门、档位
+    model.py                 任务表的积木：Task / Gate / Tiers / Followup / 占位符
+    pickers.py               从响应里挑下一步的值（空演习场、无主矿、达标档位）
+    checks.py                危险字段、免费次数闸门、回包判据
+    judge.py                 判成败
+    runner.py                执行器：前置 → 闸门 → 动作 → 判成败 → 后续步骤
+    state.py                 当天状态 logs/daily-state.json
   country_war.py             国战自动打摩多军团（形状不合流水线，走 runner）
   arena.py                   争霸战自动挑战 + 内置 NPC 名字表（同上）
   guild.py                   公会战参加（type:70，判据是"上次参加时刻"被刷新）
-  shop.py                    功勋商城补支援兵——唯一会花钱的模块，默认关闭
+  shop.py                    功勋商城补支援兵，唯一会花钱的模块，默认关闭
+  wire.py                    请求原语：发请求、等回包、边等边心跳、按路径读响应
+  account.py                 从服务端推送里读国家 ID 和背包数量
   sender.py                  组帧与发送，含超级强攻拒绝包的构造
   crypto.py                  RC4 双向实现，密钥由 FlashVars 推导
   recorder.py                收发录制、实时解密、事件告警、自动拒绝回调
   stream_recorder.py         原始字节流旁路落盘（解密的前提）
+  protocol.py                读 protocol.json，构造握手与心跳帧
   schema.py                  协议 schema 载入 + protobuf 解码
   schema.json                563 个 opcode 的字段表，由 extract_proto.py 生成
   proto_encode.py            protobuf 编码
+  settings.py                读 config.json 并合并 config.local.json
+  paths.py                   区分随包只读数据和程序目录里的用户数据
   notify.py                  PushPlus 推送（文本 / HTML / 二维码图）
-  engine.py                  旧的 HTTP 任务执行器（配合 endpoints.json）
   log.py                     日志
+
+tests/                       单元测试（标准库 unittest，不连网络、不碰账号）
 
 tools/
   pcap_split.py              从 pcapng 拆出 TCP 流，报告有没有空洞
@@ -757,14 +771,13 @@ tools/
   capture_daily.py           从解密后的上行帧提取每日任务参数
   analyze_frames.py          分析运行时录制的帧日志
   pcap_analyze.py            不解密也能定位登录握手与心跳
-  mitm_capture.py            中间人抓包辅助
   extract_proto.py           从 SWF 还原 opcode 表 / .proto / schema.json
   dump_class.py              按类名反汇编 SWF
   xref.py                    全库交叉引用（找谁引用了某名字或某字符串）
   disasm.py                  AVM2 字节码反汇编器
   abcparse.py                ABC 结构解析
   swfparse.py                SWF 容器解析
-  har2endpoints.py           从 HAR 生成旧版 endpoints.json
+  _console.py                工具脚本共用：输出固定为 UTF-8
 
 docs/
   banner.svg                 README 头图
@@ -777,6 +790,16 @@ docs/
 
 运行时生成、不进版本库的：`cookies.json`（登录凭据）、`qrcode.png`、
 `config.local.json`（密钥）、`logs/`（日志与原始流）、`wiki/`（Wiki 本地副本）。
+
+### 测试
+
+```bash
+python -m unittest discover -s tests
+```
+
+测试不连网络、不碰账号，每日状态写进临时文件，不写 `logs/`。改了每日任务表要先跑一遍，
+`tests/test_daily_rules.py` 会检查可重复的任务有没有次数依据，以及前置与动作同 opcode 的
+任务能不能造出回包判据。发布流水线在打包前也会跑这套测试。
 
 ### 抓包分析链路
 
@@ -800,13 +823,13 @@ cp out/schema.json tankstorm/ && cp out/redwar.proto out/opcodes.json docs/
 
 ## 文档
 
-原理、协议逆向过程、RC4 怎么破的 —— 见 Wiki。
+原理、协议逆向过程和 RC4 怎么破的，都见 Wiki。
 
 仓库内保留：
 
-- [docs/protocol-reverse-engineering.md](docs/protocol-reverse-engineering.md) —— TCP 二进制协议逆向入门与踩坑
-- [docs/redwar.proto](docs/redwar.proto) —— 从 SWF 还原的完整协议定义
-- [docs/opcodes.json](docs/opcodes.json) —— opcode ↔ 消息名对照
+- [docs/protocol-reverse-engineering.md](docs/protocol-reverse-engineering.md)：TCP 二进制协议逆向入门与踩坑
+- [docs/redwar.proto](docs/redwar.proto)：从 SWF 还原的完整协议定义
+- [docs/opcodes.json](docs/opcodes.json)：opcode ↔ 消息名对照
 
 ---
 
@@ -817,17 +840,17 @@ MIT 协议发布，不受影响）。
 
 用大白话说：
 
-| 你可以 | 条件 |
+| 可以做的事 | 条件 |
 |---|---|
 | 自己用、改、随便折腾 | 无 |
 | 分发（含改过的版本、打包的可执行文件）| 一并给出**完整源码**，且同样用 AGPL-3.0 |
-| **拿它提供网络服务**（代跑、托管、做成网站）| 必须让使用该服务的人能拿到你改过的**源码** |
-| 商业使用 | 允许 —— 但上面两条照样成立，跑不掉 |
+| **拿它提供网络服务**（代跑、托管、做成网站）| 必须让使用该服务的人能拿到改过的**源码** |
+| 商业使用 | 允许，但上面两条照样成立，跑不掉 |
 
 第三条是 AGPL 相对 GPL 多出来的那一条（许可证第 13 节）。选它就是因为对这类
-工具来说，"闭源拿去开代跑服务"是最现实的商业化路径，而普通 GPL 恰恰管不住 ——
+工具来说，"闭源拿去开代跑服务"是最现实的商业化路径，而普通 GPL 恰恰管不住：
 只要不对外分发二进制，GPL 不要求公开任何东西。
 
-> 顺带一提：**AGPL 并不禁止商用**，任何开源许可证都不禁止。它要求的是
-> "你要拿去做生意可以，但改动得开源"。如果你需要的是一份不开源的授权，
+> 顺带一提：**AGPL 允许商用**，任何开源许可证都不禁止商用。它要求的是
+> "你要拿去做生意可以，但改动得开源"。如果需要的是一份不开源的授权，
 > 联系仓库作者另谈。
