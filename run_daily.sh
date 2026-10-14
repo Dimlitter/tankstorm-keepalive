@@ -5,4 +5,4 @@
 cd "$(dirname "$0")"
 # 按你服务器上 conda 的实际路径改这一行（conda env list 可查）：
 PYTHON="${CONDA_PYTHON:-$HOME/miniconda3/envs/tank/bin/python}"
-"$PYTHON" main.py >> logs/cron.log 2>&1
+"$PYTHON" main.py --daily >> logs/cron.log 2>&1
