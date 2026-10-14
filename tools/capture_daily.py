@@ -187,4 +187,6 @@ def as_fields(data: dict) -> str:
 
 
 if __name__ == "__main__":
+    import _console
+    _console.utf8()
     sys.exit(main())

@@ -63,6 +63,8 @@ def iter_tags(body: bytes):
 
 if __name__ == '__main__':
     import sys
+    import _console
+    _console.utf8()
     raw = open(sys.argv[1], 'rb').read()
     body, sig, ver, declared = uncompress(raw)
     print(f'{sig.decode()} v{ver}  声明 {declared:,}  实际文件 {len(raw):,}  '

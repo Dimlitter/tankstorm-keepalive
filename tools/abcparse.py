@@ -368,6 +368,8 @@ def extract_abc(swf_path: str):
 
 if __name__ == "__main__":
     import sys
+    import _console
+    _console.utf8()
     for i, blk in enumerate(extract_abc(sys.argv[1])):
         a = ABC(blk)
         print(f"[ABC #{i}] {len(blk):,}B  字符串 {len(a.strings):,}  "

@@ -12,7 +12,11 @@
     python3 xref.py <swf> --string 780511549720865
 """
 import sys
+
+import _console
 from disasm import load, disasm
+
+_console.utf8()
 
 SWF = sys.argv[1]
 abc = load(SWF)

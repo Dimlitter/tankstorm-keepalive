@@ -251,6 +251,8 @@ def load(swf_path: str, use_disk_cache: bool = True):
 
 
 if __name__ == "__main__":
+    import _console
+    _console.utf8()
     abc = load(sys.argv[1])
     print(f"类 {len(abc.instances):,}  方法 {len(abc.methods):,}  "
           f"方法体 {len(abc.bodies):,}  字符串 {len(abc.strings):,}")
