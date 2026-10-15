@@ -15,7 +15,7 @@ fields 形如 {字段号: ("int32"|"string", 值)}；字段号来自 docs/redwar
 **先查询、没次数就不做；没有次数依据就不重复**。
 """
 
-from .. import arena, country_war, guild, shop
+from .. import arena, campaign, country_war, guild, shop
 from . import pickers
 from .model import FromResponse, FromServer, Followup, Gate, Task, Tiers
 
@@ -325,19 +325,6 @@ TASKS = [
          followup=Followup("049a", pickers.next_mine_to_occupy, max_rounds=1,
                            desc="占下探到的无主矿")),
 
-    # 用户说明：type:2 是"重新开始征战"，不会真的打、也拿不到战斗奖励，
-    # 但能推进每日活跃度，是快速完成日常的做法。原先写的 {type:6,bAutoTreat:true}
-    # 在 8/10 抓包里根本没出现过，撤掉。
-    Task("征战世界", "征战世界·重开征战（推进活跃度）", "045b", "RcePVEFightOpt",
-         {2: ("int32", 2)},
-         "实测", "8/10 抓包：045c{type:1} → 045b{type:5,bAutoTreat:false} → "
-                 "045b{type:2} ×2，响应 result=0。注意这只推进活跃度，"
-                 "不是真的去打、也没有战斗奖励",
-         max_per_day=2,
-         prelude=[("045c", {1: ("int32", 1)}),
-                  ("045b", {1: ("bool", False), 2: ("int32", 5)})],
-         gate=Gate("RsePVEFightOpt", "fightdata.field2")),
-
     # 客户端把 11 个字段全写了（除 type 外都是 0），照抄。
     # 1=costCredit 虽然命中危险字段名，但值是 0，安全检查照样放行。
     Task("国家宝箱", "国家·宝箱领取并开箱", "0463", "RceCountryOpt",
@@ -396,6 +383,21 @@ TASKS = [
                  "contributeID:1}。名字不写死，登录时从 RseInit.username 取",
          prelude=[("0479", {2: ("int32", 0)}), ("0479", {2: ("int32", 2)}),
                   ("0479", {2: ("int32", 14)})]),
+
+    # 征战世界：一关一关往下打，打不过为止；输了用免费次数重新开始，接着打。
+    # 开局可能停在第 1 关，也可能停在昨天输掉的那关，每一步都得先看服务端给的
+    # 进度再决定，套不进流水线，走 runner。能打到第几关看账号实力，每关约 12 秒，
+    # 一轮打到第 60 关的号一天两三轮就是半小时上下，所以排在普通任务的最后，
+    # 免得把别的任务压后；同时要在「每日任务」领奖之前，它推进的活跃度才领得到。
+    #
+    # 早先这里只发两次 type:2（重新开始）推进活跃度，不真打。那是照 8/10 抓包做的，
+    # 那天玩家确实只点了两次重新开始；8/8 那份才是真打了两轮的完整样本。
+    Task("征战世界", "征战世界·打到打不过为止", "045b", "RcePVEFightOpt",
+         {}, "实测",
+         "8/8 抓包实测两轮：045c{type:1} 开面板 → 045b{type:5} 查进度 → "
+         "045b{type:6,bAutoTreat:true} 逐关打（第 1~59 关胜、第 60 关负）→ "
+         "045b{type:2} 用免费次数重新开始。细节见 tankstorm/campaign.py",
+         runner=campaign.daily_fight),
 
     # ---- 必须最后执行 ----
     Task("周任务", "周任务领奖", "04de", "RceWeekQuestOpt",
