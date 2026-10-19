@@ -36,13 +36,16 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"      # engine.py 用了 `str | None`，要 3.10+
+          python-version: "3.12"      # 代码用了 `str | None` 注解，要 3.10+
 
       - name: 装依赖
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pyinstaller
+
+      - name: 单元测试
+        run: python -m unittest discover -s tests -v
 
       - name: 打包
         run: pyinstaller --clean --noconfirm tankstorm.spec
@@ -64,7 +67,7 @@ jobs:
           cp "dist/tankstorm${{ matrix.ext }}" "pkg/$NAME/"
           cp README.md LICENSE "pkg/$NAME/"
           # 出厂配置也放一份在外面，用户下载完就能直接改，不用等首次运行生成
-          cp config.json endpoints.json "pkg/$NAME/"
+          cp config.json "pkg/$NAME/"
 
       - name: 压缩（Windows）
         if: startsWith(matrix.runner, 'windows')

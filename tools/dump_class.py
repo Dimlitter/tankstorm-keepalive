@@ -12,7 +12,11 @@
     python3 dump_class.py <swf> _-0ly --only encrypt,decrypt
 """
 import sys
+
+import _console
 from disasm import load, disasm
+
+_console.utf8()
 
 SWF = sys.argv[1]
 PAT = sys.argv[2]

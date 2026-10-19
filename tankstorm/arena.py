@@ -59,11 +59,8 @@ NPC 表来源
 
 import time
 
-from . import daily as _daily
-from . import sender
-from .daily import _await_response, _nap
+from . import account, wire
 from .log import get_logger
-from .proto_encode import encode_message
 
 log = get_logger()
 
@@ -160,23 +157,15 @@ def who(uid, names=None) -> str:
 
 # ---------------------------------------------------------------- 请求
 
-def _send(sock, rec, opcode, fields):
-    """发一条请求，返回发送前的消息序号（之后只认序号更大的回包）。"""
-    before = rec.seq_mark() if rec else 0
-    sender.send_frame(sock, opcode, encode_message(fields, omit_zero=False),
-                      rec.rc4_c2s)
-    return before
-
-
 def panel(sock, rec, timeout=6.0):
     """开争霸战面板，返回 RseArenaInfo 的数据；读不到返回 None。
 
     严格判据是 type==1（就是我们请求的那个）；挑不到时退回"只要带
     nCanFightTimes 就行" —— 面板类回包的 type 未必是对请求的回显，
-    硬要求会把唯一带次数的那条否掉（踩坑记录第 14 条）。
+    硬要求会把唯一带次数的那条否掉（踩坑记录第十五条）。
     """
-    since = _send(sock, rec, OP_INFO, {1: ("int32", 1)})
-    return _await_response(
+    since = wire.send(sock, rec, OP_INFO, {1: ("int32", 1)})
+    return wire.await_response(
         sock, rec, RSE_INFO, since, timeout,
         want=lambda d: d.get("type") == 1 and d.get("nCanFightTimes") is not None,
         relaxed=lambda d: d.get("nCanFightTimes") is not None)
@@ -189,7 +178,7 @@ def _rank_of(v):
     18446744073709551615 这个天文数字。直接拿它当名次去要名单，服务端只会
     回一个空壳（2026-08-31 实测，各种 nIndex 试了 11 个值全是空）。
     """
-    if not isinstance(v, int) or isinstance(v, bool):
+    if not wire.is_int(v):
         return None
     return v if 0 <= v < 1_000_000 else None
 
@@ -211,22 +200,21 @@ def rank_window(sock, rec, my_rank, country, timeout=6.0):
     ⚠️ 只取 field2.field3 —— 那才是可挑战的窗口（十个人都排在自己前面）。
     同一条回包里的 field4 是**全国前十**，拿它当目标就等于去打榜首。
     """
-    since = _send(sock, rec, OP_RANK,
-                  {1: ("int32", 2), 2: ("int32", my_rank),
-                   3: ("int32", country)})
-    board = _await_response(sock, rec, RSE_RANK, since, timeout,
-                            want=lambda d: d.get("type") == 2)
+    since = wire.send(sock, rec, OP_RANK,
+                      {1: ("int32", 2), 2: ("int32", my_rank),
+                       3: ("int32", country)})
+    board = wire.await_response(sock, rec, RSE_RANK, since, timeout,
+                                want=lambda d: d.get("type") == 2)
     if not isinstance(board, dict):
         return [], {}
 
     # 名字表紧跟着来，已经到了就立刻挑得到，没到最多再等 2 秒。
     # 拿不到不算错 —— 名字只用来写日志，判 NPC 靠的是 uid 本身。
     names = {}
-    tbl = _await_response(sock, rec, RSE_RANK, since, 2.0,
-                          want=lambda d: d.get("type") == 3)
+    tbl = wire.await_response(sock, rec, RSE_RANK, since, 2.0,
+                              want=lambda d: d.get("type") == 3)
     if isinstance(tbl, dict):
-        rows = tbl.get("field3") or []
-        for e in (rows if isinstance(rows, list) else [rows]):
+        for e in wire.as_list(tbl.get("field3") or []):
             if isinstance(e, dict) and isinstance(e.get("field1"), str):
                 names[e["field1"]] = e.get("field2")
 
@@ -239,20 +227,15 @@ def _parse_board(board, country):
     ⚠️ 只取 field3。同一条回包里的 field4 是**全国前十**，拿它当目标就等于
     去打榜首。type:1（全服榜）是六个国家一段一段的，所以必须按国家挑对那段。
     """
-    blocks = board.get("field2") or []
-    if isinstance(blocks, dict):
-        blocks = [blocks]
     out = []
-    for b in blocks:
+    for b in wire.as_list(board.get("field2") or []):
         if not isinstance(b, dict):
             continue
         if b.get("field1") not in (None, country):
             continue
-        rows = b.get("field3") or []
-        for e in (rows if isinstance(rows, list) else [rows]):
+        for e in wire.as_list(b.get("field3") or []):
             if (isinstance(e, dict) and isinstance(e.get("field2"), str)
-                    and isinstance(e.get("field1"), int)
-                    and not isinstance(e.get("field1"), bool)):
+                    and wire.is_int(e.get("field1"))):
                 out.append((e["field1"], e["field2"]))
     return out
 
@@ -274,8 +257,8 @@ def join_board(sock, rec, timeout=8.0):
     早先把它归成"只是取自己的排名、不要实现"，漏了"没名次时会给你安排一个"
     这一半。
     """
-    since = _send(sock, rec, OP_OPT, {1: ("int32", 5)})
-    r = _await_response(
+    since = wire.send(sock, rec, OP_OPT, {1: ("int32", 5)})
+    r = wire.await_response(
         sock, rec, RSE_OPT, since, timeout,
         want=lambda d: (d.get("type") == 5 and d.get("result") == 1
                         and _rank_of(d.get("indexself"))),
@@ -324,14 +307,14 @@ def _fight(sock, rec, me, my_rank, target, country, timeout=8.0):
     判据要死死咬住**本次目标**：同一条 RceArenaOpt(0469) 还兼着"领上期
     排名奖励"（type:3），而抓包里挑战之后服务端另会推一条只有
     {indexself:-1, result:1} 的裸回包。只认 type==1 且 uidfight/indexfight
-    都对得上的那条，才不会把别的东西当成这一击的结果（踩坑记录第 8 条）。
+    都对得上的那条，才不会把别的东西当成这一击的结果（踩坑记录第七条）。
     """
     rank, uid = target
-    since = _send(sock, rec, OP_OPT,
-                  {1: ("int32", 1), 2: ("string", str(me)),
-                   3: ("string", str(uid)), 4: ("int32", my_rank),
-                   5: ("int32", rank), 6: ("int32", country)})
-    return _await_response(
+    since = wire.send(sock, rec, OP_OPT,
+                      {1: ("int32", 1), 2: ("string", str(me)),
+                       3: ("string", str(uid)), 4: ("int32", my_rank),
+                       5: ("int32", rank), 6: ("int32", country)})
+    return wire.await_response(
         sock, rec, RSE_OPT, since, timeout,
         want=lambda d: (d.get("type") == 1 and d.get("indexfight") == rank
                         and str(d.get("uidfight")) == str(uid)))
@@ -361,7 +344,7 @@ def daily_challenge(rec, sock, config):
     # （玩家自己在游戏里打完了就是这种情形）。不这么判的话，每轮都会
     # 报一次 ❌ 并且明天之前一直重试。
     ok = done >= want or out["剩余次数"] == 0
-    # 汇总按 v.startswith("成功") 判 ✅（socket_keepalive._push_daily_summary），
+    # 汇总按 v.startswith("成功") 判 ✅（jobs.push_daily_summary），
     # 打满了却不以"成功"开头会显示成失败。
     why = (f"{'成功：' if ok else ''}挑战 {done}/{want} 次（胜 {out['胜']}）；"
            f"名次 {out['起始名次']}→{out['名次']}；积分 +{out['积分']}；"
@@ -374,10 +357,8 @@ def daily_challenge(rec, sock, config):
 def run(rec, sock, config: dict, rounds: int = 0) -> dict:
     """自动挑战争霸战。rounds 是最多打几次，返回成果字典。
 
-    ⚠️ **不要在这里碰 `_daily._BEAT`**。争霸战只作为每日任务运行，进来之前
-    `daily.run()` 已经把心跳器装好了；这里再赋一次值（哪怕是 None）就会把它
-    废掉，任务全程一次心跳都不发 —— 国战 2026-08-29 实盘正是这么栽的。
-    等回包时的心跳由 `daily._await_response` / `_nap` 负责续。
+    争霸战只作为每日任务运行，心跳器由 `daily.run()` 装好，
+    等回包时由 `wire.await_response` / `wire.nap` 负责续。
     """
     conf = (config.get("争霸战", {}) or {})
     # 自己的国家 ID：争霸战的名次是**本国内部**排名，这个值错了整张名单都不对，
@@ -385,7 +366,7 @@ def run(rec, sock, config: dict, rounds: int = 0) -> dict:
     # config 里填了非 0 才覆盖 —— 以前写死 3，那只是这个号是英国。
     country = (int(conf.get("自己国家ID") or 0)
                or int((config.get("国战", {}) or {}).get("自己国家ID") or 0)
-               or _daily.read_my_country(rec))
+               or account.read_my_country(rec))
     gap = float(conf.get("挑战间隔秒", 5))
     prefer = str(conf.get("选目标", "最弱优先"))
     allow_player = bool(conf.get("没有NPC时打真人", True))
@@ -423,7 +404,7 @@ def _loop(rec, sock, rounds, country, gap, prefer, allow_player, out):
             out["停止原因"] = "未上榜，且 RceArenaOpt{type:5} 没能排进榜单，停手"
             return out
         log.info("[争霸战] 已登记，本期名次 %s", my_rank)
-        _nap(0.6)
+        wire.nap(0.6)
         p0 = panel(sock, rec) or p0
         r2, l2, s2 = _read_panel(p0)
         my_rank = r2 if r2 is not None else my_rank
@@ -472,7 +453,7 @@ def _loop(rec, sock, rounds, country, gap, prefer, allow_player, out):
 
         wait = gap - (time.time() - last_act)
         if wait > 0:
-            _nap(wait)
+            wire.nap(wait)
 
         rank, uid = target
         r = _fight(sock, rec, me, my_rank, target, country)
@@ -483,8 +464,8 @@ def _loop(rec, sock, rounds, country, gap, prefer, allow_player, out):
 
         # 回包的 result 只说明"服务端受理了"（抓包里同一场先后回过 1 和 2），
         # 成败一律以**面板状态的变化**为准：次数少了才算真打了一场，
-        # 名次前进了才算赢。一个请求"成功"不等于这件事做成了（踩坑记录第 15 条）。
-        _nap(1.0)
+        # 名次前进了才算赢。一个请求"成功"不等于这件事做成了（踩坑记录第十六条）。
+        wire.nap(1.0)
         new_rank, new_left, new_score = _read_panel(panel(sock, rec))
         if new_left is None:
             out["停止原因"] = "打完读不到面板，停手"

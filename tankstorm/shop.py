@@ -9,7 +9,7 @@
 
 ⚠️ **这是全项目唯一会主动花钱的模块。** 别的任务一律把危险字段钉死为 0，
 只有这里的 `RcePurchase.credit` 必须是非零的价格。所以本模块自带一整套
-自检，不依赖 daily.py 的通用安全检查（runner 本来就跳过那一套）。
+自检，不依赖每日任务的通用安全检查（runner 本来就跳过那一套）。
 
 机制来自 2026-08-30 抓包（8.30捕捉.pcapng，上下行 RC4 全流校验通过）。
 玩家手动买了三次，两次各 1 个、一次 10 个，每一步都拿到了：
@@ -48,12 +48,8 @@
 发它只是因为真客户端发过，而且它不花钱、不改状态。
 """
 
-import time
-
-from . import sender
-from .daily import _await_response, _nap
+from . import account, wire
 from .log import get_logger
-from .proto_encode import encode_message
 
 log = get_logger()
 
@@ -61,7 +57,6 @@ OP_STORE = "04f6"       # RceSpecialStore
 OP_BUY = "041f"         # RcePurchase
 RSE_STORE = "RseSpecialStore"
 RSE_BUY = "RsePurchase"
-RSE_BAG = "RseBagItemLst"
 RSE_USER = "RseUserInfo"
 
 # 抓包实测的常量。shopID/itemID 允许配置覆盖（游戏改版时好改），
@@ -76,51 +71,27 @@ DEFAULT_UNIT_PRICE = 100        # 单价（功勋）
 HARD_MAX_BUY = 100
 
 
-def _bag_count(rec, item_id):
-    """从背包里读某物品的 (槽位, 数量)；读不到返回 (None, None)。
-
-    ⚠️ 返回 None 和返回 0 是两回事：None = "没读到背包"，此时**绝不能买**
-    （读不到就不做，铁律）；0 = "确实一个都没有"。
-
-    RseBagItemLst 有两个列表：field2 是临时背包（槽位 2xxx），
-    bagItem 是正式背包（槽位 1xxx）。买来的东西进正式背包，只看后者。
-    """
-    got = rec.latest.get(RSE_BAG) if rec else None
-    if not got or not isinstance(got[1], dict):
-        return None, None
-    items = got[1].get("bagItem")
-    if isinstance(items, dict):
-        items = [items]
-    if not isinstance(items, list):
-        return None, None
-    for e in items:
-        if isinstance(e, dict) and e.get("field2") == item_id:
-            return e.get("field1"), int(e.get("field4") or 0)
-    return None, 0        # 背包读到了，但里面没有这件东西
-
-
 def _wallet(rec):
     """读 (勋章, 功勋)；读不到返回 (None, None)。
 
     勋章是买完之后用来对账的基准 —— 只要它动了，就说明 credittype 的理解
     是错的，必须立刻停手。
     """
-    got = rec.latest.get(RSE_USER) if rec else None
-    if not got or not isinstance(got[1], dict):
+    d = wire.latest(rec, RSE_USER)
+    if d is None:
         return None, None
-    d = got[1]
     c, f = d.get("credit"), d.get("feats")
-    if not isinstance(c, int) or isinstance(c, bool):
+    if not wire.is_int(c):
         return None, None
-    return c, (f if isinstance(f, int) and not isinstance(f, bool) else None)
+    return c, (f if wire.is_int(f) else None)
 
 
 def _precheck(fields, want_price, want_num, shop_id):
     """发之前把请求逐字段验一遍。返回 (是否放行, 原因)。
 
-    daily.py 的通用安全检查对本模块是失效的（runner 跳过那一套，而且
+    每日任务的通用安全检查对本模块是失效的（runner 跳过那一套，而且
     credit 本来就必须非零），所以这里自己来 —— 而且要留下可观测的日志。
-    "防护装了但没接线"是踩坑记录第 13 条，教训就是防护必须能被看见。
+    "防护装了但没接线"是踩坑记录第十三条，教训就是防护必须能被看见。
     """
     # 数量上限先查：它是最根本的一道界，先报它比先报"总价对不上"清楚得多。
     if not (1 <= want_num <= HARD_MAX_BUY):
@@ -159,7 +130,7 @@ def daily_restock(rec, sock, config):
         return False, f"目标库存({target}) 比补货线({low}) 还低，配置有误，不买"
 
     # 铁律：先查询、读不到依据就不做。背包读不到 = 不知道现在有几个 = 不买。
-    slot, have = _bag_count(rec, item_id)
+    _slot, have = account.bag_item(rec, item_id)
     if have is None:
         return False, f"读不到背包里物品 {item_id} 的数量，不买（读不到就不做）"
     if have >= low:
@@ -181,13 +152,10 @@ def daily_restock(rec, sock, config):
              have, low, want, have + want, price, total, credit0, feats0)
 
     # 前置：照抄真客户端在购买前发过的开商店面板（不花钱、不改状态）
-    before = rec.seq_mark() if rec else 0
-    sender.send_frame(sock, OP_STORE,
-                      encode_message({1: ("int32", 0)}, omit_zero=False),
-                      rec.rc4_c2s)
-    _await_response(sock, rec, RSE_STORE, before, 6.0,
-                    want=lambda d: d.get("type") == 0)
-    _nap(0.6)
+    before = wire.send(sock, rec, OP_STORE, {1: ("int32", 0)})
+    wire.await_response(sock, rec, RSE_STORE, before, 6.0,
+                        want=lambda d: d.get("type") == 0)
+    wire.nap(0.6)
 
     # 字段顺序与真客户端逐字段一致；r1(1)/r2(4) 客户端不发，我们也不发。
     fields = {2: ("string", str(total)), 3: ("string", "SHOP"),
@@ -199,10 +167,8 @@ def daily_restock(rec, sock, config):
         return False, f"发送前自检不通过：{why}"
     log.info("[功勋商城] 自检通过：%s", why)
 
-    before = rec.seq_mark() if rec else 0
-    sender.send_frame(sock, OP_BUY, encode_message(fields, omit_zero=False),
-                      rec.rc4_c2s)
-    r = _await_response(
+    before = wire.send(sock, rec, OP_BUY, fields)
+    r = wire.await_response(
         sock, rec, RSE_BUY, before, 8.0,
         want=lambda d: (d.get("shopID") == shop_id and d.get("itemID") == item_id))
     if not isinstance(r, dict):

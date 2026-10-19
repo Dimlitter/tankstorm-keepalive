@@ -59,13 +59,9 @@ from collections import Counter
 from datetime import date
 
 from . import crypto
+from . import schema as SCH            # opcode -> 消息名（schema.json 还原自 SWF）
+from . import stream_recorder
 from .log import LOG_DIR, get_logger
-from .stream_recorder import StreamRecorder
-
-try:
-    from . import schema as SCH        # opcode -> 消息名（schema.json 还原自 SWF）
-except Exception:                      # schema.json 缺失也不影响录制
-    SCH = None
 
 log = get_logger()
 
@@ -139,52 +135,6 @@ def _entropy(b: bytes) -> float:
         return 0.0
     n = len(b)
     return -sum((c / n) * math.log2(c / n) for c in Counter(b).values())
-
-
-def _varint(b, i):
-    shift = val = 0
-    n = len(b)
-    while i < n:
-        c = b[i]
-        i += 1
-        val |= (c & 0x7F) << shift
-        if not c & 0x80:
-            return val, i
-        shift += 7
-        if shift > 63:
-            return None, i
-    return None, i
-
-
-def _pb_ok(body: bytes) -> bool:
-    """body 能否整体解析成合法 protobuf（字段号>0，wire type 只能 0/1/2/5，长度刚好吃完）。"""
-    n = len(body)
-    if n == 0:
-        return True
-    i = 0
-    while i < n:
-        key, i = _varint(body, i)
-        if key is None:
-            return False
-        wt, fn = key & 7, key >> 3
-        if fn == 0 or wt in (3, 4, 6, 7):
-            return False
-        if wt == 0:
-            v, i = _varint(body, i)
-            if v is None:
-                return False
-        elif wt == 1:
-            i += 8
-        elif wt == 5:
-            i += 4
-        else:
-            ln, i = _varint(body, i)
-            if ln is None or ln > n - i:
-                return False
-            i += ln
-        if i > n:
-            return False
-    return i == n
 
 
 def _readable_text(body: bytes) -> str:
@@ -329,14 +279,8 @@ class Recorder:
         # 原始字节流旁路。默认**开启**，而且不该关：RC4 密钥流在同方向的
         # 非豁免 body 之间连续累积，唯一保险的做法就是把整条流从第一个字节
         # 一字不差地存下来。解密用 tools/redwar_rc4.py。
-        raw = conf.get("原始流", {}) or {}
-        self.stream = StreamRecorder(
-            base_dir=raw.get("目录", "logs/streams"),
-            enabled=raw.get("启用", True),
-            keep_sessions=int(raw.get("保留会话数", 10)),
-            max_bytes=int(raw.get("单会话上限MB", 256)) * 1024 * 1024,
-            log=log, hook=self._on_bytes,
-        )
+        self.stream = stream_recorder.from_config(config, log=log,
+                                                  hook=self._on_bytes)
 
     # ---------- 已知 opcode 的持久化学习 ----------
 
@@ -453,7 +397,7 @@ class Recorder:
         plain = c.crypt(body)
         if self._crypto == "probing" and direction == "s2c" and len(body) >= 4:
             ok, tot = self._probe
-            self._probe = [ok + (1 if _pb_ok(plain) else 0), tot + 1]
+            self._probe = [ok + (1 if SCH.is_protobuf(plain) else 0), tot + 1]
             if self._probe[1] >= 6:
                 if self._probe[0] >= 5:
                     self._crypto = "ok"
@@ -583,7 +527,7 @@ class Recorder:
             ent = _entropy(body) if len(body) >= ENTROPY_MIN_LEN else None
             if encrypted:
                 self.enc_ops[op] = self.enc_ops.get(op, 0) + 1
-            elif ent is not None and ent >= 7.5 and not _pb_ok(body):
+            elif ent is not None and ent >= 7.5 and not SCH.is_protobuf(body):
                 # 豁免名单说该明文，实测却是高熵密文 —— 游戏改版了，名单要更新
                 self._warn_once(f"exempt-mismatch-{op}",
                                 "opcode %s 在豁免名单里却是高熵密文（熵 %.2f）—— "
@@ -593,10 +537,9 @@ class Recorder:
                 "ts": time.strftime("%Y-%m-%d %H:%M:%S"),
                 "op": op, "seq": seq, "len": len(body),
             }
-            if SCH:
-                nm = SCH.name_of(op)
-                if nm != op:
-                    rec["msg"] = nm
+            nm = SCH.name_of(op)
+            if nm != op:
+                rec["msg"] = nm
             if outgoing:
                 rec["dir"] = "c2s"
                 # 登录行 a,{uid},{secret} 是「2字节长度 + 纯文本」，没有 opcode/seq，
@@ -633,20 +576,13 @@ class Recorder:
                 # 解开了：换成明文往下走，关键词/图片检测因此对加密消息也生效
                 rec["enc"]["decrypted"] = True
                 body = plain
-                if SCH:
-                    data = SCH.decode(plain, op)
-                    if data is not None:
-                        rec["data"] = data
-                        # 缓存最新一条，供每日任务"先读状态再决策"用
-                        # （如 RseWPCExplore.leftFreeCnt 剩余免费探索次数）
-                        if not outgoing:
-                            self._latest_seq += 1
-                            nm = rec.get("msg", op)
-                            self.latest[nm] = (self._latest_seq, data)
-                            hist = self.recent.setdefault(nm, [])
-                            hist.append((self._latest_seq, data))
-                            if len(hist) > 8:
-                                del hist[:-8]
+                data = SCH.decode(plain, op)
+                if data is not None:
+                    rec["data"] = data
+                    # 缓存最新一条，供每日任务"先读状态再决策"用
+                    # （如 RseWPCExplore.leftFreeCnt 剩余免费探索次数）
+                    if not outgoing:
+                        self._remember(rec.get("msg", op), data)
 
             # ---- 以下为明文消息的原有逻辑，行为保持不变 ----
             text = _readable_text(body) if len(body) <= 65536 else ""
@@ -711,6 +647,15 @@ class Recorder:
                 except Exception as exc:
                     log.warning("超级强攻自动拒绝回调失败: %s", exc)
 
+    def _remember(self, name, data):
+        """记下这条消息最新的解码结果，并留一小段同名历史。"""
+        self._latest_seq += 1
+        self.latest[name] = (self._latest_seq, data)
+        hist = self.recent.setdefault(name, [])
+        hist.append((self._latest_seq, data))
+        if len(hist) > 8:
+            del hist[:-8]
+
     def _maybe_flag(self, op, seq, body, text, rec):
         """加密载荷的告警：沿用原有触发条件，只是在理由里补一句"载荷加密"。"""
         signature = EVENT_SIGNATURES.get(op)
@@ -737,7 +682,7 @@ class Recorder:
             return
         self._last_alert_ts = time.time()
 
-        opname = SCH.describe(op) if SCH else op
+        opname = SCH.describe(op)
         reason = []
         if signature:
             reason.append(signature)

@@ -7,11 +7,12 @@
 # 详见随附的 LICENSE 文件，或 <https://www.gnu.org/licenses/>。
 """坦克风暴 socket 协议编解码（数据驱动）。
 
-游戏协议未加密（config.xml: encrypt=false），但具体的登录握手/心跳字节需要从
-Wireshark 抓包里得到。为了让代码与"抓包得到的协议细节"解耦，协议细节放在项目根目录
-的 protocol.json 里，本模块只负责按它拼包/拆包。
+登录握手和心跳的具体字节要从 Wireshark 抓包里得到。为了让代码与"抓包得到的
+协议细节"解耦，这些细节放在项目根目录的 protocol.json 里，本模块只负责按它拼包。
+登录握手和心跳都在 RC4 豁免名单里（见 crypto.EXEMPT），所以能静态重放；
+其余消息的 body 要加密，见 sender.py。
 
-protocol.json 结构（抓包分析后由我填好，示例见 protocol.example.json）：
+protocol.json 结构（示例见 protocol.example.json）：
 
 {
   "framing": "length4be",          // 帧结构：length2be|length4be|null|raw
@@ -40,13 +41,11 @@ import json
 import os
 import struct
 
+from . import paths
 from .log import get_logger
 
 log = get_logger()
 
-from . import paths                               # noqa: E402
-
-BASE_DIR = paths.app_dir()
 # 协议表是只读数据：exe 旁边有用户自己那份就用它（换游戏版本时可以直接替换），
 # 没有就用打包进去的出厂默认值。
 PROTOCOL_FILE = paths.data_file("protocol.json")
@@ -60,7 +59,7 @@ def load_spec(path: str = PROTOCOL_FILE) -> dict:
     if not os.path.exists(path):
         raise ProtocolNotConfigured(
             f"缺少 {path} —— socket 协议还没配置。请先按 README 用 Wireshark 抓包，"
-            "跑 tools/pcap_analyze.py，把结果发我生成 protocol.json。")
+            "跑 tools/pcap_analyze.py，照 protocol.example.json 的格式生成 protocol.json。")
     with open(path, encoding="utf-8") as f:
         return json.load(f)
 

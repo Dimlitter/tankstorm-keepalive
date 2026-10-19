@@ -76,6 +76,38 @@ def _varint(b, i):
 _ZIGZAG = {"sint32", "sint64"}
 
 
+def is_protobuf(body: bytes) -> bool:
+    """body 能否整体解析成合法 protobuf（字段号>0，wire type 只能 0/1/2/5，长度刚好吃完）。
+
+    录制器用它给实时解密做自检：密钥对了，解出来的 body 应当几乎全部通过。
+    """
+    n = len(body)
+    i = 0
+    while i < n:
+        key, i = _varint(body, i)
+        if key is None:
+            return False
+        wt, fn = key & 7, key >> 3
+        if fn == 0 or wt in (3, 4, 6, 7):
+            return False
+        if wt == 0:
+            v, i = _varint(body, i)
+            if v is None:
+                return False
+        elif wt == 1:
+            i += 8
+        elif wt == 5:
+            i += 4
+        else:
+            ln, i = _varint(body, i)
+            if ln is None or ln > n - i:
+                return False
+            i += ln
+        if i > n:
+            return False
+    return i == n
+
+
 def decode(body: bytes, op: str = None, depth: int = 0):
     """解析 protobuf，按 schema 给字段命名。返回 dict，解析失败返回 None。
 

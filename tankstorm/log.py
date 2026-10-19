@@ -10,7 +10,7 @@ import os
 import sys
 from datetime import date
 
-from .paths import user_path                      # noqa: E402
+from .paths import user_path
 
 # 日志和当天任务计数是**可写数据**，打包后要落在 exe 旁边而不是临时解压目录，
 # 否则每次运行完就被删掉，当天次数永远从零开始。见 paths.py。

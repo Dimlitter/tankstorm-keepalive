@@ -37,11 +37,15 @@ c2s.bin 和 meta.json 会包含 uid / secret / openkey / sid 等真实凭据
 （登录握手是明文）。确保 logs/ 在 .gitignore 里；转发给别人之前想清楚，
 这几个字段足够别人登录你的账号。
 
-接线（socket_keepalive.py）
----------------------------
+接线
+----
+由 recorder.Recorder 持有：Recorder.wrap() 里调 open_session() 和 wrap()，
+hook 把双向字节旁路给 Recorder 做帧级分析；登录成功后 Recorder.note() 打标记。
+用法示意：
+
     from tankstorm import stream_recorder
 
-    rec = stream_recorder.from_config(config, log=log)
+    rec = stream_recorder.from_config(config, log=log, hook=on_bytes)
     ...
     sock.connect((host, port))
     rec.open_session(host=host, port=port, uid=ctx.get("uid"))
@@ -365,7 +369,7 @@ class TappedSocket:
 
 # ------------------------------------------------------------------ 配置入口
 
-def from_config(config: dict = None, log=None) -> StreamRecorder:
+def from_config(config: dict = None, log=None, hook=None) -> StreamRecorder:
     """从 config.json 读取配置。缺省即开启。
 
     config.json 里加：
@@ -386,5 +390,5 @@ def from_config(config: dict = None, log=None) -> StreamRecorder:
         enabled=cfg.get("启用", True),
         keep_sessions=int(cfg.get("保留会话数", 10)),
         max_bytes=int(cfg.get("单会话上限MB", 256)) * 1024 * 1024,
-        log=log,
+        log=log, hook=hook,
     )
