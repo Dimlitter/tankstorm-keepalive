@@ -12,6 +12,7 @@
     ctx = get_game_context(qq)              每次连接前刷新，openkey 会过期
     sock = open_link(spec, ctx, rec)        连 TCP → 接录制器 → 开实时解密 → 发登录序列
     drain(sock)                             收完服务端登录后推来的状态
+    check_protocol(rec, ctx, config)        核对协议编号对照，没通过就一个请求都不发
 
 登录后的状态推送不能省：闸门要靠它判断免费次数，公会捐献的玩家名、
 国战和争霸战的国家 ID 也都在里面。
@@ -20,7 +21,7 @@
 import socket
 import time
 
-from . import notify, protocol, wire
+from . import notify, protocol, wire, wiremap
 from .log import get_logger
 from .qzone import get_game_context
 from .recorder import Recorder
@@ -82,16 +83,18 @@ def open_link(spec: dict, ctx: dict, rec) -> socket.socket:
         RC4 密钥流从那一条开始累积，晚一步就永远对不上
     密钥三要素 uid/sid/level/firstLogin 都在 FlashVars 里，连接前就齐了。
 
-    连接或登录失败抛 OSError，socket 已关闭。
+    连接或登录失败抛 OSError，socket 已关闭。这个游戏版本先前核对没通过时抛
+    wiremap.UnsupportedVersion（也是 OSError），这时还没连 TCP。
     """
+    wiremap.activate(ctx)       # 先选好协议编号对照；先前核对没通过的版本不连
     host, port = endpoint(spec, ctx)
     log.info("连接游戏服务器 %s:%d …", host, port)
     sock = socket.create_connection((host, port), timeout=15)
     sock.settimeout(15)
     try:
         rec.on_connect()   # 开始登录静默窗口：这段时间的新 opcode 只学不报
-        sock = rec.wrap(sock, host=host, port=port,
-                        uid=ctx.get("uid"), sid=ctx.get("sid"))
+        sock = rec.wrap(sock, host=host, port=port, uid=ctx.get("uid"),
+                        sid=ctx.get("sid"), version=ctx.get("version"))
         rec.enable_crypto(ctx)
         steps = protocol.build_login_sequence(spec, ctx)
         for i, (data, delay) in enumerate(steps, 1):
@@ -107,6 +110,25 @@ def open_link(spec: dict, ctx: dict, rec) -> socket.socket:
     # sid 是加密载荷分析时的头号候选密钥材料，记进会话元信息
     rec.note("login_ok", sid=ctx.get("sid"), uid=ctx.get("uid"))
     return sock
+
+
+def check_protocol(rec, ctx: dict, config: dict):
+    """收完登录推送后核对协议编号对照（见 wiremap.verify）。通过返回 None，否则返回原因。
+
+    没通过时把这个游戏版本记为本进程不可用，并推送提醒：协议多半又被打乱了，
+    这时一个任务请求都不能发。
+    """
+    ok, why = wiremap.verify(rec)
+    if ok:
+        log.info("协议编号核对通过：%s", why)
+        return None
+    version = ctx.get("version") or "（未知）"
+    wiremap.reject(ctx.get("version") or "", why)
+    log.error("协议编号核对没通过（游戏版本 %s）：%s。已断开，不发任何请求", version, why)
+    notify.send(config, "坦克风暴：游戏协议可能又改了，脚本已停手",
+                f"游戏版本 {version} 登录后核对没通过：{why}\n\n"
+                f"脚本没有发任何任务请求。需要按 README「游戏更新后」重新生成编号对照表。")
+    return why
 
 
 def drain(sock, seconds: float = 6.0) -> None:
@@ -153,6 +175,8 @@ def run_once(qq, config: dict, work) -> int:
             return 1
         try:
             drain(sock)
+            if check_protocol(rec, ctx, config):
+                return 1
             return work(rec, sock, spec, ctx)
         except OSError as exc:
             log.error("连接中断: %s", exc)

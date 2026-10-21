@@ -36,12 +36,13 @@ def sevendays_day(data):
     """七天乐：只领**当天**那份，已领过就返回 None。
 
     响应 RseSevenDays{type:0}：logonDays=登录到第几天，
-    field3 = 7 个 bool，field3[day-1] 表示第 day 天是否已领。
-    实测 logonDays=3、field3=[F,T,F,...]，客户端领的正是 day=3。
+    hasGetGift = 7 个 bool，hasGetGift[day-1] 表示第 day 天是否已领。
+    实测 logonDays=3、hasGetGift=[F,T,F,...]，客户端领的正是 day=3。
+    （字段 3 早先的 schema 认不出名字，叫 field3；2026101403 的类里存储槽名可读。）
     只领当天是为了贴合实测行为，不去猜历史几天还能不能补领。
     """
     day = data.get("logonDays")
-    got = data.get("field3")
+    got = data.get("hasGetGift")
     if not isinstance(day, int) or not isinstance(got, list):
         return None
     if day < 1 or day > len(got):

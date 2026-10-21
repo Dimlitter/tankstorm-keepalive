@@ -11,7 +11,7 @@ from unittest import mock
 
 import fakes  # noqa: F401
 
-from tankstorm import jobs, protocol, session, socket_keepalive
+from tankstorm import jobs, protocol, session, socket_keepalive, wiremap
 
 NO_RECORDING = {"录制": {"启用": False, "实时解密": False, "原始流": {"启用": False}}}
 
@@ -19,18 +19,19 @@ NO_RECORDING = {"录制": {"启用": False, "实时解密": False, "原始流": 
 class LocalServer(threading.Thread):
     """收下登录字节，等到第一次心跳就主动断开。"""
 
-    def __init__(self):
+    def __init__(self, hb="0006040e00000000"):
         super().__init__(daemon=True)
         self.srv = socket.socket()
         self.srv.bind(("127.0.0.1", 0))
         self.srv.listen(1)
         self.port = self.srv.getsockname()[1]
         self.received = b""
+        self.hb = hb
 
     def run(self):
         conn, _ = self.srv.accept()
         conn.settimeout(5)
-        hb = bytes.fromhex("0006040e00000000")
+        hb = bytes.fromhex(self.hb)
         try:
             while hb not in self.received:
                 chunk = conn.recv(4096)
@@ -49,13 +50,56 @@ class FakeQQ:
         return True
 
 
-def ctx_for(port):
+def ctx_for(port, version="2026101403"):
     return {"openkey": "k", "uid": "1000", "secret": "s", "sid": "1",
-            "level": "35", "firstLogin": "false",
+            "level": "35", "firstLogin": "false", "version": version,
             "server": "127.0.0.1", "port": str(port)}
 
 
 class SessionTest(unittest.TestCase):
+    def setUp(self):
+        # open_link 会按 ctx 里的游戏版本切换全局映射，测完换回来
+        self.addCleanup(setattr, wiremap, "ACTIVE", wiremap.ACTIVE)
+        # 登录推送这里没有，收 0.2 秒就够；假服务端只等 5 秒心跳
+        real_drain = session.drain
+        patcher = mock.patch.object(session, "drain", lambda s, seconds=6.0: real_drain(s, 0.2))
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_unverifiable_guess_sends_nothing_after_login(self):
+        # 没见过的版本借用对照表试连；录制和解密都关着，没法核对，就不该发心跳
+        self.addCleanup(wiremap._REJECTED.pop, "2099010101", None)
+        srv = LocalServer(hb="0006043e00000000")
+        srv.start()
+        spec = dict(protocol.load_spec(), http_warmup=False)
+        rec = socket_keepalive.Recorder(NO_RECORDING)
+        with mock.patch.object(socket_keepalive, "get_game_context",
+                               lambda qq: ctx_for(srv.port, "2099010101")):
+            reason = socket_keepalive._one_session(FakeQQ(), spec, NO_RECORDING, rec,
+                                                   with_daily=False)
+        srv.join(5)
+        rec.close()
+        self.assertIn("核对没通过", reason)
+        self.assertTrue(srv.received.startswith(b"tgw_"))              # 握手照发
+        self.assertNotIn(bytes.fromhex("0006043e00000000"), srv.received)   # 心跳没发
+        with self.assertRaises(wiremap.UnsupportedVersion):           # 之后连 TCP 都不连
+            session.open_link(spec, ctx_for(srv.port, "2099010101"), rec)
+
+    def test_new_protocol_version_is_translated_on_the_wire(self):
+        srv = LocalServer(hb="0006043e00000000")
+        srv.start()
+        spec = dict(protocol.load_spec(), http_warmup=False)
+        rec = socket_keepalive.Recorder(NO_RECORDING)
+        with mock.patch.object(socket_keepalive, "get_game_context",
+                               lambda qq: ctx_for(srv.port, "2026102102")):
+            reason = socket_keepalive._one_session(FakeQQ(), spec, NO_RECORDING, rec,
+                                                   with_daily=False)
+        srv.join(5)
+        rec.close()
+        self.assertIn("服务器关闭连接", reason)
+        self.assertIn(bytes.fromhex("0023044a00000000"), srv.received)   # RceInit
+        self.assertNotIn(bytes.fromhex("0023041c"), srv.received)        # 旧编号一个都不发
+        self.assertNotIn(bytes.fromhex("0028041d"), srv.received)        # 旧 041d 现在是购买
     def test_keepalive_session_logs_in_beats_and_reports_close(self):
         srv = LocalServer()
         srv.start()
@@ -82,9 +126,7 @@ class SessionTest(unittest.TestCase):
                 protocol.build_heartbeat(spec, ctx))
             return 0
 
-        real_drain = session.drain
-        with mock.patch.object(session, "get_game_context", lambda qq: ctx_for(srv.port)), \
-                mock.patch.object(session, "drain", lambda s, seconds=6.0: real_drain(s, 0.2)):
+        with mock.patch.object(session, "get_game_context", lambda qq: ctx_for(srv.port)):
             code = session.run_once(FakeQQ(), NO_RECORDING, work)
         srv.join(5)
         self.assertEqual(code, 0)

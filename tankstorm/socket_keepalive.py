@@ -15,6 +15,7 @@
   1. get_game_context() 拿最新 openid/openkey/uid/sid/secret/server/port（每次连接前刷新，
      因为 openkey 会过期）；
   2. 连 TCP 到 server:port，发登录握手（见 session.open_link）；
+  2.5 收完登录推送，核对协议编号对照（见 session.check_protocol），没通过就断开；
   3. 每 interval 秒发一次心跳（protocol.build_heartbeat）；
   4. 读服务器数据，若命中"是否在线"探测包则回应；
   5. 连接断开 → 退避重连（并刷新 openkey）。
@@ -84,13 +85,18 @@ def _one_session(qq, spec: dict, config: dict, rec, with_daily: bool) -> str:
         return f"连接失败: {exc}"
 
     try:
+        # 先收完登录推送、核对协议编号对照，通过了才发心跳和任何请求。
+        # 心跳也算：旧版的心跳编号在 2026102102 里是 RceClearData
+        session.drain(sock)
+        why = session.check_protocol(rec, ctx, config)
+        if why:
+            return f"协议编号核对没通过：{why}"
         if rec.auto_reject:
             _install_auto_reject(rec, sock, config)
         hb = protocol.build_heartbeat(spec, ctx)
 
         if with_daily:
             try:
-                session.drain(sock)
                 jobs.daily_round(rec, sock, spec, ctx, config)
             except Exception as exc:
                 log.error("每日任务执行异常（不影响保活）: %s", exc)

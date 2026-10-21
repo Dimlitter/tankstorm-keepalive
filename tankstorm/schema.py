@@ -7,16 +7,17 @@
 # 详见随附的 LICENSE 文件，或 <https://www.gnu.org/licenses/>。
 """协议 schema：opcode 与消息名、字段号与字段名的对照。
 
-schema.json 由 tools/extract_proto.py 从 RedWar SWF 还原：
-  · opcode 表来自 _-1JW::_-67s 里 563 次 _-055(opcode, 消息类) 注册调用
+schema.json 由 tools/extract_proto.py 从 RedWar_2026101403.swf 还原：
+  · opcode 表来自注册方法里 567 次 注册函数(opcode, 消息类) 调用
   · 消息真名来自 protobuf-as3 的报错模板 'Bad data format: <消息>.<字段> ...'
     ——字符串字面量，secureSWF 动不了
   · 字段号来自 writeToBuffer 里 writeTag(output, wiretype, <tag>) 的立即数
-  · 字段类型由 WriteUtils(_-3EJ) 各方法体实测认定
-    （_-yF=string 写 writeUTFBytes，_-30c=bool 写 writeByte，等等）
+  · 字段类型由 WriteUtils 各方法体实测认定
+    （写 writeUTFBytes 的是 string，写 writeByte 的是 bool，等等）
 
-游戏更新后重新生成：
-    python tools/extract_proto.py <新的.swf> out && cp out/schema.json tankstorm/
+这是本项目自己的编号，游戏更新后**不要**拿新版 SWF 重新生成它：2026102102 起
+新版会打乱 opcode 和字段号，代码里的字段路径全按这一版写。新版本的线上编号
+由 wiremap.py 在收发两头翻译，生成方法见 tools/build_wiremap.py。
 """
 
 import json
@@ -74,6 +75,56 @@ def _varint(b, i):
 
 
 _ZIGZAG = {"sint32", "sint64"}
+
+# schema 类型 -> 应有的 wire type
+_WIRE_TYPE = {"int32": 0, "int64": 0, "uint32": 0, "uint64": 0, "sint32": 0, "sint64": 0,
+              "bool": 0, "enum": 0, "fixed64": 1, "sfixed64": 1, "double": 1,
+              "fixed32": 5, "sfixed32": 5, "float": 5,
+              "string": 2, "bytes": 2, "message": 2}
+
+
+def check_wire_types(body: bytes, op: str):
+    """按 schema 核对 body 里每个顶层字段的 wire type，返回 (一致数, 不一致数)。
+
+    用来判断 opcode/字段号的对照还对不对（见 wiremap.verify）。2026-10-21 拿两次实盘的
+    真实下行流实测：对照表对的时候一致率是 100%（这个协议的 repeated 标量不打包，
+    所以 int 字段一律是 varint）；拿错的对照表去解，一致率只有 18%~57%。
+    schema 里没有的字段、类型未知的字段不计；拆不开的算一个不一致。
+    """
+    fields = (SCHEMA.get(op or "", {}) or {}).get("fields", {})
+    good = bad = 0
+    i, n = 0, len(body)
+    while i < n:
+        key, i = _varint(body, i)
+        if key is None:
+            return good, bad + 1
+        fn, wt = key >> 3, key & 7
+        if wt == 0:
+            v, i = _varint(body, i)
+            if v is None:
+                return good, bad + 1
+        elif wt == 1:
+            i += 8
+        elif wt == 5:
+            i += 4
+        elif wt == 2:
+            ln, i = _varint(body, i)
+            if ln is None:
+                return good, bad + 1
+            i += ln
+        else:
+            return good, bad + 1
+        if i > n:
+            return good, bad + 1
+        meta = fields.get(str(fn))
+        want = _WIRE_TYPE.get(meta[1]) if meta else None
+        if want is None:
+            continue
+        if wt == want:
+            good += 1
+        else:
+            bad += 1
+    return good, bad
 
 
 def is_protobuf(body: bytes) -> bool:
