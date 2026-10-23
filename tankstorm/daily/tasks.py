@@ -45,16 +45,16 @@ TASKS = [
                                     "取当天且未领的那天")),
           3: ("int32", 1)},
          "实测", "8/10 抓包：{type:0} 查询 → {type:1,day:3,gifttype:1} 领取。"
-                 "响应 logonDays=登录到第几天，field3[day-1]=该天是否已领。"
+                 "响应 logonDays=登录到第几天，hasGetGift[day-1]=该天是否已领。"
                  "只领当天那份，不去猜历史几天能否补领",
          prelude=[("047a", {1: ("int32", 0)})],
          # ⚠️ RseSevenDays 既没有 ret 也没有 result，judge() 找不到状态码就直接
-         # 判成功。真正能说明领到了的是 field3[day-1] 由 false 翻 true
+         # 判成功。真正能说明领到了的是 hasGetGift[day-1] 由 false 翻 true
          # （2026-09-02 实盘：领前全 false，领第 2 天后变成 [F,T,F,F,F,F,F]）。
          # 眼下先把它 report 出来，让这个状态在日志和推送里看得见 ——
          # 判据本身还差一步：success_flag 只能盯单个布尔字段，表达不了
          # "数组里第 day-1 格"，要补得先扩 success_flag 的写法。
-         report=("logonDays", "field3")),
+         report=("logonDays", "hasGetGift")),
 
     Task("每日资源", "每日免费资源", "0444", "RceGetDailyRes",
          {}, "待确认", "无字段或字段未知，需实测"),

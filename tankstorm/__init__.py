@@ -19,6 +19,7 @@
     wire / account        请求原语（发请求、等回包、心跳）与账号状态读取
     protocol / crypto / proto_encode / schema / sender
                           帧格式、RC4、protobuf 编解码、opcode 表
+    wiremap               按游戏版本在本项目编号和线上编号之间翻译（2026102102 起协议会被打乱）
     recorder / stream_recorder
                           双向消息录制、异常事件告警、原始流落盘
     settings / paths / log / notify

@@ -41,7 +41,7 @@ import json
 import os
 import struct
 
-from . import paths
+from . import paths, wiremap
 from .log import get_logger
 
 log = get_logger()
@@ -109,11 +109,15 @@ def apply_framing(body: bytes, framing: str) -> bytes:
 
 
 def _build_step(step: dict, ctx: dict, default_framing: str, encoding: str) -> bytes:
-    """构造登录序列中的一步 → 字节。"""
+    """构造登录序列中的一步 → 字节。
+
+    protocol.json 里的整帧是按本项目编号录的，这里按当前游戏版本换成线上编号
+    （见 wiremap.py）。TGW 头和 a,uid,secret 登录行不是这种帧，原样发。
+    """
     if "raw_hex" in step:
-        return bytes.fromhex(step["raw_hex"])
+        return wiremap.ACTIVE.frame_to_wire(bytes.fromhex(step["raw_hex"]))
     body = render_message(step["parts"], ctx, encoding)
-    return apply_framing(body, step.get("framing", default_framing))
+    return wiremap.ACTIVE.frame_to_wire(apply_framing(body, step.get("framing", default_framing)))
 
 
 def build_login_sequence(spec: dict, ctx: dict) -> list:
@@ -154,9 +158,9 @@ def build_heartbeat(spec: dict, ctx: dict) -> bytes:
     if not hb:
         raise ProtocolNotConfigured("protocol.json 缺少 heartbeat 段")
     if "raw_hex" in hb:
-        return bytes.fromhex(hb["raw_hex"])
+        return wiremap.ACTIVE.frame_to_wire(bytes.fromhex(hb["raw_hex"]))
     body = render_message(hb["parts"], ctx, spec.get("encoding", "utf-8"))
-    return apply_framing(body, spec.get("framing", "raw"))
+    return wiremap.ACTIVE.frame_to_wire(apply_framing(body, spec.get("framing", "raw")))
 
 
 def heartbeat_interval(spec: dict) -> float:

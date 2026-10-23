@@ -70,14 +70,25 @@ from collections import Counter
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 from tankstorm import crypto                 # RC4、密钥推导、豁免名单的单一来源
+from tankstorm import wiremap                # 游戏版本 -> 协议编号对照
 
 try:
     from tankstorm import schema as SCH        # opcode/字段名对照，可选
 except Exception:
     SCH = None
 
-# 豁免 opcode 与 RC4 实现都来自 tankstorm/crypto.py，这里只做 int 化的视图
+# 豁免 opcode 与 RC4 实现都来自 tankstorm/crypto.py，这里只做 int 化的视图。
+# 给了游戏版本时 main() 会换成该版本的线上 opcode
 EXEMPT = {d: {int(o, 16) for o in ops} for d, ops in crypto.EXEMPT.items()}
+WM = wiremap.IDENTITY
+
+
+def canonical(op: int, body: bytes):
+    """线上 opcode/body -> 本项目编号的 (opcode 字符串, body)；拆不开返回 None。"""
+    try:
+        return WM.from_wire(f"{op:04x}", body)
+    except ValueError:
+        return None
 DEFAULT_PREFIX = crypto.DEFAULT_PREFIX
 RC4 = crypto.RC4
 make_key = crypto.make_key
@@ -213,9 +224,10 @@ def try_key(buf, enc, direction, prefix, mid, sid, skip, probe):
             # 导致正确密钥被误判成失败（实测 c2s 卡在 50% 噪声水平，
             # 而同一密钥逐帧 schema 解码是 390/390 全中）。
             hit = False
-            if SCH is not None:
+            got = canonical(op, p)
+            if SCH is not None and got:
                 try:
-                    hit = SCH.decode(p, op) is not None
+                    hit = SCH.decode(got[1], got[0]) is not None
                 except Exception:
                     hit = False
             if not hit:
@@ -228,6 +240,7 @@ def try_key(buf, enc, direction, prefix, mid, sid, skip, probe):
 
 
 def main():
+    global WM
     ap = argparse.ArgumentParser(description="坦克风暴 RC4 解密（规则来自 SWF 字节码）")
     ap.add_argument("stream", help="logs/streams/<会话>/s2c.bin 或 c2s.bin")
     ap.add_argument("--dir", choices=["s2c", "c2s"],
@@ -246,16 +259,26 @@ def main():
                     help="允许前几条非豁免 body 不算进密钥流（抓漏了的话调大）")
     ap.add_argument("--probe", type=int, default=12, help="每个假设试解多少条")
     ap.add_argument("--write", action="store_true", help="把解密结果写到 <流>.decrypted/")
+    ap.add_argument("--game-version",
+                    help="FlashVars 里的 version（没有则从同目录 meta.json 读）。2026102102 起"
+                         "协议编号会被打乱，按它把 opcode 和字段号换回本项目编号再判豁免、解码")
     args = ap.parse_args()
 
     buf = open(args.stream, "rb").read()
     direction = args.dir or ("c2s" if "c2s" in os.path.basename(args.stream) else "s2c")
-    sid = args.sid
     meta_p = os.path.join(os.path.dirname(args.stream), "meta.json")
-    if not sid and os.path.exists(meta_p):
-        sid = str(json.load(open(meta_p, encoding="utf-8")).get("sid") or "")
+    meta = json.load(open(meta_p, encoding="utf-8")) if os.path.exists(meta_p) else {}
+    sid = args.sid or str(meta.get("sid") or "")
     if not sid:
         ap.error("需要 sid（--sid，或同目录放 meta.json）")
+    version = args.game_version or meta.get("version")
+    if version:
+        WM = wiremap.for_version(version)
+        # 豁免按消息本身判断：本项目的名单换成这个版本的线上 opcode
+        EXEMPT.update({d: {int(WM.op_out(o), 16) for o in ops}
+                       for d, ops in crypto.EXEMPT.items()})
+        print(f"游戏版本 {version}：" + ("与本项目同一套编号" if WM.identity
+                                      else "按 wiremap.json 换回本项目编号"))
 
     start = find_start(buf)
     enc, plain = collect(buf, direction, start)
@@ -345,12 +368,15 @@ def main():
         ok += good_pb
         bad += not good_pb
         if jl:
-            ops = f"{op:04x}"
+            got = canonical(op, body) if not raw_write else None
+            ops, cbody = got or (f"{op:04x}", body)
             rec = {"i": i, "op": ops, "seq": seq, "off": off,
                    "len": len(body), "enc": encd, "pb": good_pb}
-            if SCH:
+            if ops != f"{op:04x}":
+                rec["wire_op"] = f"{op:04x}"
+            if SCH and (got or raw_write):
                 rec["msg"] = SCH.name_of(ops)
-                d = SCH.decode(body, ops)
+                d = SCH.decode(cbody, ops)
                 if d is not None:
                     rec["data"] = d
             if "data" not in rec:

@@ -61,6 +61,7 @@ from datetime import date
 from . import crypto
 from . import schema as SCH            # opcode -> 消息名（schema.json 还原自 SWF）
 from . import stream_recorder
+from . import wiremap
 from .log import LOG_DIR, get_logger
 
 log = get_logger()
@@ -276,6 +277,11 @@ class Recorder:
         self._probe = [0, 0]        # [合法数, 已验数]
         self._rc4_out_rec = None    # 录制上行专用的第二条 c2s 密钥流
 
+        # 本次连接解出来的下行消息，字段 wire type 和 schema 对得上的情况：
+        # [消息数, 一致字段数, 不一致字段数]。wiremap.verify 靠它判断编号对照还对不对
+        self.wire_check = [0, 0, 0]
+        self.connect_seq = 0        # 本次连接开始时的消息序号，之前的 latest 不算数
+
         # 原始字节流旁路。默认**开启**，而且不该关：RC4 密钥流在同方向的
         # 非豁免 body 之间连续累积，唯一保险的做法就是把整条流从第一个字节
         # 一字不差地存下来。解密用 tools/redwar_rc4.py。
@@ -320,8 +326,15 @@ class Recorder:
         self._session_id = time.strftime("%Y%m%d-%H%M%S")
         self._enc_index = {"c2s": 0, "s2c": 0}
         self._rc4, self._crypto, self._probe = {}, "off", [0, 0]
+        self.wire_check = [0, 0, 0]
+        self.connect_seq = self._latest_seq
         self.reader = FrameReader(on_desync=self._note_desync)
         self.reader_out = FrameReader(on_desync=self._note_desync)
+
+    @property
+    def decrypt_ok(self) -> bool:
+        """实时解密的密钥自检通过了没有。"""
+        return self._crypto == "ok"
 
     def seq_mark(self):
         """取当前的消息到达序号。之后只认序号比它大的消息 = "这之后才到的"。"""
@@ -513,12 +526,15 @@ class Recorder:
         reader = self.reader_out if outgoing else self.reader
         counts = self.counts_out if outgoing else self.counts
 
-        for op, seq, body, off in reader.feed(data):
-            counts[op] = counts.get(op, 0) + 1
-
+        for wop, seq, body, off in reader.feed(data):
             # 登录行 a,{uid},{secret} 和 TGW 头是 Transport 之外的裸写，
             # 不经过 Send()，绝不能算进密钥流。上行真帧的 opcode 都是 04xx。
-            real_frame = op.startswith("04") if outgoing else True
+            real_frame = wop.startswith("04") if outgoing else True
+            # 线上 opcode 先换回本项目编号（见 wiremap.py），下面的名单、解码、
+            # 统计一律按本项目编号走
+            op = wiremap.ACTIVE.op_in(wop) if real_frame else wop
+            counts[op] = counts.get(op, 0) + 1
+
             # 加密判定：按 SWF 里的 opcode 白名单，不再猜。空 body 不消耗密钥流。
             encrypted = (real_frame and bool(body)
                          and op not in EXEMPT_OPCODES[direction])
@@ -537,6 +553,8 @@ class Recorder:
                 "ts": time.strftime("%Y-%m-%d %H:%M:%S"),
                 "op": op, "seq": seq, "len": len(body),
             }
+            if wop != op:
+                rec["wire_op"] = wop
             nm = SCH.name_of(op)
             if nm != op:
                 rec["msg"] = nm
@@ -576,7 +594,20 @@ class Recorder:
                 # 解开了：换成明文往下走，关键词/图片检测因此对加密消息也生效
                 rec["enc"]["decrypted"] = True
                 body = plain
-                data = SCH.decode(plain, op)
+                try:
+                    _, body = wiremap.ACTIVE.from_wire(wop, plain)
+                    data = SCH.decode(body, op)
+                    if not outgoing:
+                        good, bad = SCH.check_wire_types(body, op)
+                        self.wire_check[0] += 1
+                        self.wire_check[1] += good
+                        self.wire_check[2] += bad
+                except ValueError as exc:
+                    # 拆不开就不解码：按线上编号的字段套本项目的名字只会起错名
+                    rec["remap_error"] = str(exc)
+                    if not outgoing:
+                        self.wire_check[0] += 1
+                        self.wire_check[2] += 1
                 if data is not None:
                     rec["data"] = data
                     # 缓存最新一条，供每日任务"先读状态再决策"用

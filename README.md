@@ -26,6 +26,9 @@
   <a href="https://github.com/Dimlitter/tankstorm-keepalive/wiki">原理 Wiki</a>
 </p>
 
+> 本项目免费开源，仅供学习研究，不提供任何形式的付费服务。
+> 下载或使用即视为同意[免责声明](#免责声明)。
+
 ---
 
 ```bash
@@ -56,6 +59,7 @@ python main.py --country-war 10  # 国战：打魔多军团 10 次，退出
 - [排错](#排错)
 - [开发](#开发)
 - [授权](#授权)
+- [免责声明](#免责声明)
 
 ---
 
@@ -105,8 +109,17 @@ python main.py --country-war 10  # 国战：打魔多军团 10 次，退出
 登录态失效时的二维码也会。部署到服务器时建议配置，填法见[配置](#配置)。
 
 抓包工具和 Flash 播放器都不需要，浏览器、模拟器也不用。协议已经还原好了，
-`protocol.json` 和字段定义都在仓库里。只有游戏更新导致 opcode 变化时，才需要重新从
-SWF 还原协议，那属于开发工作，见 [Wiki](https://github.com/Dimlitter/tankstorm-keepalive/wiki)。
+`protocol.json` 和字段定义都在仓库里。
+
+游戏从 2026102102 版起，更新时可能把 opcode 和字段号整体打乱。按旧编号发出去的请求
+会被服务端当成别的消息，其中包括购买类消息。所以脚本每次登录后、发任何请求之前，
+都先核对服务端推来的登录数据：字段类型要和协议定义一致，服务端时间要对得上。
+核对通过才继续；没通过就断开，不发任何请求，日志和推送会写明原因。
+
+遇到没适配过的游戏版本（游戏页 FlashVars 里的 `version`），脚本先按最近一个已适配
+版本的编号试连，试连期间只发登录握手。只改了活动内容、没动协议的更新能通过核对，
+照常运行；协议真被打乱时核对不过，要重新生成编号对照表，属于开发工作，
+见[游戏更新后](#游戏更新后)。
 
 ---
 
@@ -409,7 +422,7 @@ python main.py --reset      # 清空今日计数
 | 争霸战领奖 | `bLastRankGet` |
 | 争霸战挑战 | `nCanFightTimes`（实测 10）|
 | 公会战参加 | 今天有活动（`dayHasPK`）且今天还没参加过 |
-| 锦鲤心愿 / 七天乐 | `ngetdailyawd` / `field3[day-1]` |
+| 锦鲤心愿 / 七天乐 | `ngetdailyawd` / `hasGetGift[day-1]` |
 | 补支援兵 | 背包里的现有数量，低于补货线才买 |
 | 征战世界 | `fightdata.field4`（这一轮输过没有）、`fightdata.field2`（免费重新开始还剩几次）|
 | 军事演习 / 矿区争夺 | `tokenNum` / `searchTimes`，冷却读 `siteEndTime` / `resourceEndTime` |
@@ -662,6 +675,7 @@ PushPlus 的 token 填在 `config.local.json`：
 | 「需要花钱才能做」 | 正常，免费次数用完了，脚本主动停手 |
 | 「没有可做的（已领过）」 | 正常，今天那份已经领过 |
 | 推送登录失败 | 已知问题，见[登录](#登录)，自动回退扫码 |
+| 「协议编号核对没通过」 | 游戏更新打乱了协议编号，脚本已断开、没发任何请求。等新版本发布，或按[游戏更新后](#游戏更新后)自己生成编号对照表 |
 
 日志在 `logs/`：
 
@@ -713,8 +727,10 @@ tankstorm/
   recorder.py                收发录制、实时解密、事件告警、自动拒绝回调
   stream_recorder.py         原始字节流旁路落盘（解密的前提）
   protocol.py                读 protocol.json，构造握手与心跳帧
+  wiremap.py                 按游戏版本在本项目编号和线上编号之间翻译 opcode 与字段号
+  wiremap.json               游戏版本 → 编号对照，由 build_wiremap.py 生成
   schema.py                  协议 schema 载入 + protobuf 解码
-  schema.json                563 个 opcode 的字段表，由 extract_proto.py 生成
+  schema.json                567 个 opcode 的字段表（本项目编号），由 extract_proto.py 生成
   proto_encode.py            protobuf 编码
   settings.py                读 config.json 并合并 config.local.json
   paths.py                   区分随包只读数据和程序目录里的用户数据
@@ -730,7 +746,8 @@ tools/
   capture_daily.py           从解密后的上行帧提取每日任务参数
   analyze_frames.py          分析运行时录制的帧日志
   pcap_analyze.py            不解密也能定位登录握手与心跳
-  extract_proto.py           从 SWF 还原 opcode 表 / .proto / schema.json
+  extract_proto.py           从 SWF 还原 opcode 表 / .proto / schema.json / structure.json
+  build_wiremap.py           对比两版 structure.json，生成新游戏版本的编号对照
   dump_class.py              按类名反汇编 SWF
   xref.py                    全库交叉引用（找谁引用了某名字或某字符串）
   disasm.py                  AVM2 字节码反汇编器
@@ -742,6 +759,7 @@ docs/
   banner.svg                 README 头图
   redwar.proto               从 SWF 还原的完整协议定义
   opcodes.json               opcode ↔ 消息名对照
+  structure.json             本项目编号那一版（2026101403）的完整消息结构，生成映射时作基准
   protocol-reverse-engineering.md   二进制协议逆向方法论
   加密与协议还原.md          RC4 与协议还原的完整过程
   原理与逆向.md              早期原理记录（内容已迁至 Wiki）
@@ -771,12 +789,46 @@ python tools/capture_daily.py streams/<端口>/c2s.bin.decrypted/frames.jsonl
 
 ### 游戏更新后
 
-opcode 或字段号可能变。重新还原协议：
+2026102102 版起，游戏每次更新都可能把 567 个 opcode 重新分配，并打乱每条消息内部的
+字段号。帧格式、RC4、密钥推导、握手内容到目前为止都没变过。
+
+本项目的代码、任务表和 `schema.json` 固定使用 2026101403 版的编号（`docs/structure.json`），
+连接时由 `tankstorm/wiremap.py` 按游戏版本翻译：发出前换成线上编号，收到后换回本项目编号。
+加密豁免按消息本身判断，不用为每个版本另备名单。
+
+对照表对不对，登录后用服务端推来的数据核对（`wiremap.verify`），两条都满足才发请求：
+
+- 解出来的字段，wire type 与 schema 一致的比例不低于 99%。拿两次实盘的真实登录推送实测，
+  对照表对时是 100%，用错的对照表去解只有 29%~49%
+- 本次连接收到的 RseAuthState 里，服务端时间与本机相差不超过 1 小时
+
+没见过的游戏版本先借用最近一个已适配版本的对照表，核对通过就照常运行。
+核对没通过时断开连接、推送提醒，这个版本在本进程里不再连接（保活重连时连 TCP 都不连）。
+实时解密关着的话没法核对：已适配的版本照常运行，借用对照表的版本一律停手。
+
+适配新版本：
 
 ```bash
-python tools/extract_proto.py <新的.swf> out
-cp out/schema.json tankstorm/ && cp out/redwar.proto out/opcodes.json docs/
+# FlashVars 里的 version 就是 SWF 文件名里的版本号
+curl -O https://redwar-cdn.sincetimes.com/100616028/res/20120522/flash/RedWar_<版本>.swf
+python tools/extract_proto.py RedWar_<版本>.swf out
+python tools/build_wiremap.py docs/structure.json out/structure.json <版本>
+python -m unittest discover -s tests
 ```
+
+`build_wiremap.py` 的对应规则：
+
+- 消息按真名配对（protobuf-as3 的报错模板、没被混淆的类名、新版常量类里的
+  `C2S_`/`S2C_` 名字），再顺着嵌套字段往下认，剩下没名字的按结构签名认，签名不唯一的放弃
+- 字段按声明顺序配对。writeToBuffer 按 .proto 的声明顺序写字段，字段号打乱后这个先后
+  不变；同一位置名字或类型对不上就报错退出
+- 本项目的加密豁免名单映射过去后，必须和新版 SWF 里的豁免数组完全一致，否则报错退出
+
+认不出的消息不进映射表：收到时记成 8xxx 的伪 opcode，要发时直接拒发。生成的映射写进
+`tankstorm/wiremap.json`；用可执行文件的话，把它放到程序目录，会叠加在随包那份之上。
+
+`tests/test_wiremap.py` 里写死了一组对着 2026102102 字节码手工核过的线上编号，
+另有一条检查：代码里出现的每个请求 opcode，在每个已适配版本里都必须有对应。
 
 ---
 
@@ -807,4 +859,37 @@ MIT 协议发布，不受影响）。
 只要不对外分发二进制，GPL 不要求公开任何东西。
 
 AGPL 允许商用，任何开源许可证都不禁止商用。它要求的是：拿去做生意可以，
-但改动得开源。如果需要的是一份不开源的授权，联系仓库作者另谈。
+但改动得开源。仓库作者不出售闭源授权，也不参与、不认可任何基于本项目的收费服务，
+见[免责声明](#免责声明)。
+
+---
+
+## 免责声明
+
+下载、复制、使用本项目（包括源码、可执行文件、文档与 Wiki，下同）即视为已阅读并同意
+以下全部条款。不同意的，请勿使用，并删除已获取的全部副本。
+
+1. 不提供任何付费服务。本项目完全免费，仓库作者不以任何形式向任何人收费：
+   不出售软件、激活码或"高级版"，不提供代挂、代跑、托管、定制开发、付费技术支持
+   或商业授权，没有任何收费渠道，也没有授权任何个人或组织代理销售。
+   凡以本项目或仓库作者名义收取费用的，均与仓库作者无关，由此产生的损失和纠纷
+   由当事人自行承担。
+2. 仅供学习研究。本项目用于学习网络协议分析与软件逆向工程技术，
+   以及由用户本人管理本人的游戏账号，不得用于任何商业用途或违法用途。
+3. 与游戏权利方无关。「坦克风暴」的客户端、美术资源、名称与商标归各自权利人所有。
+   本项目是个人编写的非官方工具，与游戏开发商、运营方及腾讯公司没有任何关联，
+   未获得其授权或认可。仓库不包含游戏客户端文件。
+4. 风险由用户自行承担。使用自动化工具可能违反游戏的用户协议或运营规则，
+   可能导致账号被限制、封禁或游戏内资源损失。游戏更新后协议可能改变，
+   本项目可能失效，或产生与预期不符的行为。是否使用由用户自行判断。
+5. 不提供任何担保，不承担任何责任。本项目按"现状"提供，不作任何明示或默示的担保，
+   包括但不限于适销性、特定用途适用性和不侵权。在适用法律允许的最大范围内，
+   仓库作者与贡献者不对因使用或无法使用本项目造成的任何直接、间接、附带或衍生损失
+   承担责任，包括但不限于账号封禁、虚拟财产损失、数据丢失和第三方索赔。
+   另见 [LICENSE](LICENSE) 第 15、16 节。
+6. 遵守法律法规。用户应遵守所在地法律法规与游戏的用户协议，不得利用本项目干扰游戏
+   服务器正常运行、破坏游戏公平、侵害他人合法权益或从事其他违法活动。
+   违规使用产生的一切后果由使用者自行承担，与仓库作者无关。
+7. 侵权处理。权利人认为本项目侵犯其合法权益的，请通过 GitHub Issues 联系，
+   仓库作者核实后将及时删除相关内容。
+8. 仓库作者可随时修改本声明，修改后的版本自发布之日起生效。

@@ -25,7 +25,7 @@
 import struct
 import time
 import random
-from . import crypto
+from . import crypto, wiremap
 from .log import get_logger
 from .proto_encode import build_rce_super_storm_opt
 
@@ -67,15 +67,19 @@ def encrypt_body(opcode_hex: str, body: bytes, rc4_c2s) -> bytes:
 
 
 def send_frame(sock, opcode_hex: str, body: bytes, rc4_c2s=None) -> None:
-    """加密 body → 组帧 → sendall。
+    """换成线上编号 → 加密 body → 组帧 → sendall。
 
-    对豁免 opcode（040e/041c/041d/0455）不加密；其余必须提供 rc4_c2s。
+    opcode_hex 和 body 用本项目的编号，先按当前游戏版本换成线上编号（见 wiremap.py），
+    换不了就抛 wiremap.Unmapped，此时还没碰 RC4，密钥流不受影响。
+    加密豁免按消息本身判断，所以拿本项目编号去查：对豁免 opcode
+    （040e/041c/041d/0455）不加密；其余必须提供 rc4_c2s。
     """
-    enc_body = encrypt_body(opcode_hex, body, rc4_c2s)
-    frame = build_frame(opcode_hex, enc_body)
+    wire_op, wire_body = wiremap.ACTIVE.to_wire(opcode_hex, body)
+    enc_body = encrypt_body(opcode_hex, wire_body, rc4_c2s)
+    frame = build_frame(wire_op, enc_body)
     sock.sendall(frame)
-    log.debug("已发送帧 %s（body %d 字节，帧 %d 字节）",
-              opcode_hex, len(body), len(frame))
+    log.debug("已发送帧 %s（线上 %s，body %d 字节，帧 %d 字节）",
+              opcode_hex, wire_op, len(body), len(frame))
 
 
 def send_reject_super_storm(sock, rc4_c2s, rse_data: dict) -> bool:

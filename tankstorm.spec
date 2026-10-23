@@ -18,6 +18,8 @@ import os
 datas = [
     # schema.json 必须放回 tankstorm/ 子目录，schema.py 就是按包内相对路径找它的
     ("tankstorm/schema.json", "tankstorm"),
+    # 游戏版本 -> 协议编号对照，wiremap.py 同样按包内相对路径找
+    ("tankstorm/wiremap.json", "tankstorm"),
     # AGPL 要求分发二进制时随附许可证全文，不带就是违反自己的许可证
     ("LICENSE", "."),
     # 出厂默认配置，首次运行复制到程序目录
