@@ -94,7 +94,7 @@ def open_link(spec: dict, ctx: dict, rec) -> socket.socket:
     try:
         rec.on_connect()   # 开始登录静默窗口：这段时间的新 opcode 只学不报
         sock = rec.wrap(sock, host=host, port=port, uid=ctx.get("uid"),
-                        sid=ctx.get("sid"), version=ctx.get("version"))
+                        sid=ctx.get("sid"), version=wiremap.version_of(ctx))
         rec.enable_crypto(ctx)
         steps = protocol.build_login_sequence(spec, ctx)
         for i, (data, delay) in enumerate(steps, 1):
@@ -122,8 +122,8 @@ def check_protocol(rec, ctx: dict, config: dict):
     if ok:
         log.info("协议编号核对通过：%s", why)
         return None
-    version = ctx.get("version") or "（未知）"
-    wiremap.reject(ctx.get("version") or "", why)
+    version = wiremap.version_of(ctx) or "（未知）"
+    wiremap.reject(wiremap.version_of(ctx), why)
     log.error("协议编号核对没通过（游戏版本 %s）：%s。已断开，不发任何请求", version, why)
     notify.send(config, "坦克风暴：游戏协议可能又改了，脚本已停手",
                 f"游戏版本 {version} 登录后核对没通过：{why}\n\n"

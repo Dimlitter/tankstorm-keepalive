@@ -260,7 +260,7 @@ def main():
     ap.add_argument("--probe", type=int, default=12, help="每个假设试解多少条")
     ap.add_argument("--write", action="store_true", help="把解密结果写到 <流>.decrypted/")
     ap.add_argument("--game-version",
-                    help="FlashVars 里的 version（没有则从同目录 meta.json 读）。2026102102 起"
+                    help="主程序版本号（没有则从同目录 meta.json 读）。2026102102 起"
                          "协议编号会被打乱，按它把 opcode 和字段号换回本项目编号再判豁免、解码")
     args = ap.parse_args()
 

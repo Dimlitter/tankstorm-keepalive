@@ -116,8 +116,8 @@ python main.py --country-war 10  # 国战：打魔多军团 10 次，退出
 都先核对服务端推来的登录数据：字段类型要和协议定义一致，服务端时间要对得上。
 核对通过才继续；没通过就断开，不发任何请求，日志和推送会写明原因。
 
-遇到没适配过的游戏版本（游戏页 FlashVars 里的 `version`），脚本先按最近一个已适配
-版本的编号试连，试连期间只发登录握手。只改了活动内容、没动协议的更新能通过核对，
+遇到没适配过的游戏主程序（`python main.py --check` 打印的 `swf_version`），脚本先按
+最近一个已适配版本的编号试连，试连期间只发登录握手。只改了活动内容、没动协议的更新能通过核对，
 照常运行；协议真被打乱时核对不过，要重新生成编号对照表，属于开发工作，
 见[游戏更新后](#游戏更新后)。
 
@@ -790,11 +790,16 @@ python tools/capture_daily.py streams/<端口>/c2s.bin.decrypted/frames.jsonl
 ### 游戏更新后
 
 2026102102 版起，游戏每次更新都可能把 567 个 opcode 重新分配，并打乱每条消息内部的
-字段号。帧格式、RC4、密钥推导、握手内容到目前为止都没变过。
+字段号，2026102901 版又打乱了一次。帧格式、RC4、密钥推导、握手内容到目前为止都没变过。
 
 本项目的代码、任务表和 `schema.json` 固定使用 2026101403 版的编号（`docs/structure.json`），
 连接时由 `tankstorm/wiremap.py` 按游戏版本翻译：发出前换成线上编号，收到后换回本项目编号。
 加密豁免按消息本身判断，不用为每个版本另备名单。
+
+对照表按主程序 SWF 的版本分。FlashVars 里的 `version` 是配置文件
+`flash/config_<version>.xml` 的版本，只改数据表时它也会涨，主程序不一定换：
+配置 2026103002 加载的仍是 `RedWar_2026103001.swf`。脚本连接前从配置里读出主程序版本
+（`swf_version`），读不到时退回 `version`。
 
 对照表对不对，登录后用服务端推来的数据核对（`wiremap.verify`），两条都满足才发请求：
 
@@ -802,17 +807,18 @@ python tools/capture_daily.py streams/<端口>/c2s.bin.decrypted/frames.jsonl
   对照表对时是 100%，用错的对照表去解只有 29%~49%
 - 本次连接收到的 RseAuthState 里，服务端时间与本机相差不超过 1 小时
 
-没见过的游戏版本先借用最近一个已适配版本的对照表，核对通过就照常运行。
+没见过的主程序版本先借用最近一个已适配版本的对照表，核对通过就照常运行。
 核对没通过时断开连接、推送提醒，这个版本在本进程里不再连接（保活重连时连 TCP 都不连）。
 实时解密关着的话没法核对：已适配的版本照常运行，借用对照表的版本一律停手。
 
 适配新版本：
 
 ```bash
-# FlashVars 里的 version 就是 SWF 文件名里的版本号
-curl -O https://redwar-cdn.sincetimes.com/100616028/res/20120522/flash/RedWar_<版本>.swf
-python tools/extract_proto.py RedWar_<版本>.swf out
-python tools/build_wiremap.py docs/structure.json out/structure.json <版本>
+# 主程序版本看 python main.py --check 打印的 swf_version，
+# 也就是 flash/config_<version>.xml 里 name="game" 那一行的版本号
+curl -O https://redwar-cdn.sincetimes.com/100616028/res/20120522/flash/RedWar_<主程序版本>.swf
+python tools/extract_proto.py RedWar_<主程序版本>.swf out
+python tools/build_wiremap.py docs/structure.json out/structure.json <主程序版本>
 python -m unittest discover -s tests
 ```
 
@@ -827,7 +833,7 @@ python -m unittest discover -s tests
 认不出的消息不进映射表：收到时记成 8xxx 的伪 opcode，要发时直接拒发。生成的映射写进
 `tankstorm/wiremap.json`；用可执行文件的话，把它放到程序目录，会叠加在随包那份之上。
 
-`tests/test_wiremap.py` 里写死了一组对着 2026102102 字节码手工核过的线上编号，
+`tests/test_wiremap.py` 里写死了 2026102102 和 2026103001 两版对着字节码手工核过的线上编号，
 另有一条检查：代码里出现的每个请求 opcode，在每个已适配版本里都必须有对应。
 
 ---
