@@ -69,7 +69,7 @@ class SessionTest(unittest.TestCase):
     def test_unverifiable_guess_sends_nothing_after_login(self):
         # 没见过的版本借用对照表试连；录制和解密都关着，没法核对，就不该发心跳
         self.addCleanup(wiremap._REJECTED.pop, "2099010101", None)
-        srv = LocalServer(hb="0006043e00000000")
+        srv = LocalServer(hb="0006046c00000000")
         srv.start()
         spec = dict(protocol.load_spec(), http_warmup=False)
         rec = socket_keepalive.Recorder(NO_RECORDING)
@@ -81,7 +81,7 @@ class SessionTest(unittest.TestCase):
         rec.close()
         self.assertIn("核对没通过", reason)
         self.assertTrue(srv.received.startswith(b"tgw_"))              # 握手照发
-        self.assertNotIn(bytes.fromhex("0006043e00000000"), srv.received)   # 心跳没发
+        self.assertNotIn(bytes.fromhex("0006046c00000000"), srv.received)   # 心跳没发
         with self.assertRaises(wiremap.UnsupportedVersion):           # 之后连 TCP 都不连
             session.open_link(spec, ctx_for(srv.port, "2099010101"), rec)
 

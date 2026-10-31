@@ -6,6 +6,10 @@
 常量类 C2S_/S2C_ 给出心跳、握手、广播的 opcode，RseSuperStormOpt 的字段号
 是直接读它的 writeToBuffer 得到的（type=5 nResult=4 deftUid=6 deftName=2
 atkUid=3 atkName=1），不依赖 tools/build_wiremap.py 的推导。
+
+2026102901 又打乱了一次（2026103001 编号相同），LatestVersionTest 的编号同样是对着
+RedWar_2026103001.swf 手工读的：RseSuperStormOpt 依次 type=3 nResult=1 deftUid=4
+deftName=5 atkUid=6 atkName=2，RceArenaOpt 依次 1 6 4 5 10 8 9 2 7 3。
 """
 import glob
 import os
@@ -17,11 +21,12 @@ from unittest import mock
 
 import fakes  # noqa: F401
 
-from tankstorm import crypto, protocol, recorder, schema, sender, session, wiremap
+from tankstorm import crypto, protocol, qzone, recorder, schema, sender, session, wiremap
 from tankstorm.proto_encode import encode_message
 from tankstorm.recorder import Recorder
 
 NEW = "2026102102"
+LATEST = "2026103001"
 KEY = b"Redwarhq2018HoneyHoneyHoney"
 
 
@@ -39,8 +44,9 @@ class VersionTest(unittest.TestCase):
         # 游戏更新未必动协议：先按最近一个已适配版本的编号试，登录后再核对
         for v in ("2099010101", "", "_canon"):
             m = wiremap.for_version(v)
-            self.assertEqual(m.assumed_from, NEW)
-            self.assertEqual(m.op_out("040e"), "043e")
+            self.assertEqual(m.assumed_from, LATEST)
+            self.assertEqual(m.op_out("040e"), "046c")
+        self.assertIsNone(wiremap.for_version(LATEST).assumed_from)
         self.assertIsNone(wiremap.for_version(NEW).assumed_from)
 
     def test_rejected_version_is_refused_before_connecting(self):
@@ -51,6 +57,46 @@ class VersionTest(unittest.TestCase):
             session.open_link({}, {"version": "2099010101"}, None)
         conn.assert_not_called()
         self.assertIsInstance(cm.exception, OSError)
+
+
+class SwfVersionTest(unittest.TestCase):
+    """FlashVars 的 version 是配置文件的版本，对照表要按主程序 SWF 的版本选。"""
+
+    XML = ('<asset name="fonts" value="${storageURL}flash/Fonts_zh_CN_2026102701.swf"/>\n'
+           '<asset name="game" value="${storageURL}flash/RedWar_2026103001.swf"/>')
+    CTX = {"version": "2026103002", "storageURL": "https://cdn.test/res/"}
+
+    def test_config_names_the_game_swf(self):
+        self.assertEqual(qzone.parse_swf_version(self.XML), LATEST)
+        self.assertIsNone(qzone.parse_swf_version("<app/>"))
+
+    def test_fetch_reads_the_config_of_this_version(self):
+        s = mock.Mock()
+        s.get.return_value = mock.Mock(text=self.XML)
+        self.assertEqual(qzone.fetch_swf_version(s, self.CTX), LATEST)
+        s.get.assert_called_once_with("https://cdn.test/res/flash/config_2026103002.xml",
+                                      timeout=20)
+
+    def test_fetch_failure_falls_back_to_the_flashvars_version(self):
+        s = mock.Mock()
+        s.get.side_effect = OSError("断网")
+        self.assertIsNone(qzone.fetch_swf_version(s, self.CTX))
+        self.assertEqual(wiremap.version_of(self.CTX), "2026103002")
+
+    def test_config_only_update_uses_the_exact_table(self):
+        self.addCleanup(setattr, wiremap, "ACTIVE", wiremap.ACTIVE)
+        m = wiremap.activate(dict(self.CTX, swf_version=LATEST))
+        self.assertIsNone(m.assumed_from)
+        self.assertEqual(m.op_out("040e"), "046c")
+
+    def test_failed_check_rejects_the_version_activate_looks_up(self):
+        self.addCleanup(wiremap._REJECTED.pop, "2099010101", None)
+        ctx = {"version": "2099010102", "swf_version": "2099010101"}
+        with mock.patch.object(session.notify, "send"), \
+                mock.patch.object(wiremap, "verify", return_value=(False, "测试")):
+            session.check_protocol(None, ctx, {})
+        with self.assertRaises(wiremap.UnsupportedVersion):
+            wiremap.activate(ctx)
 
 
 def _sample_bodies(n=15):
@@ -97,11 +143,13 @@ class VerifyTest(unittest.TestCase):
     def test_right_table_passes(self):
         ok, why = self._login_burst(NEW, NEW)
         self.assertTrue(ok, why)
-        ok, why = self._login_burst(NEW, "2099010101")      # 借用的对照表恰好没变
+        ok, why = self._login_burst(LATEST, "2099010101")   # 借用的对照表恰好没变
         self.assertTrue(ok, why)
 
     def test_reshuffled_protocol_is_caught(self):
         ok, why = self._login_burst(NEW, "2026101403")      # 服务端已打乱，脚本还按旧编号
+        self.assertFalse(ok)
+        ok, why = self._login_burst(LATEST, NEW)            # 又打乱一次，脚本还按上一版编号
         self.assertFalse(ok)
         ok, why = self._login_burst("2026101403", "2099010101")
         self.assertFalse(ok)
@@ -252,6 +300,51 @@ class NewVersionTest(unittest.TestCase):
         for v in versions:
             m = wiremap.for_version(v)
             self.assertEqual(sorted(o for o in used if o not in m._op_out), [], v)
+
+
+class LatestVersionTest(unittest.TestCase):
+    def setUp(self):
+        ctx = wiremap.using(LATEST)
+        self.m = ctx.__enter__()
+        self.addCleanup(ctx.__exit__, None, None, None)
+
+    def test_exempt_messages_land_on_the_new_exempt_lists(self):
+        self.assertEqual({self.m.op_out(o) for o in crypto.EXEMPT["c2s"]},
+                         {"046c", "045e", "04c0", "0436"})
+        self.assertEqual({self.m.op_out(o) for o in crypto.EXEMPT["s2c"]},
+                         {"02ae", "02e6", "0261", "0292", "0274"})
+
+    def test_login_and_heartbeat_frames(self):
+        spec = protocol.load_spec()
+        steps = [d for d, _ in protocol.build_login_sequence(
+            spec, {"uid": "1000", "secret": "s", "version": LATEST})]
+        self.assertEqual(steps[2], bytes.fromhex("0023045e00000000") + b"\x3a\x1b" + KEY)
+        # RceLoad：按声明顺序 baseid type h hn enterType 写，字段号 2 5 4 3 6
+        self.assertEqual(steps[3].hex(),
+                         "002804c000000000" + "120130" + "2a05" + b"build".hex()
+                         + "2209" + b"undefined".hex() + "1a09" + b"undefined".hex()
+                         + "3000")
+        self.assertEqual(protocol.build_heartbeat(spec, {}).hex(), "0006046c00000000")
+
+    def test_incoming_super_storm_is_renumbered(self):
+        wire = encode_message({3: ("int32", 1), 1: ("int32", 0), 4: ("string", "111"),
+                               5: ("string", "me"), 6: ("string", "222"),
+                               2: ("string", "atk")}, omit_zero=False)
+        op, body = self.m.from_wire("0226", wire)
+        self.assertEqual(op, "027c")
+        self.assertEqual(schema.decode(body, op),
+                         {"type": 1, "nResult": 0, "deftUid": "111", "deftName": "me",
+                          "atkUid": "222", "atkName": "atk"})
+
+    def test_requests_go_out_in_declaration_order(self):
+        op = _op("RceArenaOpt")
+        body = encode_message({1: ("int32", 1), 2: ("string", "1000"), 3: ("string", "9"),
+                               6: ("int32", 3)}, omit_zero=False)
+        wop, wbody = self.m.to_wire(op, body)
+        self.assertEqual(wop, "0456")
+        # type uidself uidfight countryidself 的线上字段号是 1 6 4 8
+        self.assertEqual(wbody.hex(), "0801" + "3204" + b"1000".hex() + "220139" + "4003")
+        self.assertEqual(self.m.from_wire(wop, wbody), (op, body))
 
 
 if __name__ == "__main__":

@@ -11,6 +11,9 @@
     python tools/extract_proto.py <新的.swf> out
     python tools/build_wiremap.py docs/structure.json out/structure.json <版本号>
 
+版本号是主程序 RedWar_<版本号>.swf 的版本号，不是 FlashVars 里的 version
+（main.py --check 打印的 swf_version，来源见 qzone.fetch_swf_version）。
+
 2026102102 起，游戏每次更新都可能把 opcode 和字段号整体打乱。本项目的代码、
 schema.json、任务表一律按 docs/structure.json 那一版（2026101403）的编号写，
 连接时由 tankstorm/wiremap.py 按这里生成的表在收发两头翻译。
@@ -207,7 +210,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("canon", help="本项目编号那一版的 structure.json（docs/structure.json）")
     ap.add_argument("wire", help="新版 SWF 用 extract_proto.py 导出的 structure.json")
-    ap.add_argument("version", help="游戏版本号，即 FlashVars 里的 version")
+    ap.add_argument("version", help="主程序版本号，即 RedWar_<版本号>.swf 里的版本号")
     ap.add_argument("--out", default=OUT, help="写进哪个 wiremap.json（默认 tankstorm/wiremap.json）")
     args = ap.parse_args()
 

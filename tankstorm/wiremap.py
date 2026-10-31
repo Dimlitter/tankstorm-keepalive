@@ -12,7 +12,8 @@
 成了 RcePurchase。本项目的任务表、schema.json、各模块里的字段路径都按 2026101403
 那一版的编号写（docs/structure.json），连接时：
 
-    activate(ctx)          按 FlashVars 的 version 选映射（session.open_link 在连 TCP 之前调用）。
+    activate(ctx)          按主程序 SWF 的版本选映射（session.open_link 在连 TCP 之前调用）。
+                           FlashVars 的 version 只是配置文件的版本，见 qzone.fetch_swf_version。
                            没见过的版本先沿用最近一个已适配版本的对照表试连：游戏更新
                            未必动协议，只改活动内容的更新照样能用
     ACTIVE.to_wire()       发出去之前：本项目编号 -> 线上编号（sender、握手、心跳）
@@ -258,10 +259,15 @@ def reject(version: str, why: str) -> None:
     _REJECTED[version] = why
 
 
+def version_of(ctx: dict) -> str:
+    """选对照表用的版本号：主程序 SWF 的版本，读不到时退回 FlashVars 的 version。"""
+    return str(ctx.get("swf_version") or ctx.get("version") or "")
+
+
 def activate(ctx: dict) -> WireMap:
-    """按 FlashVars 里的游戏版本选好映射，之后的收发都按它翻译。"""
+    """按这次连接的游戏版本选好映射，之后的收发都按它翻译。"""
     global ACTIVE
-    ACTIVE = for_version(str(ctx.get("version") or ""))
+    ACTIVE = for_version(version_of(ctx))
     if ACTIVE.assumed_from:
         log.warning("游戏版本 %s 没有现成的对照表，先按 %s 的编号试连；"
                     "登录后核对解出来的内容，对不上就断开，不发任何请求",

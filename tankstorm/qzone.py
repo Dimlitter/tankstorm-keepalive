@@ -42,6 +42,8 @@ _CANVAS_URL_JS_RE = re.compile(
 # iframe 页里传给 SWF 的 FlashVars
 _FLASHVARS_RE = re.compile(
     r'(?:FlashVars["\']?\s*(?:value=)?["\']|flashvars\s*=\s*["\'])([^"\']+)', re.I)
+# 游戏配置 flash/config_<version>.xml 里主程序 SWF 那一行
+_GAME_SWF_RE = re.compile(r'<asset\s+name="game"\s+value="[^"]*RedWar_(\d+)\.swf"')
 
 # socket 登录关心的字段（缺失不报错，按需使用）
 WANTED = ("openid", "openkey", "uid", "secret", "sid", "region", "pf", "pfkey",
@@ -83,6 +85,31 @@ def extract_context(outer_html: str, iframe_html: str) -> dict:
     return ctx
 
 
+def parse_swf_version(config_xml: str) -> str | None:
+    """从游戏配置 XML 里取主程序 RedWar_<版本>.swf 的版本号。"""
+    m = _GAME_SWF_RE.search(config_xml)
+    return m.group(1) if m else None
+
+
+def fetch_swf_version(s, ctx: dict) -> str | None:
+    """查这次加载的主程序版本，查不到返回 None。
+
+    FlashVars 的 version 是配置文件 config_<version>.xml 的版本，只改数据表时它也会涨，
+    主程序不一定换：配置 2026103002 加载的是 RedWar_2026103001.swf。协议编号跟着
+    主程序走，编号对照表要按主程序的版本选。
+    """
+    base, version = ctx.get("storageURL"), ctx.get("version")
+    if not base or not version:
+        return None
+    try:
+        r = s.get(f"{base.rstrip('/')}/flash/config_{version}.xml", timeout=20)
+        r.raise_for_status()
+        return parse_swf_version(r.text)
+    except Exception as exc:
+        log.warning("读取游戏配置失败: %s", exc)
+        return None
+
+
 def get_game_context(qq) -> dict:
     """在线版：真正发请求，返回 socket 登录所需的完整 ctx。qq 为已登录 QQSession。"""
     s = qq.session
@@ -116,6 +143,11 @@ def get_game_context(qq) -> dict:
             log.warning("未在 iframe 页找到 FlashVars（HTML 已存 debug/2_iframe.html）")
     except Exception as exc:
         log.warning("请求 iframe 页失败: %s", exc)
+
+    swf = fetch_swf_version(s, ctx)
+    if swf:
+        ctx["swf_version"] = swf
+    log.info("游戏配置版本 %s，主程序版本 %s", ctx.get("version"), swf or "读不到，退回配置版本")
 
     have = [k for k in ("openid", "openkey", "uid", "secret", "sid", "server", "port")
             if ctx.get(k)]
